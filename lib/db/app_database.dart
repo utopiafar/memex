@@ -43,7 +43,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase._(String userId) : super(_openConnection(userId));
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -119,6 +119,16 @@ class AppDatabase extends _$AppDatabase {
                 'CREATE INDEX IF NOT EXISTS idx_persona_chat_character ON persona_chat_messages(character_id)');
             await customStatement(
                 'CREATE INDEX IF NOT EXISTS idx_persona_chat_unread ON persona_chat_messages(character_id, is_read)');
+          }
+          if (from < 10) {
+            await customStatement(
+                'ALTER TABLE card_cache ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0');
+            await customStatement(
+                'ALTER TABLE card_cache ADD COLUMN pinned_until INTEGER');
+            await customStatement(
+                'ALTER TABLE card_cache ADD COLUMN pin_priority INTEGER NOT NULL DEFAULT 0');
+            await customStatement(
+                'CREATE INDEX IF NOT EXISTS idx_card_cache_is_pinned ON card_cache(is_pinned)');
           }
         },
       );

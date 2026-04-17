@@ -90,6 +90,9 @@ class CardData {
   final CardInsight? insight;
   final bool? deleted;
   final String? failureReason;
+  final bool isPinned;
+  final int? pinnedUntil;
+  final int pinPriority;
 
   const CardData({
     required this.factId,
@@ -106,6 +109,9 @@ class CardData {
     this.insight,
     this.deleted,
     this.failureReason,
+    this.isPinned = false,
+    this.pinnedUntil,
+    this.pinPriority = 0,
   }) : comments = comments ?? const [];
 
   factory CardData.fromJson(Map<String, dynamic> json) {
@@ -168,6 +174,9 @@ class CardData {
       insight: insightData,
       deleted: json['deleted'] as bool?,
       failureReason: json['failure_reason'] as String?,
+      isPinned: json['is_pinned'] as bool? ?? false,
+      pinnedUntil: json['pinned_until'] as int?,
+      pinPriority: json['pin_priority'] as int? ?? 0,
     );
   }
 
@@ -191,6 +200,9 @@ class CardData {
     if (insight != null) m['insight'] = insight!.toJson();
     if (deleted == true) m['deleted'] = deleted;
     if (failureReason != null) m['failure_reason'] = failureReason;
+    if (isPinned) m['is_pinned'] = isPinned;
+    if (pinnedUntil != null) m['pinned_until'] = pinnedUntil;
+    if (pinPriority != 0) m['pin_priority'] = pinPriority;
     return m;
   }
 
@@ -209,6 +221,9 @@ class CardData {
     CardInsight? insight,
     bool? deleted,
     String? failureReason,
+    bool? isPinned,
+    int? pinnedUntil,
+    int? pinPriority,
   }) {
     return CardData(
       factId: factId ?? this.factId,
@@ -225,6 +240,9 @@ class CardData {
       insight: insight ?? this.insight,
       deleted: deleted ?? this.deleted,
       failureReason: failureReason ?? this.failureReason,
+      isPinned: isPinned ?? this.isPinned,
+      pinnedUntil: pinnedUntil ?? this.pinnedUntil,
+      pinPriority: pinPriority ?? this.pinPriority,
     );
   }
 }

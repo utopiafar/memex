@@ -69,8 +69,11 @@ class CardDao extends DatabaseAccessor<AppDatabase> with _$CardDaoMixin {
       query.where((tbl) => combinedCondition);
     }
 
-    // Sorting: Timestamp DESC, then FactId DESC
+    // Sorting: Pinned first, then by priority, then by timestamp DESC
     query.orderBy([
+      (t) => OrderingTerm(expression: t.isPinned, mode: OrderingMode.desc),
+      (t) =>
+          OrderingTerm(expression: t.pinPriority, mode: OrderingMode.desc),
       (t) => OrderingTerm(expression: t.timestamp, mode: OrderingMode.desc),
       (t) => OrderingTerm(expression: t.factId, mode: OrderingMode.desc)
     ]);

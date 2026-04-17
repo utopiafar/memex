@@ -21,6 +21,9 @@ class TimelineCardModel {
       rawText; // Original user input text (with asset markers removed)
   final String? address; // Location name
   final String? failureReason;
+  final bool isPinned;
+  final DateTime? pinnedUntil;
+  final int pinPriority;
 
   TimelineCardModel({
     required this.id,
@@ -34,6 +37,9 @@ class TimelineCardModel {
     this.rawText,
     this.address,
     this.failureReason,
+    this.isPinned = false,
+    this.pinnedUntil,
+    this.pinPriority = 0,
   });
 
   factory TimelineCardModel.fromJson(Map<String, dynamic> json) {
@@ -67,6 +73,14 @@ class TimelineCardModel {
       rawText: json['raw_text'] as String?,
       address: json['address'] as String?,
       failureReason: json['failure_reason'] as String?,
+      isPinned: json['is_pinned'] as bool? ?? false,
+      pinnedUntil: json['pinned_until'] != null
+          ? DateTime.fromMillisecondsSinceEpoch(
+              (json['pinned_until'] as int) * 1000,
+              isUtc: true,
+            ).toLocal()
+          : null,
+      pinPriority: json['pin_priority'] as int? ?? 0,
     );
   }
 
@@ -84,6 +98,10 @@ class TimelineCardModel {
       if (rawText != null) 'raw_text': rawText,
       if (address != null) 'address': address,
       if (failureReason != null) 'failure_reason': failureReason,
+      if (isPinned) 'is_pinned': isPinned,
+      if (pinnedUntil != null)
+        'pinned_until': pinnedUntil!.millisecondsSinceEpoch ~/ 1000,
+      if (pinPriority != 0) 'pin_priority': pinPriority,
     };
   }
 

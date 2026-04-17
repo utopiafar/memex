@@ -99,6 +99,14 @@ Future<List<TimelineCardModel>> getTimelineCards({
           rawText: rawText,
           address: cardData.address,
           failureReason: cardData.failureReason,
+          isPinned: cachedCard.isPinned,
+          pinnedUntil: cachedCard.pinnedUntil != null
+              ? DateTime.fromMillisecondsSinceEpoch(
+                      cachedCard.pinnedUntil! * 1000,
+                      isUtc: true)
+                  .toLocal()
+              : null,
+          pinPriority: cachedCard.pinPriority,
         );
         timelineCards.add(timelineCard);
       } catch (e) {

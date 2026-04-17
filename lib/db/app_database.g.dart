@@ -1553,8 +1553,33 @@ class $CardCacheTable extends CardCache
   late final GeneratedColumn<String> tags = GeneratedColumn<String>(
       'tags', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _isPinnedMeta =
+      const VerificationMeta('isPinned');
   @override
-  List<GeneratedColumn> get $columns => [factId, cardPath, timestamp, tags];
+  late final GeneratedColumn<bool> isPinned = GeneratedColumn<bool>(
+      'is_pinned', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_pinned" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _pinnedUntilMeta =
+      const VerificationMeta('pinnedUntil');
+  @override
+  late final GeneratedColumn<int> pinnedUntil = GeneratedColumn<int>(
+      'pinned_until', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _pinPriorityMeta =
+      const VerificationMeta('pinPriority');
+  @override
+  late final GeneratedColumn<int> pinPriority = GeneratedColumn<int>(
+      'pin_priority', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [factId, cardPath, timestamp, tags, isPinned, pinnedUntil, pinPriority];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1589,6 +1614,22 @@ class $CardCacheTable extends CardCache
     } else if (isInserting) {
       context.missing(_tagsMeta);
     }
+    if (data.containsKey('is_pinned')) {
+      context.handle(_isPinnedMeta,
+          isPinned.isAcceptableOrUnknown(data['is_pinned']!, _isPinnedMeta));
+    }
+    if (data.containsKey('pinned_until')) {
+      context.handle(
+          _pinnedUntilMeta,
+          pinnedUntil.isAcceptableOrUnknown(
+              data['pinned_until']!, _pinnedUntilMeta));
+    }
+    if (data.containsKey('pin_priority')) {
+      context.handle(
+          _pinPriorityMeta,
+          pinPriority.isAcceptableOrUnknown(
+              data['pin_priority']!, _pinPriorityMeta));
+    }
     return context;
   }
 
@@ -1606,6 +1647,12 @@ class $CardCacheTable extends CardCache
           .read(DriftSqlType.int, data['${effectivePrefix}timestamp'])!,
       tags: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}tags'])!,
+      isPinned: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_pinned'])!,
+      pinnedUntil: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}pinned_until']),
+      pinPriority: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}pin_priority'])!,
     );
   }
 
@@ -1620,11 +1667,17 @@ class CardCacheData extends DataClass implements Insertable<CardCacheData> {
   final String cardPath;
   final int timestamp;
   final String tags;
+  final bool isPinned;
+  final int? pinnedUntil;
+  final int pinPriority;
   const CardCacheData(
       {required this.factId,
       required this.cardPath,
       required this.timestamp,
-      required this.tags});
+      required this.tags,
+      required this.isPinned,
+      this.pinnedUntil,
+      required this.pinPriority});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1632,6 +1685,11 @@ class CardCacheData extends DataClass implements Insertable<CardCacheData> {
     map['card_path'] = Variable<String>(cardPath);
     map['timestamp'] = Variable<int>(timestamp);
     map['tags'] = Variable<String>(tags);
+    map['is_pinned'] = Variable<bool>(isPinned);
+    if (!nullToAbsent || pinnedUntil != null) {
+      map['pinned_until'] = Variable<int>(pinnedUntil);
+    }
+    map['pin_priority'] = Variable<int>(pinPriority);
     return map;
   }
 
@@ -1641,6 +1699,11 @@ class CardCacheData extends DataClass implements Insertable<CardCacheData> {
       cardPath: Value(cardPath),
       timestamp: Value(timestamp),
       tags: Value(tags),
+      isPinned: Value(isPinned),
+      pinnedUntil: pinnedUntil == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pinnedUntil),
+      pinPriority: Value(pinPriority),
     );
   }
 
@@ -1652,6 +1715,9 @@ class CardCacheData extends DataClass implements Insertable<CardCacheData> {
       cardPath: serializer.fromJson<String>(json['cardPath']),
       timestamp: serializer.fromJson<int>(json['timestamp']),
       tags: serializer.fromJson<String>(json['tags']),
+      isPinned: serializer.fromJson<bool>(json['isPinned']),
+      pinnedUntil: serializer.fromJson<int?>(json['pinnedUntil']),
+      pinPriority: serializer.fromJson<int>(json['pinPriority']),
     );
   }
   @override
@@ -1662,16 +1728,28 @@ class CardCacheData extends DataClass implements Insertable<CardCacheData> {
       'cardPath': serializer.toJson<String>(cardPath),
       'timestamp': serializer.toJson<int>(timestamp),
       'tags': serializer.toJson<String>(tags),
+      'isPinned': serializer.toJson<bool>(isPinned),
+      'pinnedUntil': serializer.toJson<int?>(pinnedUntil),
+      'pinPriority': serializer.toJson<int>(pinPriority),
     };
   }
 
   CardCacheData copyWith(
-          {String? factId, String? cardPath, int? timestamp, String? tags}) =>
+          {String? factId,
+          String? cardPath,
+          int? timestamp,
+          String? tags,
+          bool? isPinned,
+          Value<int?> pinnedUntil = const Value.absent(),
+          int? pinPriority}) =>
       CardCacheData(
         factId: factId ?? this.factId,
         cardPath: cardPath ?? this.cardPath,
         timestamp: timestamp ?? this.timestamp,
         tags: tags ?? this.tags,
+        isPinned: isPinned ?? this.isPinned,
+        pinnedUntil: pinnedUntil.present ? pinnedUntil.value : this.pinnedUntil,
+        pinPriority: pinPriority ?? this.pinPriority,
       );
   CardCacheData copyWithCompanion(CardCacheCompanion data) {
     return CardCacheData(
@@ -1679,6 +1757,11 @@ class CardCacheData extends DataClass implements Insertable<CardCacheData> {
       cardPath: data.cardPath.present ? data.cardPath.value : this.cardPath,
       timestamp: data.timestamp.present ? data.timestamp.value : this.timestamp,
       tags: data.tags.present ? data.tags.value : this.tags,
+      isPinned: data.isPinned.present ? data.isPinned.value : this.isPinned,
+      pinnedUntil:
+          data.pinnedUntil.present ? data.pinnedUntil.value : this.pinnedUntil,
+      pinPriority:
+          data.pinPriority.present ? data.pinPriority.value : this.pinPriority,
     );
   }
 
@@ -1688,13 +1771,17 @@ class CardCacheData extends DataClass implements Insertable<CardCacheData> {
           ..write('factId: $factId, ')
           ..write('cardPath: $cardPath, ')
           ..write('timestamp: $timestamp, ')
-          ..write('tags: $tags')
+          ..write('tags: $tags, ')
+          ..write('isPinned: $isPinned, ')
+          ..write('pinnedUntil: $pinnedUntil, ')
+          ..write('pinPriority: $pinPriority')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(factId, cardPath, timestamp, tags);
+  int get hashCode => Object.hash(
+      factId, cardPath, timestamp, tags, isPinned, pinnedUntil, pinPriority);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1702,7 +1789,10 @@ class CardCacheData extends DataClass implements Insertable<CardCacheData> {
           other.factId == this.factId &&
           other.cardPath == this.cardPath &&
           other.timestamp == this.timestamp &&
-          other.tags == this.tags);
+          other.tags == this.tags &&
+          other.isPinned == this.isPinned &&
+          other.pinnedUntil == this.pinnedUntil &&
+          other.pinPriority == this.pinPriority);
 }
 
 class CardCacheCompanion extends UpdateCompanion<CardCacheData> {
@@ -1710,12 +1800,18 @@ class CardCacheCompanion extends UpdateCompanion<CardCacheData> {
   final Value<String> cardPath;
   final Value<int> timestamp;
   final Value<String> tags;
+  final Value<bool> isPinned;
+  final Value<int?> pinnedUntil;
+  final Value<int> pinPriority;
   final Value<int> rowid;
   const CardCacheCompanion({
     this.factId = const Value.absent(),
     this.cardPath = const Value.absent(),
     this.timestamp = const Value.absent(),
     this.tags = const Value.absent(),
+    this.isPinned = const Value.absent(),
+    this.pinnedUntil = const Value.absent(),
+    this.pinPriority = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CardCacheCompanion.insert({
@@ -1723,6 +1819,9 @@ class CardCacheCompanion extends UpdateCompanion<CardCacheData> {
     required String cardPath,
     required int timestamp,
     required String tags,
+    this.isPinned = const Value.absent(),
+    this.pinnedUntil = const Value.absent(),
+    this.pinPriority = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : factId = Value(factId),
         cardPath = Value(cardPath),
@@ -1733,6 +1832,9 @@ class CardCacheCompanion extends UpdateCompanion<CardCacheData> {
     Expression<String>? cardPath,
     Expression<int>? timestamp,
     Expression<String>? tags,
+    Expression<bool>? isPinned,
+    Expression<int>? pinnedUntil,
+    Expression<int>? pinPriority,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1740,6 +1842,9 @@ class CardCacheCompanion extends UpdateCompanion<CardCacheData> {
       if (cardPath != null) 'card_path': cardPath,
       if (timestamp != null) 'timestamp': timestamp,
       if (tags != null) 'tags': tags,
+      if (isPinned != null) 'is_pinned': isPinned,
+      if (pinnedUntil != null) 'pinned_until': pinnedUntil,
+      if (pinPriority != null) 'pin_priority': pinPriority,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1749,12 +1854,18 @@ class CardCacheCompanion extends UpdateCompanion<CardCacheData> {
       Value<String>? cardPath,
       Value<int>? timestamp,
       Value<String>? tags,
+      Value<bool>? isPinned,
+      Value<int?>? pinnedUntil,
+      Value<int>? pinPriority,
       Value<int>? rowid}) {
     return CardCacheCompanion(
       factId: factId ?? this.factId,
       cardPath: cardPath ?? this.cardPath,
       timestamp: timestamp ?? this.timestamp,
       tags: tags ?? this.tags,
+      isPinned: isPinned ?? this.isPinned,
+      pinnedUntil: pinnedUntil ?? this.pinnedUntil,
+      pinPriority: pinPriority ?? this.pinPriority,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1774,6 +1885,15 @@ class CardCacheCompanion extends UpdateCompanion<CardCacheData> {
     if (tags.present) {
       map['tags'] = Variable<String>(tags.value);
     }
+    if (isPinned.present) {
+      map['is_pinned'] = Variable<bool>(isPinned.value);
+    }
+    if (pinnedUntil.present) {
+      map['pinned_until'] = Variable<int>(pinnedUntil.value);
+    }
+    if (pinPriority.present) {
+      map['pin_priority'] = Variable<int>(pinPriority.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1787,6 +1907,9 @@ class CardCacheCompanion extends UpdateCompanion<CardCacheData> {
           ..write('cardPath: $cardPath, ')
           ..write('timestamp: $timestamp, ')
           ..write('tags: $tags, ')
+          ..write('isPinned: $isPinned, ')
+          ..write('pinnedUntil: $pinnedUntil, ')
+          ..write('pinPriority: $pinPriority, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3328,6 +3451,9 @@ typedef $$CardCacheTableCreateCompanionBuilder = CardCacheCompanion Function({
   required String cardPath,
   required int timestamp,
   required String tags,
+  Value<bool> isPinned,
+  Value<int?> pinnedUntil,
+  Value<int> pinPriority,
   Value<int> rowid,
 });
 typedef $$CardCacheTableUpdateCompanionBuilder = CardCacheCompanion Function({
@@ -3335,6 +3461,9 @@ typedef $$CardCacheTableUpdateCompanionBuilder = CardCacheCompanion Function({
   Value<String> cardPath,
   Value<int> timestamp,
   Value<String> tags,
+  Value<bool> isPinned,
+  Value<int?> pinnedUntil,
+  Value<int> pinPriority,
   Value<int> rowid,
 });
 
@@ -3358,6 +3487,15 @@ class $$CardCacheTableFilterComposer
 
   ColumnFilters<String> get tags => $composableBuilder(
       column: $table.tags, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isPinned => $composableBuilder(
+      column: $table.isPinned, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get pinnedUntil => $composableBuilder(
+      column: $table.pinnedUntil, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get pinPriority => $composableBuilder(
+      column: $table.pinPriority, builder: (column) => ColumnFilters(column));
 }
 
 class $$CardCacheTableOrderingComposer
@@ -3380,6 +3518,15 @@ class $$CardCacheTableOrderingComposer
 
   ColumnOrderings<String> get tags => $composableBuilder(
       column: $table.tags, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isPinned => $composableBuilder(
+      column: $table.isPinned, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get pinnedUntil => $composableBuilder(
+      column: $table.pinnedUntil, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get pinPriority => $composableBuilder(
+      column: $table.pinPriority, builder: (column) => ColumnOrderings(column));
 }
 
 class $$CardCacheTableAnnotationComposer
@@ -3402,6 +3549,15 @@ class $$CardCacheTableAnnotationComposer
 
   GeneratedColumn<String> get tags =>
       $composableBuilder(column: $table.tags, builder: (column) => column);
+
+  GeneratedColumn<bool> get isPinned =>
+      $composableBuilder(column: $table.isPinned, builder: (column) => column);
+
+  GeneratedColumn<int> get pinnedUntil => $composableBuilder(
+      column: $table.pinnedUntil, builder: (column) => column);
+
+  GeneratedColumn<int> get pinPriority => $composableBuilder(
+      column: $table.pinPriority, builder: (column) => column);
 }
 
 class $$CardCacheTableTableManager extends RootTableManager<
@@ -3434,6 +3590,9 @@ class $$CardCacheTableTableManager extends RootTableManager<
             Value<String> cardPath = const Value.absent(),
             Value<int> timestamp = const Value.absent(),
             Value<String> tags = const Value.absent(),
+            Value<bool> isPinned = const Value.absent(),
+            Value<int?> pinnedUntil = const Value.absent(),
+            Value<int> pinPriority = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               CardCacheCompanion(
@@ -3441,6 +3600,9 @@ class $$CardCacheTableTableManager extends RootTableManager<
             cardPath: cardPath,
             timestamp: timestamp,
             tags: tags,
+            isPinned: isPinned,
+            pinnedUntil: pinnedUntil,
+            pinPriority: pinPriority,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -3448,6 +3610,9 @@ class $$CardCacheTableTableManager extends RootTableManager<
             required String cardPath,
             required int timestamp,
             required String tags,
+            Value<bool> isPinned = const Value.absent(),
+            Value<int?> pinnedUntil = const Value.absent(),
+            Value<int> pinPriority = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               CardCacheCompanion.insert(
@@ -3455,6 +3620,9 @@ class $$CardCacheTableTableManager extends RootTableManager<
             cardPath: cardPath,
             timestamp: timestamp,
             tags: tags,
+            isPinned: isPinned,
+            pinnedUntil: pinnedUntil,
+            pinPriority: pinPriority,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

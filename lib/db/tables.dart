@@ -65,6 +65,12 @@ class CardCache extends Table {
   TextColumn get cardPath => text()(); // Relative path or absolute path
   IntColumn get timestamp => integer()(); // Seconds since epoch
   TextColumn get tags => text()(); // JSON list of string tags
+  BoolColumn get isPinned =>
+      boolean().withDefault(const Constant(false))(); // Pinned to top
+  IntColumn get pinnedUntil =>
+      integer().nullable()(); // Expiry timestamp (seconds), null = never expires
+  IntColumn get pinPriority =>
+      integer().withDefault(const Constant(0))(); // Higher = higher priority
 
   @override
   Set<Column> get primaryKey => {factId};

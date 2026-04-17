@@ -1310,6 +1310,26 @@ class _TimelineEntryItemState extends State<_TimelineEntryItem> {
       padding: const EdgeInsets.only(bottom: 20),
       child: Row(
         children: [
+          if (card.isPinned) ...[
+            const Icon(Icons.push_pin, size: 14, color: Color(0xFF5B6CFF)),
+            const SizedBox(width: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFF5B6CFF).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                _buildPinLabel(card.pinnedUntil),
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF5B6CFF),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+          ],
           Text(
             card.displayTime(UserStorage.l10n),
             style: const TextStyle(
@@ -1366,5 +1386,21 @@ class _TimelineEntryItemState extends State<_TimelineEntryItem> {
         ],
       ),
     );
+  }
+
+  String _buildPinLabel(DateTime? pinnedUntil) {
+    if (pinnedUntil == null) return 'Pinned';
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final endOfWeek = today.add(Duration(days: 7 - now.weekday));
+    final pinnedDate =
+        DateTime(pinnedUntil.year, pinnedUntil.month, pinnedUntil.day);
+    if (!pinnedDate.isAfter(today)) {
+      return 'Today';
+    } else if (!pinnedDate.isAfter(endOfWeek)) {
+      return 'This week';
+    } else {
+      return 'Pinned';
+    }
   }
 }

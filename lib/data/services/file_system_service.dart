@@ -410,6 +410,9 @@ class FileSystemService {
         cardPath: drift.Value(relativePath),
         timestamp: drift.Value(timestamp),
         tags: drift.Value(tagsJson),
+        isPinned: drift.Value(cardData.isPinned),
+        pinnedUntil: drift.Value(cardData.pinnedUntil),
+        pinPriority: drift.Value(cardData.pinPriority),
       );
 
       await AppDatabase.instance.cardDao.upsertCard(entry);

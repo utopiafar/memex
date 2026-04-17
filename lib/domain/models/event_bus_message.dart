@@ -69,6 +69,9 @@ class CardUpdatedMessage extends EventBusMessage {
   final String? rawText; // Original user input text
   final String? address;
   final String? failureReason;
+  final bool isPinned;
+  final int? pinnedUntil;
+  final int pinPriority;
 
   CardUpdatedMessage({
     required this.id,
@@ -82,6 +85,9 @@ class CardUpdatedMessage extends EventBusMessage {
     this.rawText,
     this.address,
     this.failureReason,
+    this.isPinned = false,
+    this.pinnedUntil,
+    this.pinPriority = 0,
   }) : super(
           type: EventBusMessageType.cardUpdated,
           data: {
@@ -96,6 +102,9 @@ class CardUpdatedMessage extends EventBusMessage {
             if (rawText != null) 'raw_text': rawText,
             if (address != null) 'address': address,
             if (failureReason != null) 'failure_reason': failureReason,
+            if (isPinned) 'is_pinned': isPinned,
+            if (pinnedUntil != null) 'pinned_until': pinnedUntil,
+            if (pinPriority != 0) 'pin_priority': pinPriority,
           },
         );
 
@@ -125,6 +134,9 @@ class CardUpdatedMessage extends EventBusMessage {
       rawText: data['raw_text'] as String?,
       address: data['address'] as String?,
       failureReason: data['failure_reason'] as String?,
+      isPinned: data['is_pinned'] as bool? ?? false,
+      pinnedUntil: data['pinned_until'] as int?,
+      pinPriority: data['pin_priority'] as int? ?? 0,
     );
   }
 }
@@ -141,6 +153,9 @@ class CardAddedMessage extends EventBusMessage {
   final List<Map<String, dynamic>>? assets; // Extracted assets
   final String? rawText; // Original user input text
   final String? address;
+  final bool isPinned;
+  final int? pinnedUntil;
+  final int pinPriority;
 
   CardAddedMessage({
     required this.id,
@@ -153,6 +168,9 @@ class CardAddedMessage extends EventBusMessage {
     this.assets,
     this.rawText,
     this.address,
+    this.isPinned = false,
+    this.pinnedUntil,
+    this.pinPriority = 0,
   }) : super(
           type: EventBusMessageType.cardAdded,
           data: {
@@ -166,6 +184,9 @@ class CardAddedMessage extends EventBusMessage {
             if (assets != null && assets.isNotEmpty) 'assets': assets,
             if (rawText != null) 'raw_text': rawText,
             if (address != null) 'address': address,
+            if (isPinned) 'is_pinned': isPinned,
+            if (pinnedUntil != null) 'pinned_until': pinnedUntil,
+            if (pinPriority != 0) 'pin_priority': pinPriority,
           },
         );
 
@@ -194,6 +215,9 @@ class CardAddedMessage extends EventBusMessage {
           .toList(),
       rawText: data['raw_text'] as String?,
       address: data['address'] as String?,
+      isPinned: data['is_pinned'] as bool? ?? false,
+      pinnedUntil: data['pinned_until'] as int?,
+      pinPriority: data['pin_priority'] as int? ?? 0,
     );
   }
 }

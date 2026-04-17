@@ -14,6 +14,8 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:memex/domain/models/card_detail_model.dart';
 import 'package:memex/data/repositories/memex_router.dart';
+import 'package:memex/data/repositories/pin_card.dart';
+import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/utils/user_storage.dart';
 import 'package:latlong2/latlong.dart';
@@ -53,6 +55,7 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
       Duration(seconds: 5); // poll every 5s
   String _userName = 'User';
   String? _userAvatar;
+  bool _isPinned = false;
 
   @override
   void initState() {
@@ -61,6 +64,21 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
     _fetchDetail();
     _startPollingIfNeeded();
     _loadUserInfo();
+    _loadPinStatus();
+  }
+
+  Future<void> _loadPinStatus() async {
+    try {
+      final userId = await UserStorage.getUserId();
+      if (userId == null) return;
+      final cardData = await FileSystemService.instance
+          .readCardFile(userId, widget.cardId);
+      if (cardData != null && mounted) {
+        setState(() {
+          _isPinned = cardData.isPinned;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadUserInfo() async {
@@ -535,6 +553,53 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
     return displayNames[agentName] ?? agentName;
   }
 
+  Future<void> _togglePin() async {
+    if (_detail == null) return;
+
+    if (_isPinned) {
+      // Unpin directly
+      try {
+        await unpinCard(factId: widget.cardId);
+        if (mounted) {
+          setState(() => _isPinned = false);
+          ToastHelper.showSuccess(context, 'Unpinned');
+        }
+      } catch (e) {
+        if (mounted) ToastHelper.showError(context, e);
+      }
+    } else {
+      // Show duration picker
+      final duration = await showDialog<PinDuration>(
+        context: context,
+        builder: (context) => SimpleDialog(
+          backgroundColor: Colors.white,
+          title: const Text('Pin to Top'),
+          children: [
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, PinDuration.today),
+              child: const Text('Today'),
+            ),
+            SimpleDialogOption(
+              onPressed: () => Navigator.pop(context, PinDuration.thisWeek),
+              child: const Text('This Week'),
+            ),
+          ],
+        ),
+      );
+      if (duration == null || !mounted) return;
+
+      try {
+        await pinCard(factId: widget.cardId, duration: duration);
+        if (mounted) {
+          setState(() => _isPinned = true);
+          ToastHelper.showSuccess(context, 'Pinned');
+        }
+      } catch (e) {
+        if (mounted) ToastHelper.showError(context, e);
+      }
+    }
+  }
+
   Future<void> _deleteCard() async {
     if (_detail == null) return;
 
@@ -803,6 +868,35 @@ class _TimelineCardDetailScreenState extends State<TimelineCardDetailScreen> {
                     ),
                     Row(
                       children: [
+                        GestureDetector(
+                          onTap: _togglePin,
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  blurRadius: 9,
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Icon(
+                                _isPinned
+                                    ? Icons.push_pin
+                                    : Icons.push_pin_outlined,
+                                size: 18,
+                                color: _isPinned
+                                    ? const Color(0xFF5B6CFF)
+                                    : const Color(0xFF99A1AF),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
                         GestureDetector(
                           onTap: _shareCard,
                           child: SvgPicture.asset(

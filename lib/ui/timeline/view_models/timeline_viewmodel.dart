@@ -102,6 +102,14 @@ class TimelineViewModel extends ChangeNotifier {
         assets: assets,
         rawText: message.rawText,
         address: message.address,
+        isPinned: message.isPinned,
+        pinnedUntil: message.pinnedUntil != null
+            ? DateTime.fromMillisecondsSinceEpoch(
+                message.pinnedUntil! * 1000,
+                isUtc: true,
+              ).toLocal()
+            : null,
+        pinPriority: message.pinPriority,
       );
       addCard(newCard);
       fetchTags();
@@ -129,6 +137,14 @@ class TimelineViewModel extends ChangeNotifier {
         rawText: message.rawText,
         address: message.address,
         failureReason: message.failureReason,
+        isPinned: message.isPinned,
+        pinnedUntil: message.pinnedUntil != null
+            ? DateTime.fromMillisecondsSinceEpoch(
+                message.pinnedUntil! * 1000,
+                isUtc: true,
+              ).toLocal()
+            : null,
+        pinPriority: message.pinPriority,
       );
       updateCard(updatedCard);
       fetchTags();
