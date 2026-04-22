@@ -1164,6 +1164,67 @@ class AppLocalizationsEn extends AppLocalizations {
   String get insights => 'Insights';
 
   @override
+  String get agendaTabLabel => 'Agenda';
+
+  @override
+  String get agendaTodayTasks => 'Today\'s Tasks';
+
+  @override
+  String get agendaTodaySchedule => 'Today\'s Schedule';
+
+  @override
+  String get agendaThisWeek => 'This Week';
+
+  @override
+  String get agendaEmpty => 'No pending todos or schedules';
+
+  @override
+  String get agendaEmptyHint =>
+      'Items will appear automatically when you mention tasks or plans';
+
+  @override
+  String get agendaItemDetail => 'Task Detail';
+
+  @override
+  String get agendaStatusPending => 'Pending';
+
+  @override
+  String get agendaStatusDone => 'Completed';
+
+  @override
+  String get agendaStatusCancelled => 'Cancelled';
+
+  @override
+  String get agendaSourceContext => 'Source';
+
+  @override
+  String get agendaViewSourceCard => 'View Source Card';
+
+  @override
+  String get agendaComplete => 'Complete';
+
+  @override
+  String get agendaCancelAction => 'Cancel';
+
+  @override
+  String get agendaConfirmCancel => 'Cancel this item?';
+
+  @override
+  String get agendaCreatedAt => 'Created';
+
+  @override
+  String get agendaCompletedAt => 'Completed';
+
+  @override
+  String get agendaSourceNotAvailable => 'Source not available';
+
+  @override
+  String get agendaNoUpcoming => 'No upcoming items';
+
+  @override
+  String get agendaNoDate => 'No date set';
+
+  @override
   String get memoryTitle => 'Memory';
 
   @override

@@ -87,6 +87,36 @@ class SystemActions extends Table {
   Set<Column> get primaryKey => {id};
 }
 
+/// Todo & Schedule Items Table
+/// Query cache for Agenda tab — NOT the source of truth.
+/// Source of truth is the Fact system (daily markdown files).
+/// This table is a materialized view maintained by TodoScheduleAgent.
+class TodoScheduleItems extends Table {
+  TextColumn get id => text()();
+  TextColumn get userId => text()();
+  TextColumn get title => text()();
+  TextColumn get type => text()(); // 'todo' | 'schedule'
+  TextColumn get status =>
+      text().withDefault(const Constant('pending'))(); // 'pending' | 'done' | 'cancelled'
+  IntColumn get priority =>
+      integer().withDefault(const Constant(0))(); // 0=normal, 1=important
+  IntColumn get dueDate => integer().nullable()(); // epoch seconds, for todo
+  IntColumn get scheduleStart => integer().nullable()(); // epoch seconds, for schedule
+  IntColumn get scheduleEnd => integer().nullable()(); // epoch seconds, for schedule
+  TextColumn get sourceFactId => text()(); // which Fact created this item
+  TextColumn get sourceType =>
+      text().withDefault(const Constant('agent'))(); // 'agent' | 'ui'
+  TextColumn get tags =>
+      text().withDefault(const Constant('[]'))(); // JSON array
+  TextColumn get completedByFactId => text().nullable()();
+  IntColumn get completedAt => integer().nullable()(); // epoch seconds
+  IntColumn get createdAt => integer()(); // epoch seconds
+  IntColumn get updatedAt => integer().nullable()(); // epoch seconds
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 /// Persona Chat Messages Table
 /// Stores chat messages between user and their AI companion character.
 class PersonaChatMessages extends Table {

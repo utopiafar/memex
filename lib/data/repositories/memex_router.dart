@@ -34,6 +34,7 @@ import 'package:memex/data/services/task_handlers/comment_agent_handler.dart';
 import 'package:memex/data/services/task_handlers/reprocess_cards_handler.dart';
 import 'package:memex/data/services/task_handlers/reprocess_comments_handler.dart';
 import 'package:memex/data/services/task_handlers/reprocess_knowledge_base_handler.dart';
+import 'package:memex/data/services/task_handlers/todo_schedule_handler.dart';
 import 'package:memex/data/services/task_handlers/custom_agent_task_handler.dart';
 import 'package:memex/data/services/custom_agent_config_service.dart';
 import 'package:memex/data/repositories/get_tags.dart';
@@ -52,6 +53,7 @@ import 'package:memex/data/repositories/get_knowledge_insight_detail.dart';
 import 'package:memex/data/repositories/chat.dart' as chat_endpoint;
 import 'package:memex/data/services/llm_call_record_service.dart';
 import 'package:memex/data/services/agent_activity_service.dart';
+import 'package:memex/data/services/todo_schedule_service.dart';
 import 'package:memex/agent/skills/knowledge_insight/native_widgets.dart';
 import 'package:memex/utils/result.dart';
 import 'package:memex/domain/models/system_event.dart';
@@ -110,6 +112,8 @@ class MemexRouter {
           .registerHandler('process_ai_reply', handleProcessAiReplyImpl);
       LocalTaskExecutor.instance
           .registerHandler('knowledge_insight_task', handleKnowledgeInsight);
+      LocalTaskExecutor.instance.registerHandler(
+          'todo_schedule_agent_task', handleTodoScheduleAgentImpl);
 
       // Register Failure Handlers
       LocalTaskExecutor.instance.registerFailureHandler(
@@ -124,6 +128,7 @@ class MemexRouter {
         'reprocess_knowledge_base_task',
         'process_ai_reply',
         'handle_analyze_assets',
+        'todo_schedule_agent_task',
       ]) {
         LocalTaskExecutor.instance
             .registerFailureHandler(taskType, handleGenericAgentFailure);
@@ -222,6 +227,24 @@ class MemexRouter {
       ),
     );
 
+    // TodoSchedule: routes user input to TodoScheduleAgent.
+    // Intent detection is done by LLM in the handler (not keywords).
+    eventBus.subscribe(
+      eventType: SystemEventTypes.userInputSubmitted,
+      subscription: EventTaskSubscription(
+        subscriptionId: 'todo_schedule_router',
+        taskType: 'todo_schedule_agent_task',
+        dependsOn: const ['analyze_assets'],
+        payloadBuilder: (_, event) {
+          final p = event.payload as UserInputSubmittedPayload;
+          return Future.value({
+            'fact_id': p.factId,
+            'combined_text': p.combinedText,
+          });
+        },
+      ),
+    );
+
     eventBus.subscribe(
       eventType: SystemEventTypes.cardCommentPosted,
       subscription: EventTaskSubscription(
@@ -307,6 +330,89 @@ class MemexRouter {
   Future<String?> getToken() async {
     return null;
   }
+
+  // ==================== Agenda / TodoSchedule ====================
+
+  /// Fetch active (pending) todo/schedule items for Agenda tab.
+  Future<List<dynamic>> fetchAgendaItems() async {
+    await _ensureInitialized();
+    final userId = await UserStorage.getUserId();
+    if (userId == null) return [];
+    final service = TodoScheduleService.instance;
+    return service.getActiveItems(userId);
+  }
+
+  /// Mark a todo as completed via UI checkbox.
+  /// Updates SQLite immediately, then writes a system Fact so other agents perceive it.
+  Future<void> markTodoCompleteViaUI(String todoId, String title) async {
+    await _ensureInitialized();
+    final userId = await UserStorage.getUserId();
+    if (userId == null) return;
+
+    final service = TodoScheduleService.instance;
+
+    // 1. Update SQLite immediately (UI feedback)
+    await service.completeItem(todoId);
+
+    // 2. Write system Fact so the agent pipeline perceives the completion
+    final now = DateTime.now();
+    final fileService = FileSystemService.instance;
+    final factId = await fileService.generateFactId(userId, now);
+    final simpleFactId = fileService.extractSimpleFactId(factId);
+    final timeStr = fileService.formatTime(now);
+    final markdownEntry =
+        '## <id:$simpleFactId> $timeStr "{\"source\":\"ui_checkbox\"}"\n\n'
+        '用户标记待办事项「$title」为已完成。\n';
+    await fileService.appendToDailyFactFile(userId, now, markdownEntry);
+
+    // 3. Update the completedByFactId on the item
+    await service.completeItem(todoId, completedByFactId: factId);
+
+    // 4. Log the event
+    try {
+      await fileService.eventLogService.logEvent(
+        userId: userId,
+        eventType: 'todo_completed',
+        description: 'Todo completed via UI: $title',
+        metadata: {'todo_id': todoId, 'source': 'ui_checkbox'},
+      );
+    } catch (_) {
+      // Non-critical
+    }
+
+    _logger.info('Todo completed via UI: $title (id=$todoId, fact=$factId)');
+  }
+
+  /// Cancel a todo via UI.
+  /// Updates SQLite immediately, then writes a system Fact so other agents perceive it.
+  Future<void> cancelTodoViaUI(String todoId, String title) async {
+    await _ensureInitialized();
+    final userId = await UserStorage.getUserId();
+    if (userId == null) return;
+
+    final service = TodoScheduleService.instance;
+    await service.cancelItem(todoId);
+
+    final now = DateTime.now();
+    final fileService = FileSystemService.instance;
+    final factId = await fileService.generateFactId(userId, now);
+    final simpleFactId = fileService.extractSimpleFactId(factId);
+    final timeStr = fileService.formatTime(now);
+    final markdownEntry =
+        '## <id:$simpleFactId> $timeStr "{\"source\":\"ui_action\"}"\n\n'
+        '用户取消了待办事项「$title」。\n';
+    await fileService.appendToDailyFactFile(userId, now, markdownEntry);
+
+    _logger.info('Todo cancelled via UI: $title (id=$todoId)');
+  }
+
+  /// Fetch a single todo/schedule item by ID.
+  Future<dynamic> fetchTodoItem(String id) async {
+    await _ensureInitialized();
+    return TodoScheduleService.instance.getById(id);
+  }
+
+  // ==================== Input ====================
 
   Future<Map<String, dynamic>> submitInput({
     String? text,

@@ -9,6 +9,7 @@ enum EventBusMessageType {
   newSystemAction('new_system_action'),
   invalidModelConfig('invalid_model_config'),
   errorNotification('error_notification'),
+  todoItemsUpdated('todo_items_updated'),
   unknown('unknown');
 
   final String value;
@@ -50,6 +51,8 @@ abstract class EventBusMessage {
         return InvalidModelConfigMessage.fromJson(json);
       case EventBusMessageType.errorNotification:
         return ErrorNotificationMessage.fromJson(json);
+      case EventBusMessageType.todoItemsUpdated:
+        return TodoItemsUpdatedMessage.fromJson(json);
       default:
         return UnknownMessage.fromJson(json);
     }
@@ -315,5 +318,18 @@ class ErrorNotificationMessage extends EventBusMessage {
       errorMessage: data['error_message'] as String,
       cardId: data['card_id'] as String?,
     );
+  }
+}
+
+/// Todo/Schedule items updated message (notify Agenda tab to refresh)
+class TodoItemsUpdatedMessage extends EventBusMessage {
+  TodoItemsUpdatedMessage()
+      : super(
+          type: EventBusMessageType.todoItemsUpdated,
+          data: {},
+        );
+
+  factory TodoItemsUpdatedMessage.fromJson(Map<String, dynamic> json) {
+    return TodoItemsUpdatedMessage();
   }
 }

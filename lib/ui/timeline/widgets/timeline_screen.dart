@@ -19,6 +19,8 @@ import 'package:memex/ui/timeline/widgets/timeline_card_detail_screen.dart';
 import 'package:memex/ui/settings/widgets/personal_center_screen.dart';
 import 'package:memex/ui/insight/view_models/insight_viewmodel.dart';
 import 'package:memex/ui/insight/widgets/insight_screen.dart';
+import 'package:memex/ui/agenda/widgets/agenda_screen.dart';
+import 'package:memex/ui/agenda/view_models/agenda_viewmodel.dart';
 import 'package:memex/ui/insight/widgets/insight_detail_page.dart';
 import 'package:memex/ui/chat/widgets/agent_chat_dialog.dart';
 import 'package:memex/utils/toast_helper.dart';
@@ -35,6 +37,7 @@ import 'package:memex/ui/character/widgets/persona_avatar_button.dart';
 class TimelineScreen extends StatefulWidget {
   final TimelineViewModel viewModel;
   final InsightViewModel insightViewModel;
+  final AgendaViewModel? agendaViewModel;
   final VoidCallback onInputTap;
   final VoidCallback? onRefreshAction;
 
@@ -42,6 +45,7 @@ class TimelineScreen extends StatefulWidget {
     super.key,
     required this.viewModel,
     required this.insightViewModel,
+    this.agendaViewModel,
     required this.onInputTap,
     this.onRefreshAction,
   });
@@ -218,22 +222,25 @@ class TimelineScreenState extends State<TimelineScreen> {
     }
   }
 
-  /// Get the total number of tab pages: All(0) + Insight(1) + user tags(2..)
-  int _totalPageCount(TimelineViewModel vm) => 2 + vm.tags.length;
+  /// Get the total number of tab pages: All(0) + Insight(1) + Agenda(2) + user tags(3..)
+  int _totalPageCount(TimelineViewModel vm) =>
+      (widget.agendaViewModel != null ? 3 : 2) + vm.tags.length;
 
   /// Convert a page index to the corresponding filter string.
   String _pageIndexToFilter(int index, TimelineViewModel vm) {
     if (index == 0) return 'all';
     if (index == 1) return 'insight';
-    return vm.tags[index - 2].name;
+    if (index == 2 && widget.agendaViewModel != null) return 'agenda';
+    return vm.tags[index - (widget.agendaViewModel != null ? 3 : 2)].name;
   }
 
   /// Convert the current active filter to a page index.
   int _filterToPageIndex(TimelineViewModel vm) {
     if (vm.viewMode == TimelineViewMode.insight) return 1;
+    if (vm.activeFilter == 'agenda') return 2;
     if (vm.activeFilter == 'all') return 0;
     final idx = vm.tags.indexWhere((t) => t.name == vm.activeFilter);
-    return idx >= 0 ? idx + 2 : 0;
+    return idx >= 0 ? idx + (widget.agendaViewModel != null ? 3 : 2) : 0;
   }
 
   /// Called when user swipes to a new page.
@@ -244,6 +251,9 @@ class TimelineScreenState extends State<TimelineScreen> {
     if (index == 1) {
       vm.setViewMode(TimelineViewMode.insight);
       vm.setActiveFilter('insight');
+    } else if (index == 2 && widget.agendaViewModel != null) {
+      vm.setViewMode(TimelineViewMode.timeline);
+      vm.setActiveFilter('agenda');
     } else {
       vm.setViewMode(TimelineViewMode.timeline);
       vm.setActiveFilter(filter);
@@ -767,7 +777,7 @@ class TimelineScreenState extends State<TimelineScreen> {
                   }
                   return false;
                 },
-                child: PageView.builder(
+                  child: PageView.builder(
                   controller: _pageController,
                   itemCount: _totalPageCount(vm),
                   onPageChanged: (index) => _onPageChanged(index, vm),
@@ -777,6 +787,12 @@ class TimelineScreenState extends State<TimelineScreen> {
                       return InsightScreen(
                         isEmbedded: true,
                         viewModel: widget.insightViewModel,
+                      );
+                    }
+                    if (index == 2 && widget.agendaViewModel != null) {
+                      // Agenda page
+                      return AgendaScreen(
+                        viewModel: widget.agendaViewModel!,
                       );
                     }
                     // Timeline page (All or filtered by tag)
@@ -795,8 +811,9 @@ class TimelineScreenState extends State<TimelineScreen> {
     if (vm.tags.isEmpty) return const SizedBox.shrink();
 
     final userTags = vm.tags;
-    // Items: All(0) + Insight(1) + user tags(2..)
-    final totalCount = 2 + userTags.length;
+    // Items: All(0) + Insight(1) + Agenda(2, optional) + user tags(3..)
+    final hasAgenda = widget.agendaViewModel != null;
+    final totalCount = (hasAgenda ? 3 : 2) + userTags.length;
 
     return ListView.separated(
       controller: _tagScrollController,
@@ -844,8 +861,24 @@ class TimelineScreenState extends State<TimelineScreen> {
           return chip;
         }
 
-        // Index 2+: user tags
-        final tag = userTags[index - 2];
+        // Index 2: "Agenda" (if enabled)
+        if (index == 2 && hasAgenda) {
+          final isSelected = vm.activeFilter == 'agenda';
+          return _buildTagChip(
+            label: UserStorage.l10n.agendaTabLabel,
+            icon: '📋',
+            isSelected: isSelected,
+            onTap: () {
+              vm.setViewMode(TimelineViewMode.timeline);
+              vm.setActiveFilter('agenda');
+              _animateToPage(2);
+            },
+          );
+        }
+
+        // Index 3+: user tags (shifted by 1 when Agenda is present)
+        final tagIndex = index - (hasAgenda ? 3 : 2);
+        final tag = userTags[tagIndex];
         final isSelected = vm.activeFilter == tag.name &&
             vm.viewMode == TimelineViewMode.timeline;
         return _buildTagChip(

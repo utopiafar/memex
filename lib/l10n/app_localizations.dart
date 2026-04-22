@@ -2168,6 +2168,126 @@ abstract class AppLocalizations {
   /// **'Insights'**
   String get insights;
 
+  /// No description provided for @agendaTabLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Agenda'**
+  String get agendaTabLabel;
+
+  /// No description provided for @agendaTodayTasks.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s Tasks'**
+  String get agendaTodayTasks;
+
+  /// No description provided for @agendaTodaySchedule.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s Schedule'**
+  String get agendaTodaySchedule;
+
+  /// No description provided for @agendaThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This Week'**
+  String get agendaThisWeek;
+
+  /// No description provided for @agendaEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No pending todos or schedules'**
+  String get agendaEmpty;
+
+  /// No description provided for @agendaEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Items will appear automatically when you mention tasks or plans'**
+  String get agendaEmptyHint;
+
+  /// No description provided for @agendaItemDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Task Detail'**
+  String get agendaItemDetail;
+
+  /// No description provided for @agendaStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Pending'**
+  String get agendaStatusPending;
+
+  /// No description provided for @agendaStatusDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get agendaStatusDone;
+
+  /// No description provided for @agendaStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get agendaStatusCancelled;
+
+  /// No description provided for @agendaSourceContext.
+  ///
+  /// In en, this message translates to:
+  /// **'Source'**
+  String get agendaSourceContext;
+
+  /// No description provided for @agendaViewSourceCard.
+  ///
+  /// In en, this message translates to:
+  /// **'View Source Card'**
+  String get agendaViewSourceCard;
+
+  /// No description provided for @agendaComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete'**
+  String get agendaComplete;
+
+  /// No description provided for @agendaCancelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get agendaCancelAction;
+
+  /// No description provided for @agendaConfirmCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this item?'**
+  String get agendaConfirmCancel;
+
+  /// No description provided for @agendaCreatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Created'**
+  String get agendaCreatedAt;
+
+  /// No description provided for @agendaCompletedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get agendaCompletedAt;
+
+  /// No description provided for @agendaSourceNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Source not available'**
+  String get agendaSourceNotAvailable;
+
+  /// No description provided for @agendaNoUpcoming.
+  ///
+  /// In en, this message translates to:
+  /// **'No upcoming items'**
+  String get agendaNoUpcoming;
+
+  /// No description provided for @agendaNoDate.
+  ///
+  /// In en, this message translates to:
+  /// **'No date set'**
+  String get agendaNoDate;
+
   /// No description provided for @memoryTitle.
   ///
   /// In en, this message translates to:

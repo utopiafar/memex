@@ -2184,6 +2184,777 @@ class SystemActionsCompanion extends UpdateCompanion<SystemAction> {
   }
 }
 
+class $TodoScheduleItemsTable extends TodoScheduleItems
+    with TableInfo<$TodoScheduleItemsTable, TodoScheduleItem> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TodoScheduleItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _userIdMeta = const VerificationMeta('userId');
+  @override
+  late final GeneratedColumn<String> userId = GeneratedColumn<String>(
+      'user_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+      'title', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+      'type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('pending'));
+  static const VerificationMeta _priorityMeta =
+      const VerificationMeta('priority');
+  @override
+  late final GeneratedColumn<int> priority = GeneratedColumn<int>(
+      'priority', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _dueDateMeta =
+      const VerificationMeta('dueDate');
+  @override
+  late final GeneratedColumn<int> dueDate = GeneratedColumn<int>(
+      'due_date', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _scheduleStartMeta =
+      const VerificationMeta('scheduleStart');
+  @override
+  late final GeneratedColumn<int> scheduleStart = GeneratedColumn<int>(
+      'schedule_start', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _scheduleEndMeta =
+      const VerificationMeta('scheduleEnd');
+  @override
+  late final GeneratedColumn<int> scheduleEnd = GeneratedColumn<int>(
+      'schedule_end', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _sourceFactIdMeta =
+      const VerificationMeta('sourceFactId');
+  @override
+  late final GeneratedColumn<String> sourceFactId = GeneratedColumn<String>(
+      'source_fact_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _sourceTypeMeta =
+      const VerificationMeta('sourceType');
+  @override
+  late final GeneratedColumn<String> sourceType = GeneratedColumn<String>(
+      'source_type', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('agent'));
+  static const VerificationMeta _tagsMeta = const VerificationMeta('tags');
+  @override
+  late final GeneratedColumn<String> tags = GeneratedColumn<String>(
+      'tags', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('[]'));
+  static const VerificationMeta _completedByFactIdMeta =
+      const VerificationMeta('completedByFactId');
+  @override
+  late final GeneratedColumn<String> completedByFactId =
+      GeneratedColumn<String>('completed_by_fact_id', aliasedName, true,
+          type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _completedAtMeta =
+      const VerificationMeta('completedAt');
+  @override
+  late final GeneratedColumn<int> completedAt = GeneratedColumn<int>(
+      'completed_at', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+      'updated_at', aliasedName, true,
+      type: DriftSqlType.int, requiredDuringInsert: false);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        userId,
+        title,
+        type,
+        status,
+        priority,
+        dueDate,
+        scheduleStart,
+        scheduleEnd,
+        sourceFactId,
+        sourceType,
+        tags,
+        completedByFactId,
+        completedAt,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'todo_schedule_items';
+  @override
+  VerificationContext validateIntegrity(Insertable<TodoScheduleItem> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('user_id')) {
+      context.handle(_userIdMeta,
+          userId.isAcceptableOrUnknown(data['user_id']!, _userIdMeta));
+    } else if (isInserting) {
+      context.missing(_userIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+          _titleMeta, title.isAcceptableOrUnknown(data['title']!, _titleMeta));
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+          _typeMeta, type.isAcceptableOrUnknown(data['type']!, _typeMeta));
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('priority')) {
+      context.handle(_priorityMeta,
+          priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta));
+    }
+    if (data.containsKey('due_date')) {
+      context.handle(_dueDateMeta,
+          dueDate.isAcceptableOrUnknown(data['due_date']!, _dueDateMeta));
+    }
+    if (data.containsKey('schedule_start')) {
+      context.handle(
+          _scheduleStartMeta,
+          scheduleStart.isAcceptableOrUnknown(
+              data['schedule_start']!, _scheduleStartMeta));
+    }
+    if (data.containsKey('schedule_end')) {
+      context.handle(
+          _scheduleEndMeta,
+          scheduleEnd.isAcceptableOrUnknown(
+              data['schedule_end']!, _scheduleEndMeta));
+    }
+    if (data.containsKey('source_fact_id')) {
+      context.handle(
+          _sourceFactIdMeta,
+          sourceFactId.isAcceptableOrUnknown(
+              data['source_fact_id']!, _sourceFactIdMeta));
+    } else if (isInserting) {
+      context.missing(_sourceFactIdMeta);
+    }
+    if (data.containsKey('source_type')) {
+      context.handle(
+          _sourceTypeMeta,
+          sourceType.isAcceptableOrUnknown(
+              data['source_type']!, _sourceTypeMeta));
+    }
+    if (data.containsKey('tags')) {
+      context.handle(
+          _tagsMeta, tags.isAcceptableOrUnknown(data['tags']!, _tagsMeta));
+    }
+    if (data.containsKey('completed_by_fact_id')) {
+      context.handle(
+          _completedByFactIdMeta,
+          completedByFactId.isAcceptableOrUnknown(
+              data['completed_by_fact_id']!, _completedByFactIdMeta));
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+          _completedAtMeta,
+          completedAt.isAcceptableOrUnknown(
+              data['completed_at']!, _completedAtMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TodoScheduleItem map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TodoScheduleItem(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      userId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}user_id'])!,
+      title: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}title'])!,
+      type: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}type'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      priority: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}priority'])!,
+      dueDate: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}due_date']),
+      scheduleStart: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}schedule_start']),
+      scheduleEnd: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}schedule_end']),
+      sourceFactId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source_fact_id'])!,
+      sourceType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}source_type'])!,
+      tags: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}tags'])!,
+      completedByFactId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}completed_by_fact_id']),
+      completedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}completed_at']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}updated_at']),
+    );
+  }
+
+  @override
+  $TodoScheduleItemsTable createAlias(String alias) {
+    return $TodoScheduleItemsTable(attachedDatabase, alias);
+  }
+}
+
+class TodoScheduleItem extends DataClass
+    implements Insertable<TodoScheduleItem> {
+  final String id;
+  final String userId;
+  final String title;
+  final String type;
+  final String status;
+  final int priority;
+  final int? dueDate;
+  final int? scheduleStart;
+  final int? scheduleEnd;
+  final String sourceFactId;
+  final String sourceType;
+  final String tags;
+  final String? completedByFactId;
+  final int? completedAt;
+  final int createdAt;
+  final int? updatedAt;
+  const TodoScheduleItem(
+      {required this.id,
+      required this.userId,
+      required this.title,
+      required this.type,
+      required this.status,
+      required this.priority,
+      this.dueDate,
+      this.scheduleStart,
+      this.scheduleEnd,
+      required this.sourceFactId,
+      required this.sourceType,
+      required this.tags,
+      this.completedByFactId,
+      this.completedAt,
+      required this.createdAt,
+      this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['user_id'] = Variable<String>(userId);
+    map['title'] = Variable<String>(title);
+    map['type'] = Variable<String>(type);
+    map['status'] = Variable<String>(status);
+    map['priority'] = Variable<int>(priority);
+    if (!nullToAbsent || dueDate != null) {
+      map['due_date'] = Variable<int>(dueDate);
+    }
+    if (!nullToAbsent || scheduleStart != null) {
+      map['schedule_start'] = Variable<int>(scheduleStart);
+    }
+    if (!nullToAbsent || scheduleEnd != null) {
+      map['schedule_end'] = Variable<int>(scheduleEnd);
+    }
+    map['source_fact_id'] = Variable<String>(sourceFactId);
+    map['source_type'] = Variable<String>(sourceType);
+    map['tags'] = Variable<String>(tags);
+    if (!nullToAbsent || completedByFactId != null) {
+      map['completed_by_fact_id'] = Variable<String>(completedByFactId);
+    }
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<int>(completedAt);
+    }
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<int>(updatedAt);
+    }
+    return map;
+  }
+
+  TodoScheduleItemsCompanion toCompanion(bool nullToAbsent) {
+    return TodoScheduleItemsCompanion(
+      id: Value(id),
+      userId: Value(userId),
+      title: Value(title),
+      type: Value(type),
+      status: Value(status),
+      priority: Value(priority),
+      dueDate: dueDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dueDate),
+      scheduleStart: scheduleStart == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scheduleStart),
+      scheduleEnd: scheduleEnd == null && nullToAbsent
+          ? const Value.absent()
+          : Value(scheduleEnd),
+      sourceFactId: Value(sourceFactId),
+      sourceType: Value(sourceType),
+      tags: Value(tags),
+      completedByFactId: completedByFactId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedByFactId),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
+      createdAt: Value(createdAt),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+    );
+  }
+
+  factory TodoScheduleItem.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TodoScheduleItem(
+      id: serializer.fromJson<String>(json['id']),
+      userId: serializer.fromJson<String>(json['userId']),
+      title: serializer.fromJson<String>(json['title']),
+      type: serializer.fromJson<String>(json['type']),
+      status: serializer.fromJson<String>(json['status']),
+      priority: serializer.fromJson<int>(json['priority']),
+      dueDate: serializer.fromJson<int?>(json['dueDate']),
+      scheduleStart: serializer.fromJson<int?>(json['scheduleStart']),
+      scheduleEnd: serializer.fromJson<int?>(json['scheduleEnd']),
+      sourceFactId: serializer.fromJson<String>(json['sourceFactId']),
+      sourceType: serializer.fromJson<String>(json['sourceType']),
+      tags: serializer.fromJson<String>(json['tags']),
+      completedByFactId:
+          serializer.fromJson<String?>(json['completedByFactId']),
+      completedAt: serializer.fromJson<int?>(json['completedAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int?>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'userId': serializer.toJson<String>(userId),
+      'title': serializer.toJson<String>(title),
+      'type': serializer.toJson<String>(type),
+      'status': serializer.toJson<String>(status),
+      'priority': serializer.toJson<int>(priority),
+      'dueDate': serializer.toJson<int?>(dueDate),
+      'scheduleStart': serializer.toJson<int?>(scheduleStart),
+      'scheduleEnd': serializer.toJson<int?>(scheduleEnd),
+      'sourceFactId': serializer.toJson<String>(sourceFactId),
+      'sourceType': serializer.toJson<String>(sourceType),
+      'tags': serializer.toJson<String>(tags),
+      'completedByFactId': serializer.toJson<String?>(completedByFactId),
+      'completedAt': serializer.toJson<int?>(completedAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int?>(updatedAt),
+    };
+  }
+
+  TodoScheduleItem copyWith(
+          {String? id,
+          String? userId,
+          String? title,
+          String? type,
+          String? status,
+          int? priority,
+          Value<int?> dueDate = const Value.absent(),
+          Value<int?> scheduleStart = const Value.absent(),
+          Value<int?> scheduleEnd = const Value.absent(),
+          String? sourceFactId,
+          String? sourceType,
+          String? tags,
+          Value<String?> completedByFactId = const Value.absent(),
+          Value<int?> completedAt = const Value.absent(),
+          int? createdAt,
+          Value<int?> updatedAt = const Value.absent()}) =>
+      TodoScheduleItem(
+        id: id ?? this.id,
+        userId: userId ?? this.userId,
+        title: title ?? this.title,
+        type: type ?? this.type,
+        status: status ?? this.status,
+        priority: priority ?? this.priority,
+        dueDate: dueDate.present ? dueDate.value : this.dueDate,
+        scheduleStart:
+            scheduleStart.present ? scheduleStart.value : this.scheduleStart,
+        scheduleEnd: scheduleEnd.present ? scheduleEnd.value : this.scheduleEnd,
+        sourceFactId: sourceFactId ?? this.sourceFactId,
+        sourceType: sourceType ?? this.sourceType,
+        tags: tags ?? this.tags,
+        completedByFactId: completedByFactId.present
+            ? completedByFactId.value
+            : this.completedByFactId,
+        completedAt: completedAt.present ? completedAt.value : this.completedAt,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+      );
+  TodoScheduleItem copyWithCompanion(TodoScheduleItemsCompanion data) {
+    return TodoScheduleItem(
+      id: data.id.present ? data.id.value : this.id,
+      userId: data.userId.present ? data.userId.value : this.userId,
+      title: data.title.present ? data.title.value : this.title,
+      type: data.type.present ? data.type.value : this.type,
+      status: data.status.present ? data.status.value : this.status,
+      priority: data.priority.present ? data.priority.value : this.priority,
+      dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
+      scheduleStart: data.scheduleStart.present
+          ? data.scheduleStart.value
+          : this.scheduleStart,
+      scheduleEnd:
+          data.scheduleEnd.present ? data.scheduleEnd.value : this.scheduleEnd,
+      sourceFactId: data.sourceFactId.present
+          ? data.sourceFactId.value
+          : this.sourceFactId,
+      sourceType:
+          data.sourceType.present ? data.sourceType.value : this.sourceType,
+      tags: data.tags.present ? data.tags.value : this.tags,
+      completedByFactId: data.completedByFactId.present
+          ? data.completedByFactId.value
+          : this.completedByFactId,
+      completedAt:
+          data.completedAt.present ? data.completedAt.value : this.completedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TodoScheduleItem(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('title: $title, ')
+          ..write('type: $type, ')
+          ..write('status: $status, ')
+          ..write('priority: $priority, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('scheduleStart: $scheduleStart, ')
+          ..write('scheduleEnd: $scheduleEnd, ')
+          ..write('sourceFactId: $sourceFactId, ')
+          ..write('sourceType: $sourceType, ')
+          ..write('tags: $tags, ')
+          ..write('completedByFactId: $completedByFactId, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      userId,
+      title,
+      type,
+      status,
+      priority,
+      dueDate,
+      scheduleStart,
+      scheduleEnd,
+      sourceFactId,
+      sourceType,
+      tags,
+      completedByFactId,
+      completedAt,
+      createdAt,
+      updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TodoScheduleItem &&
+          other.id == this.id &&
+          other.userId == this.userId &&
+          other.title == this.title &&
+          other.type == this.type &&
+          other.status == this.status &&
+          other.priority == this.priority &&
+          other.dueDate == this.dueDate &&
+          other.scheduleStart == this.scheduleStart &&
+          other.scheduleEnd == this.scheduleEnd &&
+          other.sourceFactId == this.sourceFactId &&
+          other.sourceType == this.sourceType &&
+          other.tags == this.tags &&
+          other.completedByFactId == this.completedByFactId &&
+          other.completedAt == this.completedAt &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class TodoScheduleItemsCompanion extends UpdateCompanion<TodoScheduleItem> {
+  final Value<String> id;
+  final Value<String> userId;
+  final Value<String> title;
+  final Value<String> type;
+  final Value<String> status;
+  final Value<int> priority;
+  final Value<int?> dueDate;
+  final Value<int?> scheduleStart;
+  final Value<int?> scheduleEnd;
+  final Value<String> sourceFactId;
+  final Value<String> sourceType;
+  final Value<String> tags;
+  final Value<String?> completedByFactId;
+  final Value<int?> completedAt;
+  final Value<int> createdAt;
+  final Value<int?> updatedAt;
+  final Value<int> rowid;
+  const TodoScheduleItemsCompanion({
+    this.id = const Value.absent(),
+    this.userId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.type = const Value.absent(),
+    this.status = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.scheduleStart = const Value.absent(),
+    this.scheduleEnd = const Value.absent(),
+    this.sourceFactId = const Value.absent(),
+    this.sourceType = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.completedByFactId = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TodoScheduleItemsCompanion.insert({
+    required String id,
+    required String userId,
+    required String title,
+    required String type,
+    this.status = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.dueDate = const Value.absent(),
+    this.scheduleStart = const Value.absent(),
+    this.scheduleEnd = const Value.absent(),
+    required String sourceFactId,
+    this.sourceType = const Value.absent(),
+    this.tags = const Value.absent(),
+    this.completedByFactId = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    required int createdAt,
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        userId = Value(userId),
+        title = Value(title),
+        type = Value(type),
+        sourceFactId = Value(sourceFactId),
+        createdAt = Value(createdAt);
+  static Insertable<TodoScheduleItem> custom({
+    Expression<String>? id,
+    Expression<String>? userId,
+    Expression<String>? title,
+    Expression<String>? type,
+    Expression<String>? status,
+    Expression<int>? priority,
+    Expression<int>? dueDate,
+    Expression<int>? scheduleStart,
+    Expression<int>? scheduleEnd,
+    Expression<String>? sourceFactId,
+    Expression<String>? sourceType,
+    Expression<String>? tags,
+    Expression<String>? completedByFactId,
+    Expression<int>? completedAt,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (userId != null) 'user_id': userId,
+      if (title != null) 'title': title,
+      if (type != null) 'type': type,
+      if (status != null) 'status': status,
+      if (priority != null) 'priority': priority,
+      if (dueDate != null) 'due_date': dueDate,
+      if (scheduleStart != null) 'schedule_start': scheduleStart,
+      if (scheduleEnd != null) 'schedule_end': scheduleEnd,
+      if (sourceFactId != null) 'source_fact_id': sourceFactId,
+      if (sourceType != null) 'source_type': sourceType,
+      if (tags != null) 'tags': tags,
+      if (completedByFactId != null) 'completed_by_fact_id': completedByFactId,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TodoScheduleItemsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? userId,
+      Value<String>? title,
+      Value<String>? type,
+      Value<String>? status,
+      Value<int>? priority,
+      Value<int?>? dueDate,
+      Value<int?>? scheduleStart,
+      Value<int?>? scheduleEnd,
+      Value<String>? sourceFactId,
+      Value<String>? sourceType,
+      Value<String>? tags,
+      Value<String?>? completedByFactId,
+      Value<int?>? completedAt,
+      Value<int>? createdAt,
+      Value<int?>? updatedAt,
+      Value<int>? rowid}) {
+    return TodoScheduleItemsCompanion(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      title: title ?? this.title,
+      type: type ?? this.type,
+      status: status ?? this.status,
+      priority: priority ?? this.priority,
+      dueDate: dueDate ?? this.dueDate,
+      scheduleStart: scheduleStart ?? this.scheduleStart,
+      scheduleEnd: scheduleEnd ?? this.scheduleEnd,
+      sourceFactId: sourceFactId ?? this.sourceFactId,
+      sourceType: sourceType ?? this.sourceType,
+      tags: tags ?? this.tags,
+      completedByFactId: completedByFactId ?? this.completedByFactId,
+      completedAt: completedAt ?? this.completedAt,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (userId.present) {
+      map['user_id'] = Variable<String>(userId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (priority.present) {
+      map['priority'] = Variable<int>(priority.value);
+    }
+    if (dueDate.present) {
+      map['due_date'] = Variable<int>(dueDate.value);
+    }
+    if (scheduleStart.present) {
+      map['schedule_start'] = Variable<int>(scheduleStart.value);
+    }
+    if (scheduleEnd.present) {
+      map['schedule_end'] = Variable<int>(scheduleEnd.value);
+    }
+    if (sourceFactId.present) {
+      map['source_fact_id'] = Variable<String>(sourceFactId.value);
+    }
+    if (sourceType.present) {
+      map['source_type'] = Variable<String>(sourceType.value);
+    }
+    if (tags.present) {
+      map['tags'] = Variable<String>(tags.value);
+    }
+    if (completedByFactId.present) {
+      map['completed_by_fact_id'] = Variable<String>(completedByFactId.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<int>(completedAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TodoScheduleItemsCompanion(')
+          ..write('id: $id, ')
+          ..write('userId: $userId, ')
+          ..write('title: $title, ')
+          ..write('type: $type, ')
+          ..write('status: $status, ')
+          ..write('priority: $priority, ')
+          ..write('dueDate: $dueDate, ')
+          ..write('scheduleStart: $scheduleStart, ')
+          ..write('scheduleEnd: $scheduleEnd, ')
+          ..write('sourceFactId: $sourceFactId, ')
+          ..write('sourceType: $sourceType, ')
+          ..write('tags: $tags, ')
+          ..write('completedByFactId: $completedByFactId, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $PersonaChatMessagesTable extends PersonaChatMessages
     with TableInfo<$PersonaChatMessagesTable, PersonaChatMessage> {
   @override
@@ -2577,9 +3348,13 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $AgentActivityMessagesTable(this);
   late final $CardCacheTable cardCache = $CardCacheTable(this);
   late final $SystemActionsTable systemActions = $SystemActionsTable(this);
+  late final $TodoScheduleItemsTable todoScheduleItems =
+      $TodoScheduleItemsTable(this);
   late final $PersonaChatMessagesTable personaChatMessages =
       $PersonaChatMessagesTable(this);
   late final CardDao cardDao = CardDao(this as AppDatabase);
+  late final TodoScheduleDao todoScheduleDao =
+      TodoScheduleDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2590,6 +3365,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         agentActivityMessages,
         cardCache,
         systemActions,
+        todoScheduleItems,
         personaChatMessages
       ];
 }
@@ -3682,6 +4458,350 @@ typedef $$SystemActionsTableProcessedTableManager = ProcessedTableManager<
     ),
     SystemAction,
     PrefetchHooks Function()>;
+typedef $$TodoScheduleItemsTableCreateCompanionBuilder
+    = TodoScheduleItemsCompanion Function({
+  required String id,
+  required String userId,
+  required String title,
+  required String type,
+  Value<String> status,
+  Value<int> priority,
+  Value<int?> dueDate,
+  Value<int?> scheduleStart,
+  Value<int?> scheduleEnd,
+  required String sourceFactId,
+  Value<String> sourceType,
+  Value<String> tags,
+  Value<String?> completedByFactId,
+  Value<int?> completedAt,
+  required int createdAt,
+  Value<int?> updatedAt,
+  Value<int> rowid,
+});
+typedef $$TodoScheduleItemsTableUpdateCompanionBuilder
+    = TodoScheduleItemsCompanion Function({
+  Value<String> id,
+  Value<String> userId,
+  Value<String> title,
+  Value<String> type,
+  Value<String> status,
+  Value<int> priority,
+  Value<int?> dueDate,
+  Value<int?> scheduleStart,
+  Value<int?> scheduleEnd,
+  Value<String> sourceFactId,
+  Value<String> sourceType,
+  Value<String> tags,
+  Value<String?> completedByFactId,
+  Value<int?> completedAt,
+  Value<int> createdAt,
+  Value<int?> updatedAt,
+  Value<int> rowid,
+});
+
+class $$TodoScheduleItemsTableFilterComposer
+    extends Composer<_$AppDatabase, $TodoScheduleItemsTable> {
+  $$TodoScheduleItemsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get priority => $composableBuilder(
+      column: $table.priority, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get dueDate => $composableBuilder(
+      column: $table.dueDate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get scheduleStart => $composableBuilder(
+      column: $table.scheduleStart, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get scheduleEnd => $composableBuilder(
+      column: $table.scheduleEnd, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceFactId => $composableBuilder(
+      column: $table.sourceFactId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get sourceType => $composableBuilder(
+      column: $table.sourceType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get tags => $composableBuilder(
+      column: $table.tags, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get completedByFactId => $composableBuilder(
+      column: $table.completedByFactId,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get completedAt => $composableBuilder(
+      column: $table.completedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$TodoScheduleItemsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TodoScheduleItemsTable> {
+  $$TodoScheduleItemsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get userId => $composableBuilder(
+      column: $table.userId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get title => $composableBuilder(
+      column: $table.title, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get priority => $composableBuilder(
+      column: $table.priority, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get dueDate => $composableBuilder(
+      column: $table.dueDate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get scheduleStart => $composableBuilder(
+      column: $table.scheduleStart,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get scheduleEnd => $composableBuilder(
+      column: $table.scheduleEnd, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourceFactId => $composableBuilder(
+      column: $table.sourceFactId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get sourceType => $composableBuilder(
+      column: $table.sourceType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get tags => $composableBuilder(
+      column: $table.tags, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get completedByFactId => $composableBuilder(
+      column: $table.completedByFactId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get completedAt => $composableBuilder(
+      column: $table.completedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$TodoScheduleItemsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TodoScheduleItemsTable> {
+  $$TodoScheduleItemsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get userId =>
+      $composableBuilder(column: $table.userId, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get priority =>
+      $composableBuilder(column: $table.priority, builder: (column) => column);
+
+  GeneratedColumn<int> get dueDate =>
+      $composableBuilder(column: $table.dueDate, builder: (column) => column);
+
+  GeneratedColumn<int> get scheduleStart => $composableBuilder(
+      column: $table.scheduleStart, builder: (column) => column);
+
+  GeneratedColumn<int> get scheduleEnd => $composableBuilder(
+      column: $table.scheduleEnd, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceFactId => $composableBuilder(
+      column: $table.sourceFactId, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceType => $composableBuilder(
+      column: $table.sourceType, builder: (column) => column);
+
+  GeneratedColumn<String> get tags =>
+      $composableBuilder(column: $table.tags, builder: (column) => column);
+
+  GeneratedColumn<String> get completedByFactId => $composableBuilder(
+      column: $table.completedByFactId, builder: (column) => column);
+
+  GeneratedColumn<int> get completedAt => $composableBuilder(
+      column: $table.completedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$TodoScheduleItemsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $TodoScheduleItemsTable,
+    TodoScheduleItem,
+    $$TodoScheduleItemsTableFilterComposer,
+    $$TodoScheduleItemsTableOrderingComposer,
+    $$TodoScheduleItemsTableAnnotationComposer,
+    $$TodoScheduleItemsTableCreateCompanionBuilder,
+    $$TodoScheduleItemsTableUpdateCompanionBuilder,
+    (
+      TodoScheduleItem,
+      BaseReferences<_$AppDatabase, $TodoScheduleItemsTable, TodoScheduleItem>
+    ),
+    TodoScheduleItem,
+    PrefetchHooks Function()> {
+  $$TodoScheduleItemsTableTableManager(
+      _$AppDatabase db, $TodoScheduleItemsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TodoScheduleItemsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TodoScheduleItemsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TodoScheduleItemsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> userId = const Value.absent(),
+            Value<String> title = const Value.absent(),
+            Value<String> type = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<int> priority = const Value.absent(),
+            Value<int?> dueDate = const Value.absent(),
+            Value<int?> scheduleStart = const Value.absent(),
+            Value<int?> scheduleEnd = const Value.absent(),
+            Value<String> sourceFactId = const Value.absent(),
+            Value<String> sourceType = const Value.absent(),
+            Value<String> tags = const Value.absent(),
+            Value<String?> completedByFactId = const Value.absent(),
+            Value<int?> completedAt = const Value.absent(),
+            Value<int> createdAt = const Value.absent(),
+            Value<int?> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TodoScheduleItemsCompanion(
+            id: id,
+            userId: userId,
+            title: title,
+            type: type,
+            status: status,
+            priority: priority,
+            dueDate: dueDate,
+            scheduleStart: scheduleStart,
+            scheduleEnd: scheduleEnd,
+            sourceFactId: sourceFactId,
+            sourceType: sourceType,
+            tags: tags,
+            completedByFactId: completedByFactId,
+            completedAt: completedAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String userId,
+            required String title,
+            required String type,
+            Value<String> status = const Value.absent(),
+            Value<int> priority = const Value.absent(),
+            Value<int?> dueDate = const Value.absent(),
+            Value<int?> scheduleStart = const Value.absent(),
+            Value<int?> scheduleEnd = const Value.absent(),
+            required String sourceFactId,
+            Value<String> sourceType = const Value.absent(),
+            Value<String> tags = const Value.absent(),
+            Value<String?> completedByFactId = const Value.absent(),
+            Value<int?> completedAt = const Value.absent(),
+            required int createdAt,
+            Value<int?> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TodoScheduleItemsCompanion.insert(
+            id: id,
+            userId: userId,
+            title: title,
+            type: type,
+            status: status,
+            priority: priority,
+            dueDate: dueDate,
+            scheduleStart: scheduleStart,
+            scheduleEnd: scheduleEnd,
+            sourceFactId: sourceFactId,
+            sourceType: sourceType,
+            tags: tags,
+            completedByFactId: completedByFactId,
+            completedAt: completedAt,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$TodoScheduleItemsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $TodoScheduleItemsTable,
+    TodoScheduleItem,
+    $$TodoScheduleItemsTableFilterComposer,
+    $$TodoScheduleItemsTableOrderingComposer,
+    $$TodoScheduleItemsTableAnnotationComposer,
+    $$TodoScheduleItemsTableCreateCompanionBuilder,
+    $$TodoScheduleItemsTableUpdateCompanionBuilder,
+    (
+      TodoScheduleItem,
+      BaseReferences<_$AppDatabase, $TodoScheduleItemsTable, TodoScheduleItem>
+    ),
+    TodoScheduleItem,
+    PrefetchHooks Function()>;
 typedef $$PersonaChatMessagesTableCreateCompanionBuilder
     = PersonaChatMessagesCompanion Function({
   Value<int> id,
@@ -3900,6 +5020,8 @@ class $AppDatabaseManager {
       $$CardCacheTableTableManager(_db, _db.cardCache);
   $$SystemActionsTableTableManager get systemActions =>
       $$SystemActionsTableTableManager(_db, _db.systemActions);
+  $$TodoScheduleItemsTableTableManager get todoScheduleItems =>
+      $$TodoScheduleItemsTableTableManager(_db, _db.todoScheduleItems);
   $$PersonaChatMessagesTableTableManager get personaChatMessages =>
       $$PersonaChatMessagesTableTableManager(_db, _db.personaChatMessages);
 }

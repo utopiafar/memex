@@ -1131,6 +1131,66 @@ class AppLocalizationsZh extends AppLocalizations {
   String get insights => '洞察';
 
   @override
+  String get agendaTabLabel => '日程';
+
+  @override
+  String get agendaTodayTasks => '今日待办';
+
+  @override
+  String get agendaTodaySchedule => '今日日程';
+
+  @override
+  String get agendaThisWeek => '本周待办';
+
+  @override
+  String get agendaEmpty => '暂无待办或日程';
+
+  @override
+  String get agendaEmptyHint => '提及任务或计划时会自动出现在这里';
+
+  @override
+  String get agendaItemDetail => '任务详情';
+
+  @override
+  String get agendaStatusPending => '待完成';
+
+  @override
+  String get agendaStatusDone => '已完成';
+
+  @override
+  String get agendaStatusCancelled => '已取消';
+
+  @override
+  String get agendaSourceContext => '来源';
+
+  @override
+  String get agendaViewSourceCard => '查看来源卡片';
+
+  @override
+  String get agendaComplete => '完成';
+
+  @override
+  String get agendaCancelAction => '取消';
+
+  @override
+  String get agendaConfirmCancel => '确认取消此项？';
+
+  @override
+  String get agendaCreatedAt => '创建时间';
+
+  @override
+  String get agendaCompletedAt => '完成时间';
+
+  @override
+  String get agendaSourceNotAvailable => '来源不可用';
+
+  @override
+  String get agendaNoUpcoming => '暂无即将到来的事项';
+
+  @override
+  String get agendaNoDate => '未设置日期';
+
+  @override
   String get memoryTitle => '记忆';
 
   @override

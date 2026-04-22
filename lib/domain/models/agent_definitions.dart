@@ -6,6 +6,8 @@ class AgentDefinitions {
   static const String commentAgent = 'comment_agent';
   static const String chatAgent = 'chat_agent';
   static const String analyzeAssets = 'analyze_assets';
+  static const String todoScheduleAgent = 'todo_schedule_agent';
+  static const String todoRoutingAgent = 'todo_routing_agent';
 
   static const Map<String, String> displayNames = {
     pkmAgent: 'PKM',
@@ -15,5 +17,7 @@ class AgentDefinitions {
     commentAgent: 'Comments',
     chatAgent: 'Chat',
     analyzeAssets: 'Media analysis',
+    todoScheduleAgent: 'Agenda',
+    todoRoutingAgent: 'Agenda Router',
   };
 }
