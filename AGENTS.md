@@ -106,6 +106,7 @@ lib/
 - Repositories are standalone functions or thin wrappers, accessed through `MemexRouter`
 - Never edit `*.g.dart` files — they are generated
 - Assets in `assets/`, platform code in `android/`, `ios/`
+- Pull request descriptions for this project should be written in Chinese.
 
 ---
 
