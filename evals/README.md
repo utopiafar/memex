@@ -25,6 +25,8 @@ evals/
 
 `experiments/` 是对外最重要的目录。每个实验目录应当像一页实验日志，而不是脚本输出垃圾桶。原始 trace、临时 outputs、API key、本地缓存都不进 git。
 
+每次本地运行会在 `evals/runs/<run-id>/` 里留下完整排查材料：`outputs.jsonl` 记录每个 task 的断言结果，`trace.ndjson` 记录 LLM/tool/task trace，`debug_log.json` 汇总配置、指标、task 结果和 trace。这个目录默认被 git 忽略，只用于本地复盘。
+
 ## Harness 原则
 
 - 和业务逻辑隔离：评估代码只能依赖业务入口，不把测试逻辑塞回产品链路。
@@ -55,5 +57,6 @@ evals/
 - 新增一次评估时，新建 `evals/experiments/<date>-<short-topic>/`，至少提交 `report.md` 和 `metrics.json`。
 - 不把 `evals/runs/`、`.env`、API key、完整 LLM 原始响应或临时 trace 提交进 git。
 - 报告用中文，结论靠前，数据集/persona 示例放在最后。
+- 指标大表必须包含“场景”和“类别”，避免只看 metric id 猜含义。
 - 如果用外部模型，key 只能通过环境变量或本地忽略文件传入。
 - 如果某次实验不是全绿，也要如实写进结论；评估发现真实失败，比粉饰通过更有价值。

@@ -38,6 +38,10 @@ Future<void> main(List<String> args) async {
   await File(
     '${outDir.path}/report.md',
   ).writeAsString(ReportRenderer.render(result), flush: true);
+  await File('${outDir.path}/debug_log.json').writeAsString(
+    _prettyJson(_buildDebugLog(result: result, config: config, outDir: outDir)),
+    flush: true,
+  );
 
   stdout.writeln('Memex agent eval complete.');
   stdout.writeln('Run ID: $runId');
@@ -47,7 +51,42 @@ Future<void> main(List<String> args) async {
     '(${_pct(result.assertionPassRate)})',
   );
   stdout.writeln('Report: ${outDir.path}/report.md');
+  stdout.writeln('Debug log: ${outDir.path}/debug_log.json');
 }
+
+JsonMap _buildDebugLog({
+  required BenchmarkResult result,
+  required RunConfig config,
+  required Directory outDir,
+}) =>
+    {
+      'run_id': result.runId,
+      'artifacts': {
+        'report': '${outDir.path}/report.md',
+        'metrics': '${outDir.path}/metrics.json',
+        'task_outputs': '${outDir.path}/outputs.jsonl',
+        'trace': '${outDir.path}/trace.ndjson',
+        'debug_log': '${outDir.path}/debug_log.json',
+      },
+      'config': {
+        'dataset_path': config.datasetPath,
+        'adapter': config.adapter,
+        'case_limit': config.caseLimit,
+        'replay_observations_path': config.replayObservationsPath,
+        'llm_judge_enabled': config.useLlmJudge,
+        'audit_dataset': config.auditDataset,
+        'audit_sample_limit': config.auditSampleLimit,
+        'llm_provider': config.llmProvider,
+        'llm_base_url': config.llmBaseUrl,
+        'llm_model': config.llmModel,
+        'llm_max_tokens': config.llmMaxTokens,
+        'llm_timeout_seconds': config.llmTimeoutSeconds,
+        'llm_api_key': config.llmApiKey == null ? null : '<redacted>',
+      },
+      'metrics': result.metrics,
+      'task_results': result.taskResults.map((task) => task.toJson()).toList(),
+      'trace_events': result.traceEvents,
+    };
 
 class RunConfig {
   RunConfig({
@@ -1889,11 +1928,15 @@ class ReportRenderer {
 
     buffer.writeln('### 关键指标口径');
     buffer.writeln();
-    buffer.writeln('| 指标 | 含义 |');
-    buffer.writeln('| --- | --- |');
+    buffer.writeln('| 场景 | 类别 | 指标 | 含义 |');
+    buffer.writeln('| --- | --- | --- | --- |');
     final byMetric = _map(result.metrics['by_metric']);
-    for (final key in byMetric.keys.toList()..sort()) {
-      buffer.writeln('| `$key` | ${_metricDescription(key)} |');
+    for (final key in byMetric.keys.toList()
+      ..sort((a, b) => _metricSortKey(a).compareTo(_metricSortKey(b)))) {
+      buffer.writeln(
+        '| ${_metricScenario(key)} | ${_metricCategory(key)} | `$key` | '
+        '${_metricDescription(key)} |',
+      );
     }
     buffer.writeln();
   }
@@ -1924,14 +1967,17 @@ class ReportRenderer {
 
     buffer.writeln('### 关键指标结果');
     buffer.writeln();
-    buffer.writeln('| 指标 | 通过 | 总数 | 通过率 | 平均分 |');
-    buffer.writeln('| --- | ---: | ---: | ---: | ---: |');
+    buffer.writeln('| 场景 | 类别 | 指标 | 通过 | 总数 | 通过率 | 平均分 |');
+    buffer.writeln('| --- | --- | --- | ---: | ---: | ---: | ---: |');
     final byMetric = _map(result.metrics['by_metric']);
     for (final entry in byMetric.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key))) {
+      ..sort(
+        (a, b) => _metricSortKey(a.key).compareTo(_metricSortKey(b.key)),
+      )) {
       final bucket = _map(entry.value);
       buffer.writeln(
-        '| `${entry.key}` | ${bucket['passed']} | ${bucket['total']} | '
+        '| ${_metricScenario(entry.key)} | ${_metricCategory(entry.key)} | '
+        '`${entry.key}` | ${bucket['passed']} | ${bucket['total']} | '
         '${_pct((bucket['pass_rate'] as num?)?.toDouble() ?? 0)} | '
         '${_score(bucket['avg_score'])} |',
       );
@@ -2171,6 +2217,104 @@ String _scenarioDescription(String key) {
       return '检查真实 submitInput 到后台任务、卡片、trace 和成本统计的链路稳定性。';
     default:
       return '自定义评估场景。';
+  }
+}
+
+String _metricSortKey(String metric) =>
+    '${_metricScenario(metric)}|${_metricCategory(metric)}|$metric';
+
+String _metricScenario(String metric) {
+  if (metric.startsWith('card_') ||
+      metric == 'time_parse_accuracy' ||
+      metric == 'participant_recall' ||
+      metric == 'location_accuracy' ||
+      metric == 'title_constraint_accuracy' ||
+      metric == 'hallucinated_field_absence') {
+    return 'Card 抽取';
+  }
+  if (metric.startsWith('memory_')) {
+    return '记忆写入';
+  }
+  if (metric.startsWith('retrieval_') ||
+      metric.startsWith('answer_') ||
+      metric == 'unsupported_claim_absence' ||
+      metric == 'unnecessary_uncertainty_absence' ||
+      metric == 'llm_grounded_answer_score') {
+    return '检索问答';
+  }
+  if (metric == 'total_token_budget' ||
+      metric == 'latency_budget' ||
+      metric == 'tool_call_budget' ||
+      metric == 'task_completion_status' ||
+      metric == 'cost_answer_must_include') {
+    return '成本 / Trace';
+  }
+  if (metric.startsWith('tool_') ||
+      metric == 'prohibited_tool_absence' ||
+      metric == 'router_label_accuracy') {
+    return '路由 / 工具调用';
+  }
+  return '自定义';
+}
+
+String _metricCategory(String metric) {
+  switch (metric) {
+    case 'card_schema_valid':
+      return '结构合法性';
+    case 'card_type_accuracy':
+    case 'card_status_accuracy':
+      return 'Card 状态';
+    case 'time_parse_accuracy':
+      return '时间解析';
+    case 'participant_recall':
+    case 'location_accuracy':
+    case 'title_constraint_accuracy':
+    case 'card_field_constraint_accuracy':
+      return '字段抽取';
+    case 'hallucinated_field_absence':
+    case 'unsupported_claim_absence':
+    case 'unnecessary_uncertainty_absence':
+      return '幻觉控制';
+    case 'memory_must_write_recall':
+      return '写入召回';
+    case 'memory_must_not_write_precision':
+    case 'memory_write_precision':
+      return '写入精度';
+    case 'memory_source_grounding':
+      return '来源追溯';
+    case 'memory_duplicate_rate':
+      return '去重';
+    case 'memory_conflict_handling':
+      return '冲突处理';
+    case 'retrieval_hit_at_1':
+    case 'retrieval_hit_at_3':
+    case 'retrieval_hit_at_5':
+    case 'retrieval_mrr':
+    case 'retrieval_recall_at_5':
+      return '召回排序';
+    case 'answer_must_include':
+    case 'cost_answer_must_include':
+      return '答案完整性';
+    case 'answer_source_citation':
+    case 'llm_grounded_answer_score':
+      return '证据支撑';
+    case 'tool_selection_accuracy':
+    case 'prohibited_tool_absence':
+      return '工具选择';
+    case 'tool_args_accuracy':
+      return '工具参数';
+    case 'router_label_accuracy':
+      return '路由分类';
+    case 'total_token_budget':
+      return 'Token 成本';
+    case 'latency_budget':
+      return '延迟';
+    case 'tool_call_budget':
+      return '工具成本';
+    case 'task_completion_status':
+      return '任务收敛';
+    default:
+      return '自定义';
   }
 }
 

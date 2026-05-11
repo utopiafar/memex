@@ -43,17 +43,17 @@
 
 ### 关键指标口径
 
-| 指标 | 含义 |
-| --- | --- |
-| `card_schema_valid` | Card 是否具备最小合法结构，例如类型和标题。 |
-| `card_status_accuracy` | 后台任务结束后 card 是否离开 processing 状态。 |
-| `cost_answer_must_include` | 成本受控时，回答是否仍覆盖必要结论。 |
-| `hallucinated_field_absence` | 是否没有编造禁止字段。 |
-| `latency_budget` | 最大延迟是否未超过预算。 |
-| `task_completion_status` | 全链路后台任务是否全部结束且没有 failed/processing/retrying/pending。 |
-| `title_constraint_accuracy` | 标题是否包含关键主题词。 |
-| `tool_call_budget` | 工具调用次数是否未超过预算。 |
-| `total_token_budget` | 总 token 是否未超过预算。 |
+| 场景 | 类别 | 指标 | 含义 |
+| --- | --- | --- | --- |
+| Card 抽取 | Card 状态 | `card_status_accuracy` | 后台任务结束后 card 是否离开 processing 状态。 |
+| Card 抽取 | 字段抽取 | `title_constraint_accuracy` | 标题是否包含关键主题词。 |
+| Card 抽取 | 幻觉控制 | `hallucinated_field_absence` | 是否没有编造禁止字段。 |
+| Card 抽取 | 结构合法性 | `card_schema_valid` | Card 是否具备最小合法结构，例如类型和标题。 |
+| 成本 / Trace | Token 成本 | `total_token_budget` | 总 token 是否未超过预算。 |
+| 成本 / Trace | 任务收敛 | `task_completion_status` | 全链路后台任务是否全部结束且没有 failed/processing/retrying/pending。 |
+| 成本 / Trace | 工具成本 | `tool_call_budget` | 工具调用次数是否未超过预算。 |
+| 成本 / Trace | 延迟 | `latency_budget` | 最大延迟是否未超过预算。 |
+| 成本 / Trace | 答案完整性 | `cost_answer_must_include` | 成本受控时，回答是否仍覆盖必要结论。 |
 
 ## 结果数据
 
@@ -66,17 +66,17 @@
 
 ### 关键指标结果
 
-| 指标 | 通过 | 总数 | 通过率 | 平均分 |
-| --- | ---: | ---: | ---: | ---: |
-| `card_schema_valid` | 2 | 6 | 33.3% | - |
-| `card_status_accuracy` | 2 | 6 | 33.3% | - |
-| `cost_answer_must_include` | 3 | 3 | 100.0% | 1.000 |
-| `hallucinated_field_absence` | 6 | 6 | 100.0% | - |
-| `latency_budget` | 3 | 3 | 100.0% | - |
-| `task_completion_status` | 1 | 3 | 33.3% | - |
-| `title_constraint_accuracy` | 2 | 6 | 33.3% | 0.333 |
-| `tool_call_budget` | 3 | 3 | 100.0% | - |
-| `total_token_budget` | 3 | 3 | 100.0% | 0.380 |
+| 场景 | 类别 | 指标 | 通过 | 总数 | 通过率 | 平均分 |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| Card 抽取 | Card 状态 | `card_status_accuracy` | 2 | 6 | 33.3% | - |
+| Card 抽取 | 字段抽取 | `title_constraint_accuracy` | 2 | 6 | 33.3% | 0.333 |
+| Card 抽取 | 幻觉控制 | `hallucinated_field_absence` | 6 | 6 | 100.0% | - |
+| Card 抽取 | 结构合法性 | `card_schema_valid` | 2 | 6 | 33.3% | - |
+| 成本 / Trace | Token 成本 | `total_token_budget` | 3 | 3 | 100.0% | 0.380 |
+| 成本 / Trace | 任务收敛 | `task_completion_status` | 1 | 3 | 33.3% | - |
+| 成本 / Trace | 工具成本 | `tool_call_budget` | 3 | 3 | 100.0% | - |
+| 成本 / Trace | 延迟 | `latency_budget` | 3 | 3 | 100.0% | - |
+| 成本 / Trace | 答案完整性 | `cost_answer_must_include` | 3 | 3 | 100.0% | 1.000 |
 
 ### 成本与 Trace
 

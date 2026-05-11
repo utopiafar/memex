@@ -45,39 +45,39 @@
 
 ### 关键指标口径
 
-| 指标 | 含义 |
-| --- | --- |
-| `answer_must_include` | 答案是否包含所有必须提到的信息。 |
-| `answer_source_citation` | 答案引用的来源是否覆盖期望来源。 |
-| `card_field_constraint_accuracy` | 指定 card 字段是否包含应保留的细节。 |
-| `card_schema_valid` | Card 是否具备最小合法结构，例如类型和标题。 |
-| `card_type_accuracy` | 抽取出的 card 类型是否等于期望类型。 |
-| `cost_answer_must_include` | 成本受控时，回答是否仍覆盖必要结论。 |
-| `hallucinated_field_absence` | 是否没有编造禁止字段。 |
-| `latency_budget` | 最大延迟是否未超过预算。 |
-| `location_accuracy` | 地点字段是否包含期望地点。 |
-| `memory_conflict_handling` | 新旧偏好冲突时是否保留最新事实、停用旧事实。 |
-| `memory_duplicate_rate` | 重复或近似重复记忆的比例。 |
-| `memory_must_not_write_precision` | 临时/噪声信息是否没有被写成长记忆。 |
-| `memory_must_write_recall` | 应该写入的长期记忆是否被写入。 |
-| `memory_source_grounding` | 记忆是否能追溯到期望输入来源。 |
-| `memory_write_precision` | 写入的记忆中有多少属于期望长期事实。 |
-| `participant_recall` | 期望人物是否都被抽取出来。 |
-| `prohibited_tool_absence` | 是否没有调用被禁止的工具。 |
-| `retrieval_hit_at_1` | Top 1 结果中是否命中任一正确来源。 |
-| `retrieval_hit_at_3` | Top 3 结果中是否命中任一正确来源。 |
-| `retrieval_hit_at_5` | Top 5 结果中是否命中任一正确来源。 |
-| `retrieval_mrr` | 第一个正确来源排名的倒数，越高越好。 |
-| `retrieval_recall_at_5` | Top 5 中覆盖了多少期望来源。 |
-| `router_label_accuracy` | 路由分类是否等于期望标签。 |
-| `time_parse_accuracy` | 时间解析是否落在允许误差内。 |
-| `title_constraint_accuracy` | 标题是否包含关键主题词。 |
-| `tool_args_accuracy` | 工具参数是否包含期望字段和值。 |
-| `tool_call_budget` | 工具调用次数是否未超过预算。 |
-| `tool_selection_accuracy` | 是否调用了期望工具。 |
-| `total_token_budget` | 总 token 是否未超过预算。 |
-| `unnecessary_uncertainty_absence` | 证据充分时是否没有不必要地说不确定。 |
-| `unsupported_claim_absence` | 答案是否没有出现禁止或无证据断言。 |
+| 场景 | 类别 | 指标 | 含义 |
+| --- | --- | --- | --- |
+| Card 抽取 | Card 状态 | `card_type_accuracy` | 抽取出的 card 类型是否等于期望类型。 |
+| Card 抽取 | 字段抽取 | `card_field_constraint_accuracy` | 指定 card 字段是否包含应保留的细节。 |
+| Card 抽取 | 字段抽取 | `location_accuracy` | 地点字段是否包含期望地点。 |
+| Card 抽取 | 字段抽取 | `participant_recall` | 期望人物是否都被抽取出来。 |
+| Card 抽取 | 字段抽取 | `title_constraint_accuracy` | 标题是否包含关键主题词。 |
+| Card 抽取 | 幻觉控制 | `hallucinated_field_absence` | 是否没有编造禁止字段。 |
+| Card 抽取 | 时间解析 | `time_parse_accuracy` | 时间解析是否落在允许误差内。 |
+| Card 抽取 | 结构合法性 | `card_schema_valid` | Card 是否具备最小合法结构，例如类型和标题。 |
+| 成本 / Trace | Token 成本 | `total_token_budget` | 总 token 是否未超过预算。 |
+| 成本 / Trace | 工具成本 | `tool_call_budget` | 工具调用次数是否未超过预算。 |
+| 成本 / Trace | 延迟 | `latency_budget` | 最大延迟是否未超过预算。 |
+| 成本 / Trace | 答案完整性 | `cost_answer_must_include` | 成本受控时，回答是否仍覆盖必要结论。 |
+| 检索问答 | 召回排序 | `retrieval_hit_at_1` | Top 1 结果中是否命中任一正确来源。 |
+| 检索问答 | 召回排序 | `retrieval_hit_at_3` | Top 3 结果中是否命中任一正确来源。 |
+| 检索问答 | 召回排序 | `retrieval_hit_at_5` | Top 5 结果中是否命中任一正确来源。 |
+| 检索问答 | 召回排序 | `retrieval_mrr` | 第一个正确来源排名的倒数，越高越好。 |
+| 检索问答 | 召回排序 | `retrieval_recall_at_5` | Top 5 中覆盖了多少期望来源。 |
+| 检索问答 | 幻觉控制 | `unnecessary_uncertainty_absence` | 证据充分时是否没有不必要地说不确定。 |
+| 检索问答 | 幻觉控制 | `unsupported_claim_absence` | 答案是否没有出现禁止或无证据断言。 |
+| 检索问答 | 答案完整性 | `answer_must_include` | 答案是否包含所有必须提到的信息。 |
+| 检索问答 | 证据支撑 | `answer_source_citation` | 答案引用的来源是否覆盖期望来源。 |
+| 记忆写入 | 写入召回 | `memory_must_write_recall` | 应该写入的长期记忆是否被写入。 |
+| 记忆写入 | 写入精度 | `memory_must_not_write_precision` | 临时/噪声信息是否没有被写成长记忆。 |
+| 记忆写入 | 写入精度 | `memory_write_precision` | 写入的记忆中有多少属于期望长期事实。 |
+| 记忆写入 | 冲突处理 | `memory_conflict_handling` | 新旧偏好冲突时是否保留最新事实、停用旧事实。 |
+| 记忆写入 | 去重 | `memory_duplicate_rate` | 重复或近似重复记忆的比例。 |
+| 记忆写入 | 来源追溯 | `memory_source_grounding` | 记忆是否能追溯到期望输入来源。 |
+| 路由 / 工具调用 | 工具参数 | `tool_args_accuracy` | 工具参数是否包含期望字段和值。 |
+| 路由 / 工具调用 | 工具选择 | `prohibited_tool_absence` | 是否没有调用被禁止的工具。 |
+| 路由 / 工具调用 | 工具选择 | `tool_selection_accuracy` | 是否调用了期望工具。 |
+| 路由 / 工具调用 | 路由分类 | `router_label_accuracy` | 路由分类是否等于期望标签。 |
 
 ## 结果数据
 
@@ -93,39 +93,39 @@
 
 ### 关键指标结果
 
-| 指标 | 通过 | 总数 | 通过率 | 平均分 |
-| --- | ---: | ---: | ---: | ---: |
-| `answer_must_include` | 3 | 3 | 100.0% | 1.000 |
-| `answer_source_citation` | 2 | 2 | 100.0% | 1.000 |
-| `card_field_constraint_accuracy` | 1 | 1 | 100.0% | 1.000 |
-| `card_schema_valid` | 3 | 3 | 100.0% | - |
-| `card_type_accuracy` | 3 | 3 | 100.0% | - |
-| `cost_answer_must_include` | 1 | 1 | 100.0% | 1.000 |
-| `hallucinated_field_absence` | 3 | 3 | 100.0% | - |
-| `latency_budget` | 2 | 2 | 100.0% | - |
-| `location_accuracy` | 1 | 1 | 100.0% | - |
-| `memory_conflict_handling` | 1 | 1 | 100.0% | - |
-| `memory_duplicate_rate` | 3 | 3 | 100.0% | 1.000 |
-| `memory_must_not_write_precision` | 1 | 2 | 50.0% | - |
-| `memory_must_write_recall` | 2 | 2 | 100.0% | 1.000 |
-| `memory_source_grounding` | 2 | 2 | 100.0% | - |
-| `memory_write_precision` | 2 | 3 | 66.7% | 0.833 |
-| `participant_recall` | 2 | 2 | 100.0% | 1.000 |
-| `prohibited_tool_absence` | 4 | 4 | 100.0% | - |
-| `retrieval_hit_at_1` | 3 | 3 | 100.0% | 1.000 |
-| `retrieval_hit_at_3` | 3 | 3 | 100.0% | 1.000 |
-| `retrieval_hit_at_5` | 3 | 3 | 100.0% | 1.000 |
-| `retrieval_mrr` | 3 | 3 | 100.0% | 1.000 |
-| `retrieval_recall_at_5` | 3 | 3 | 100.0% | 1.000 |
-| `router_label_accuracy` | 4 | 4 | 100.0% | - |
-| `time_parse_accuracy` | 2 | 2 | 100.0% | 1.000 |
-| `title_constraint_accuracy` | 3 | 3 | 100.0% | 1.000 |
-| `tool_args_accuracy` | 3 | 3 | 100.0% | - |
-| `tool_call_budget` | 2 | 2 | 100.0% | - |
-| `tool_selection_accuracy` | 3 | 3 | 100.0% | - |
-| `total_token_budget` | 2 | 2 | 100.0% | 0.335 |
-| `unnecessary_uncertainty_absence` | 2 | 2 | 100.0% | - |
-| `unsupported_claim_absence` | 3 | 3 | 100.0% | - |
+| 场景 | 类别 | 指标 | 通过 | 总数 | 通过率 | 平均分 |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| Card 抽取 | Card 状态 | `card_type_accuracy` | 3 | 3 | 100.0% | - |
+| Card 抽取 | 字段抽取 | `card_field_constraint_accuracy` | 1 | 1 | 100.0% | 1.000 |
+| Card 抽取 | 字段抽取 | `location_accuracy` | 1 | 1 | 100.0% | - |
+| Card 抽取 | 字段抽取 | `participant_recall` | 2 | 2 | 100.0% | 1.000 |
+| Card 抽取 | 字段抽取 | `title_constraint_accuracy` | 3 | 3 | 100.0% | 1.000 |
+| Card 抽取 | 幻觉控制 | `hallucinated_field_absence` | 3 | 3 | 100.0% | - |
+| Card 抽取 | 时间解析 | `time_parse_accuracy` | 2 | 2 | 100.0% | 1.000 |
+| Card 抽取 | 结构合法性 | `card_schema_valid` | 3 | 3 | 100.0% | - |
+| 成本 / Trace | Token 成本 | `total_token_budget` | 2 | 2 | 100.0% | 0.335 |
+| 成本 / Trace | 工具成本 | `tool_call_budget` | 2 | 2 | 100.0% | - |
+| 成本 / Trace | 延迟 | `latency_budget` | 2 | 2 | 100.0% | - |
+| 成本 / Trace | 答案完整性 | `cost_answer_must_include` | 1 | 1 | 100.0% | 1.000 |
+| 检索问答 | 召回排序 | `retrieval_hit_at_1` | 3 | 3 | 100.0% | 1.000 |
+| 检索问答 | 召回排序 | `retrieval_hit_at_3` | 3 | 3 | 100.0% | 1.000 |
+| 检索问答 | 召回排序 | `retrieval_hit_at_5` | 3 | 3 | 100.0% | 1.000 |
+| 检索问答 | 召回排序 | `retrieval_mrr` | 3 | 3 | 100.0% | 1.000 |
+| 检索问答 | 召回排序 | `retrieval_recall_at_5` | 3 | 3 | 100.0% | 1.000 |
+| 检索问答 | 幻觉控制 | `unnecessary_uncertainty_absence` | 2 | 2 | 100.0% | - |
+| 检索问答 | 幻觉控制 | `unsupported_claim_absence` | 3 | 3 | 100.0% | - |
+| 检索问答 | 答案完整性 | `answer_must_include` | 3 | 3 | 100.0% | 1.000 |
+| 检索问答 | 证据支撑 | `answer_source_citation` | 2 | 2 | 100.0% | 1.000 |
+| 记忆写入 | 写入召回 | `memory_must_write_recall` | 2 | 2 | 100.0% | 1.000 |
+| 记忆写入 | 写入精度 | `memory_must_not_write_precision` | 1 | 2 | 50.0% | - |
+| 记忆写入 | 写入精度 | `memory_write_precision` | 2 | 3 | 66.7% | 0.833 |
+| 记忆写入 | 冲突处理 | `memory_conflict_handling` | 1 | 1 | 100.0% | - |
+| 记忆写入 | 去重 | `memory_duplicate_rate` | 3 | 3 | 100.0% | 1.000 |
+| 记忆写入 | 来源追溯 | `memory_source_grounding` | 2 | 2 | 100.0% | - |
+| 路由 / 工具调用 | 工具参数 | `tool_args_accuracy` | 3 | 3 | 100.0% | - |
+| 路由 / 工具调用 | 工具选择 | `prohibited_tool_absence` | 4 | 4 | 100.0% | - |
+| 路由 / 工具调用 | 工具选择 | `tool_selection_accuracy` | 3 | 3 | 100.0% | - |
+| 路由 / 工具调用 | 路由分类 | `router_label_accuracy` | 4 | 4 | 100.0% | - |
 
 ### 成本与 Trace
 
