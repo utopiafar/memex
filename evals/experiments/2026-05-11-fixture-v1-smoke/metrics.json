@@ -1,6 +1,6 @@
 {
-  "run_id": "local_fixture_v1_refresh",
-  "started_at": "2026-05-11T12:40:07.162447Z",
+  "run_id": "2026-05-11-fixture-v1-smoke",
+  "started_at": "2026-05-11T15:33:03.163680Z",
   "dataset_path": "evals/datasets/v1",
   "adapter": "fixture",
   "llm_judge_enabled": false,

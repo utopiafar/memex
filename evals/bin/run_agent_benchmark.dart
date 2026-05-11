@@ -94,7 +94,7 @@ Usage:
 
 Options:
   --dataset PATH       Dataset directory or JSONL file. Default: evals/datasets/v1
-  --adapter NAME       Observation adapter. Currently: fixture. Default: fixture
+  --adapter NAME       Observation adapter: fixture or replay_file. Default: fixture
   --out PATH           Output directory. Default: evals/runs/<run-id>
   --run-id ID          Stable run id for output metadata.
   --use-llm-judge      Enable JSON judge for eligible tasks.
@@ -1795,12 +1795,168 @@ class ReportRenderer {
     final buffer = StringBuffer();
     final assertions = _map(result.metrics['assertions']);
     final cost = _map(result.metrics['cost_trace']);
-    buffer.writeln('# Memex Agent 评估报告');
+    buffer.writeln('# Memex Agent Eval 实验报告');
     buffer.writeln();
 
+    _writeExperimentQuestion(buffer, result);
     _writeConclusion(buffer, result, assertions, cost);
+    _writeDatasetAndCost(buffer, result, assertions, cost);
+    _writeMetricDefinitions(buffer, result);
+    _writeResultData(buffer, result, cost);
 
-    buffer.writeln('## 运行信息');
+    final failures = _failures(result);
+    buffer.writeln('## 失败样本');
+    buffer.writeln();
+    if (failures.isEmpty) {
+      buffer.writeln('没有失败断言。');
+    } else {
+      for (final failure in failures) {
+        buffer.writeln(
+          '- `${failure.taskId}` / `${failure.metric}`：${_zhFailureMessage(failure)}',
+        );
+      }
+    }
+    buffer.writeln();
+
+    _writeExperimentDetails(buffer, result, assertions);
+    _writeDatasetAudit(buffer, result.datasetAudit);
+    _writeDatasetAppendix(buffer, result);
+    return buffer.toString();
+  }
+
+  static void _writeExperimentQuestion(
+    StringBuffer buffer,
+    BenchmarkResult result,
+  ) {
+    final question = result.adapter == 'replay_file'
+        ? '真实 Memex 链路从用户输入到后台任务、卡片产物和 trace 记录是否能稳定闭环。'
+        : '固定观察数据能否稳定验证 grader、指标聚合和报告结构，作为后续回归对照。';
+
+    buffer.writeln('## 实验问题与背景');
+    buffer.writeln();
+    buffer.writeln('- 本次要回答的问题：$question');
+    buffer.writeln(
+      '- 背景：Agent 系统的质量不能只看最终回答，需要同时看 memory、retrieval、router、tool call、trace、成本和失败模式。',
+    );
+    buffer.writeln(
+      '- 评估对象：`${result.adapter}` adapter，数据集 `${result.datasetPath}`。',
+    );
+    buffer.writeln();
+  }
+
+  static void _writeDatasetAndCost(
+    StringBuffer buffer,
+    BenchmarkResult result,
+    JsonMap assertions,
+    JsonMap cost,
+  ) {
+    final summary = result.datasetSummary;
+    buffer.writeln('## 数据集与成本规模');
+    buffer.writeln();
+    buffer.writeln('| 项目 | 数值 |');
+    buffer.writeln('| --- | ---: |');
+    buffer.writeln('| Persona | ${summary.personaCount} |');
+    buffer.writeln('| Case | ${summary.caseCount} |');
+    buffer.writeln('| 用户输入 | ${summary.inputCount} |');
+    buffer.writeln('| Eval task | ${summary.taskCount} |');
+    buffer.writeln('| 断言 | ${assertions['total']} |');
+    buffer.writeln('| LLM 调用 | ${cost['llm_call_count']} |');
+    buffer.writeln('| Tool 调用 | ${cost['tool_call_count']} |');
+    buffer.writeln('| 实际 token | ${cost['total_tokens'] ?? 0} |');
+    buffer.writeln();
+    buffer.writeln(
+        '- 数据语言：${summary.languages.isEmpty ? '未声明' : summary.languages.join(', ')}');
+    buffer.writeln('- Token 估算：${_tokenEstimate(cost)}');
+    buffer.writeln();
+  }
+
+  static void _writeMetricDefinitions(
+    StringBuffer buffer,
+    BenchmarkResult result,
+  ) {
+    buffer.writeln('## 指标口径');
+    buffer.writeln();
+    buffer.writeln('### 场景口径');
+    buffer.writeln();
+    buffer.writeln('| 场景 | 评估目标 |');
+    buffer.writeln('| --- | --- |');
+    final byFamily = _map(result.metrics['by_family']);
+    for (final key in byFamily.keys.toList()..sort()) {
+      buffer
+          .writeln('| ${_scenarioLabel(key)} | ${_scenarioDescription(key)} |');
+    }
+    buffer.writeln();
+
+    buffer.writeln('### 关键指标口径');
+    buffer.writeln();
+    buffer.writeln('| 指标 | 含义 |');
+    buffer.writeln('| --- | --- |');
+    final byMetric = _map(result.metrics['by_metric']);
+    for (final key in byMetric.keys.toList()..sort()) {
+      buffer.writeln('| `$key` | ${_metricDescription(key)} |');
+    }
+    buffer.writeln();
+  }
+
+  static void _writeResultData(
+    StringBuffer buffer,
+    BenchmarkResult result,
+    JsonMap cost,
+  ) {
+    buffer.writeln('## 结果数据');
+    buffer.writeln();
+    buffer.writeln('### 分场景结果');
+    buffer.writeln();
+    buffer.writeln('| 场景 | 通过 | 总数 | 通过率 | 平均分 |');
+    buffer.writeln('| --- | ---: | ---: | ---: | ---: |');
+    final byFamily = _map(result.metrics['by_family']);
+    for (final entry in byFamily.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key))) {
+      final bucket = _map(entry.value);
+      buffer.writeln(
+        '| ${_scenarioLabel(entry.key)} | ${bucket['passed']} | '
+        '${bucket['total']} | '
+        '${_pct((bucket['pass_rate'] as num?)?.toDouble() ?? 0)} | '
+        '${_score(bucket['avg_score'])} |',
+      );
+    }
+    buffer.writeln();
+
+    buffer.writeln('### 关键指标结果');
+    buffer.writeln();
+    buffer.writeln('| 指标 | 通过 | 总数 | 通过率 | 平均分 |');
+    buffer.writeln('| --- | ---: | ---: | ---: | ---: |');
+    final byMetric = _map(result.metrics['by_metric']);
+    for (final entry in byMetric.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key))) {
+      final bucket = _map(entry.value);
+      buffer.writeln(
+        '| `${entry.key}` | ${bucket['passed']} | ${bucket['total']} | '
+        '${_pct((bucket['pass_rate'] as num?)?.toDouble() ?? 0)} | '
+        '${_score(bucket['avg_score'])} |',
+      );
+    }
+    buffer.writeln();
+
+    buffer.writeln('### 成本与 Trace');
+    buffer.writeln();
+    buffer.writeln('- LLM 调用次数：${cost['llm_call_count']}');
+    buffer.writeln('- 工具调用次数：${cost['tool_call_count']}');
+    buffer.writeln('- Token 总量：${cost['total_tokens']}');
+    buffer.writeln('- 单次 LLM 平均 token：${_score(cost['avg_total_tokens'])}');
+    buffer.writeln('- 平均延迟：${_score(cost['avg_latency_ms'])} ms');
+    buffer.writeln('- P95 延迟：${_score(cost['p95_latency_ms'])} ms');
+    buffer.writeln();
+  }
+
+  static void _writeExperimentDetails(
+    StringBuffer buffer,
+    BenchmarkResult result,
+    JsonMap assertions,
+  ) {
+    buffer.writeln('## 实验详情');
+    buffer.writeln();
+    buffer.writeln('### 运行信息');
     buffer.writeln();
     buffer.writeln('- 运行 ID：`${result.runId}`');
     buffer.writeln('- 数据集：`${result.datasetPath}`');
@@ -1820,65 +1976,7 @@ class ReportRenderer {
     }
     buffer.writeln();
 
-    buffer.writeln('## 分场景结果');
-    buffer.writeln();
-    buffer.writeln('| 场景 | 评估目标 | 通过 | 总数 | 通过率 | 平均分 |');
-    buffer.writeln('| --- | --- | ---: | ---: | ---: | ---: |');
-    final byFamily = _map(result.metrics['by_family']);
-    for (final entry in byFamily.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key))) {
-      final bucket = _map(entry.value);
-      buffer.writeln(
-        '| ${_scenarioLabel(entry.key)} | ${_scenarioDescription(entry.key)} | '
-        '${bucket['passed']} | ${bucket['total']} | '
-        '${_pct((bucket['pass_rate'] as num?)?.toDouble() ?? 0)} | '
-        '${_score(bucket['avg_score'])} |',
-      );
-    }
-    buffer.writeln();
-
-    buffer.writeln('## 关键指标与解释');
-    buffer.writeln();
-    buffer.writeln('| 指标 | 含义 | 通过 | 总数 | 通过率 | 平均分 |');
-    buffer.writeln('| --- | --- | ---: | ---: | ---: | ---: |');
-    final byMetric = _map(result.metrics['by_metric']);
-    for (final entry in byMetric.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key))) {
-      final bucket = _map(entry.value);
-      buffer.writeln(
-        '| `${entry.key}` | ${_metricDescription(entry.key)} | '
-        '${bucket['passed']} | ${bucket['total']} | '
-        '${_pct((bucket['pass_rate'] as num?)?.toDouble() ?? 0)} | '
-        '${_score(bucket['avg_score'])} |',
-      );
-    }
-    buffer.writeln();
-
-    buffer.writeln('## 成本与 Trace');
-    buffer.writeln();
-    buffer.writeln('- LLM 调用次数：${cost['llm_call_count']}');
-    buffer.writeln('- 工具调用次数：${cost['tool_call_count']}');
-    buffer.writeln('- Token 总量：${cost['total_tokens']}');
-    buffer.writeln('- 单次 LLM 平均 token：${_score(cost['avg_total_tokens'])}');
-    buffer.writeln('- 平均延迟：${_score(cost['avg_latency_ms'])} ms');
-    buffer.writeln('- P95 延迟：${_score(cost['p95_latency_ms'])} ms');
-    buffer.writeln();
-
-    final failures = _failures(result);
-    buffer.writeln('## 失败样本');
-    buffer.writeln();
-    if (failures.isEmpty) {
-      buffer.writeln('没有失败断言。');
-    } else {
-      for (final failure in failures) {
-        buffer.writeln(
-          '- `${failure.taskId}` / `${failure.metric}`：${_zhFailureMessage(failure)}',
-        );
-      }
-    }
-    buffer.writeln();
-
-    buffer.writeln('## 场景任务明细');
+    buffer.writeln('### 场景任务明细');
     buffer.writeln();
     final tasksByType = <String, List<TaskResult>>{};
     for (final task in result.taskResults) {
@@ -1886,7 +1984,7 @@ class ReportRenderer {
     }
     for (final entry in tasksByType.entries.toList()
       ..sort((a, b) => a.key.compareTo(b.key))) {
-      buffer.writeln('### ${_scenarioLabel(entry.key)}');
+      buffer.writeln('#### ${_scenarioLabel(entry.key)}');
       buffer.writeln();
       buffer.writeln('| Case | Task | 结果 | 失败断言数 |');
       buffer.writeln('| --- | --- | --- | ---: |');
@@ -1898,10 +1996,6 @@ class ReportRenderer {
       }
       buffer.writeln();
     }
-
-    _writeDatasetAudit(buffer, result.datasetAudit);
-    _writeDatasetAppendix(buffer, result);
-    return buffer.toString();
   }
 
   static void _writeConclusion(
@@ -2470,6 +2564,16 @@ String _pct(double value) => '${(value * 100).toStringAsFixed(1)}%';
 String _score(Object? value) {
   if (value is num) return value.toStringAsFixed(3);
   return '-';
+}
+
+String _tokenEstimate(JsonMap cost) {
+  final totalTokens = (cost['total_tokens'] as num?)?.toInt() ?? 0;
+  if (totalTokens <= 0) {
+    return '本次没有可靠 token 记录，通常表示 fixture 或 no-LLM replay；真实模型实验需要用同规模 replay 重新估算。';
+  }
+  final lower = (totalTokens * 0.8).round();
+  final upper = (totalTokens * 1.2).round();
+  return '本次实际消耗 $totalTokens tokens；同规模复跑可先按 $lower-$upper tokens 预留。';
 }
 
 String _formatCountMap(Map<String, int> counts) {

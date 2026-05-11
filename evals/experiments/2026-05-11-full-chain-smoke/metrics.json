@@ -1,6 +1,6 @@
 {
-  "run_id": "full_chain_replay_smoke",
-  "started_at": "2026-05-11T12:40:54.982016Z",
+  "run_id": "2026-05-11-full-chain-smoke",
+  "started_at": "2026-05-11T15:33:03.163535Z",
   "dataset_path": "evals/datasets/full_chain_smoke",
   "adapter": "replay_file",
   "llm_judge_enabled": false,

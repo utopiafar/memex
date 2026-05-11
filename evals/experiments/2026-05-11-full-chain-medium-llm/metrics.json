@@ -1,0 +1,144 @@
+{
+  "run_id": "2026-05-11-full-chain-medium-llm",
+  "started_at": "2026-05-11T15:33:07.831748Z",
+  "dataset_path": "evals/datasets/full_chain_medium",
+  "adapter": "replay_file",
+  "llm_judge_enabled": false,
+  "case_count": 3,
+  "task_count": 9,
+  "dataset_summary": {
+    "case_count": 3,
+    "persona_count": 3,
+    "input_count": 6,
+    "task_count": 9,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "full_chain_replay": 3
+    },
+    "tasks_by_type": {
+      "card_extraction": 6,
+      "cost_trace": 3
+    },
+    "personas": [
+      {
+        "user_id": "eval_fc_medium_001",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 2,
+        "task_count": 3,
+        "sample_inputs": [
+          "明天上午十点提醒我和 Ada 过一下投流预算。",
+          "周五下午三点和老王在腾讯会议复盘客户续约，记一下。"
+        ]
+      },
+      {
+        "user_id": "eval_fc_medium_002",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 2,
+        "task_count": 3,
+        "sample_inputs": [
+          "下周三晚上七点提醒我去望京和 Annie 吃饭。",
+          "今天下班前提醒我把数据看板周报发给 Leo。"
+        ]
+      },
+      {
+        "user_id": "eval_fc_medium_003",
+        "occupation": "律师",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 2,
+        "task_count": 3,
+        "sample_inputs": [
+          "5月16日下午两点和 Mina 线上确认合同风险。",
+          "明早九点提醒我检查版本灰度监控和回滚预案。"
+        ]
+      }
+    ]
+  },
+  "assertions": {
+    "passed": 25,
+    "total": 39,
+    "pass_rate": 0.6410256410256411,
+    "avg_score": 0.5117833333333334
+  },
+  "by_family": {
+    "card_extraction": {
+      "passed": 12,
+      "total": 24,
+      "pass_rate": 0.5,
+      "avg_score": 0.3333333333333333
+    },
+    "cost_trace": {
+      "passed": 13,
+      "total": 15,
+      "pass_rate": 0.8666666666666667,
+      "avg_score": 0.6902333333333334
+    }
+  },
+  "by_metric": {
+    "card_schema_valid": {
+      "passed": 2,
+      "total": 6,
+      "pass_rate": 0.3333333333333333
+    },
+    "card_status_accuracy": {
+      "passed": 2,
+      "total": 6,
+      "pass_rate": 0.3333333333333333
+    },
+    "title_constraint_accuracy": {
+      "passed": 2,
+      "total": 6,
+      "pass_rate": 0.3333333333333333,
+      "avg_score": 0.3333333333333333
+    },
+    "hallucinated_field_absence": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0
+    },
+    "total_token_budget": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 0.3804666666666667
+    },
+    "latency_budget": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "tool_call_budget": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "task_completion_status": {
+      "passed": 1,
+      "total": 3,
+      "pass_rate": 0.3333333333333333
+    },
+    "cost_answer_must_include": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 75,
+    "tool_call_count": 246,
+    "avg_latency_ms": 1088.8030888030887,
+    "p95_latency_ms": 0.0,
+    "avg_total_tokens": 1486.88,
+    "total_tokens": 111516
+  }
+}

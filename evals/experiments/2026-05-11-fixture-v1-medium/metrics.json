@@ -1,6 +1,6 @@
 {
-  "run_id": "local_fixture_medium",
-  "started_at": "2026-05-11T12:40:07.184441Z",
+  "run_id": "2026-05-11-fixture-v1-medium",
+  "started_at": "2026-05-11T15:33:03.163678Z",
   "dataset_path": "evals/datasets/v1_medium",
   "adapter": "fixture",
   "llm_judge_enabled": false,
