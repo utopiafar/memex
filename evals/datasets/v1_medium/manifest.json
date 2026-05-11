@@ -8,8 +8,8 @@
   "user_input_language": "zh-CN",
   "oracle_language": "zh-CN",
   "case_file": "cases.jsonl",
-  "persona_count": 30,
-  "case_count": 126,
+  "persona_count": 50,
+  "case_count": 210,
   "families": [
     "card_extraction",
     "memory_write",

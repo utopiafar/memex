@@ -33,12 +33,12 @@ void main() {
             repoRoot,
             'evals',
             'datasets',
-            'full_chain_smoke',
+            'full_chain_medium',
             'cases.jsonl',
           );
       final runDir = Directory(
         Platform.environment['MEMEX_EVAL_RUN_DIR'] ??
-            p.join(repoRoot, 'evals', 'runs', 'full_chain_replay_smoke'),
+            p.join(repoRoot, 'evals', 'runs', 'full_chain_medium_replay'),
       );
       if (await runDir.exists()) {
         await runDir.delete(recursive: true);

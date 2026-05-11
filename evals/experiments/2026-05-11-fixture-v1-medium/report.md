@@ -9,8 +9,8 @@
 ## 结论
 
 - 整体通过，适合作为当前基线。
-- 本次覆盖 126 个 case、126 个 eval task，断言通过率 99.2%。
-- 失败断言数：6；Token 总量：263610；LLM 调用次数：132；工具调用次数：125。
+- 本次覆盖 210 个 case、210 个 eval task，断言通过率 99.2%。
+- 失败断言数：10；Token 总量：441550；LLM 调用次数：220；工具调用次数：208。
 - 主要失败项：
   - `medium_memory_010_t1` / `memory_must_not_write_precision`：把不应该写入的临时信息写成了长期记忆。原始信息：Wrote prohibited memory transient_010: 用户今天想喝奶茶。
   - `medium_memory_010_t1` / `memory_write_precision`：写入记忆里混入了非长期事实，写入精度不足。Matched 1 required writes across 2 written memories.
@@ -20,17 +20,17 @@
 
 | 项目 | 数值 |
 | --- | ---: |
-| Persona | 30 |
-| Case | 126 |
-| 用户输入 | 186 |
-| Eval task | 126 |
-| 断言 | 760 |
-| LLM 调用 | 132 |
-| Tool 调用 | 125 |
-| 实际 token | 263610 |
+| Persona | 50 |
+| Case | 210 |
+| 用户输入 | 310 |
+| Eval task | 210 |
+| 断言 | 1266 |
+| LLM 调用 | 220 |
+| Tool 调用 | 208 |
+| 实际 token | 441550 |
 
 - 数据语言：zh-CN
-- Token 估算：本次实际消耗 263610 tokens；同规模复跑可先按 210888-316332 tokens 预留。
+- Token 估算：本次实际消耗 441550 tokens；同规模复跑可先按 353240-529860 tokens 预留。
 
 ## 指标口径
 
@@ -84,54 +84,54 @@
 
 | 场景 | 通过 | 总数 | 通过率 | 平均分 |
 | --- | ---: | ---: | ---: | ---: |
-| Card 抽取 | 210 | 210 | 100.0% | 1.000 |
-| 成本 / Trace | 24 | 24 | 100.0% | 0.689 |
-| 记忆写入 | 144 | 150 | 96.0% | 0.983 |
-| 检索问答 | 270 | 270 | 100.0% | 1.000 |
-| 路由 / 工具调用 | 106 | 106 | 100.0% | - |
+| Card 抽取 | 350 | 350 | 100.0% | 1.000 |
+| 成本 / Trace | 40 | 40 | 100.0% | 0.688 |
+| 记忆写入 | 240 | 250 | 96.0% | 0.983 |
+| 检索问答 | 450 | 450 | 100.0% | 1.000 |
+| 路由 / 工具调用 | 176 | 176 | 100.0% | - |
 
 ### 关键指标结果
 
 | 场景 | 类别 | 指标 | 通过 | 总数 | 通过率 | 平均分 |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
-| Card 抽取 | Card 状态 | `card_type_accuracy` | 30 | 30 | 100.0% | - |
-| Card 抽取 | 字段抽取 | `location_accuracy` | 30 | 30 | 100.0% | - |
-| Card 抽取 | 字段抽取 | `participant_recall` | 30 | 30 | 100.0% | 1.000 |
-| Card 抽取 | 字段抽取 | `title_constraint_accuracy` | 30 | 30 | 100.0% | 1.000 |
-| Card 抽取 | 幻觉控制 | `hallucinated_field_absence` | 30 | 30 | 100.0% | - |
-| Card 抽取 | 时间解析 | `time_parse_accuracy` | 30 | 30 | 100.0% | 1.000 |
-| Card 抽取 | 结构合法性 | `card_schema_valid` | 30 | 30 | 100.0% | - |
-| 成本 / Trace | Token 成本 | `total_token_budget` | 6 | 6 | 100.0% | 0.378 |
-| 成本 / Trace | 工具成本 | `tool_call_budget` | 6 | 6 | 100.0% | - |
-| 成本 / Trace | 延迟 | `latency_budget` | 6 | 6 | 100.0% | - |
-| 成本 / Trace | 答案完整性 | `cost_answer_must_include` | 6 | 6 | 100.0% | 1.000 |
-| 检索问答 | 召回排序 | `retrieval_hit_at_1` | 30 | 30 | 100.0% | 1.000 |
-| 检索问答 | 召回排序 | `retrieval_hit_at_3` | 30 | 30 | 100.0% | 1.000 |
-| 检索问答 | 召回排序 | `retrieval_hit_at_5` | 30 | 30 | 100.0% | 1.000 |
-| 检索问答 | 召回排序 | `retrieval_mrr` | 30 | 30 | 100.0% | 1.000 |
-| 检索问答 | 召回排序 | `retrieval_recall_at_5` | 30 | 30 | 100.0% | 1.000 |
-| 检索问答 | 幻觉控制 | `unnecessary_uncertainty_absence` | 30 | 30 | 100.0% | - |
-| 检索问答 | 幻觉控制 | `unsupported_claim_absence` | 30 | 30 | 100.0% | - |
-| 检索问答 | 答案完整性 | `answer_must_include` | 30 | 30 | 100.0% | 1.000 |
-| 检索问答 | 证据支撑 | `answer_source_citation` | 30 | 30 | 100.0% | 1.000 |
-| 记忆写入 | 写入召回 | `memory_must_write_recall` | 30 | 30 | 100.0% | 1.000 |
-| 记忆写入 | 写入精度 | `memory_must_not_write_precision` | 27 | 30 | 90.0% | - |
-| 记忆写入 | 写入精度 | `memory_write_precision` | 27 | 30 | 90.0% | 0.950 |
-| 记忆写入 | 去重 | `memory_duplicate_rate` | 30 | 30 | 100.0% | 1.000 |
-| 记忆写入 | 来源追溯 | `memory_source_grounding` | 30 | 30 | 100.0% | - |
-| 路由 / 工具调用 | 工具参数 | `tool_args_accuracy` | 23 | 23 | 100.0% | - |
-| 路由 / 工具调用 | 工具选择 | `prohibited_tool_absence` | 30 | 30 | 100.0% | - |
-| 路由 / 工具调用 | 工具选择 | `tool_selection_accuracy` | 23 | 23 | 100.0% | - |
-| 路由 / 工具调用 | 路由分类 | `router_label_accuracy` | 30 | 30 | 100.0% | - |
+| Card 抽取 | Card 状态 | `card_type_accuracy` | 50 | 50 | 100.0% | - |
+| Card 抽取 | 字段抽取 | `location_accuracy` | 50 | 50 | 100.0% | - |
+| Card 抽取 | 字段抽取 | `participant_recall` | 50 | 50 | 100.0% | 1.000 |
+| Card 抽取 | 字段抽取 | `title_constraint_accuracy` | 50 | 50 | 100.0% | 1.000 |
+| Card 抽取 | 幻觉控制 | `hallucinated_field_absence` | 50 | 50 | 100.0% | - |
+| Card 抽取 | 时间解析 | `time_parse_accuracy` | 50 | 50 | 100.0% | 1.000 |
+| Card 抽取 | 结构合法性 | `card_schema_valid` | 50 | 50 | 100.0% | - |
+| 成本 / Trace | Token 成本 | `total_token_budget` | 10 | 10 | 100.0% | 0.376 |
+| 成本 / Trace | 工具成本 | `tool_call_budget` | 10 | 10 | 100.0% | - |
+| 成本 / Trace | 延迟 | `latency_budget` | 10 | 10 | 100.0% | - |
+| 成本 / Trace | 答案完整性 | `cost_answer_must_include` | 10 | 10 | 100.0% | 1.000 |
+| 检索问答 | 召回排序 | `retrieval_hit_at_1` | 50 | 50 | 100.0% | 1.000 |
+| 检索问答 | 召回排序 | `retrieval_hit_at_3` | 50 | 50 | 100.0% | 1.000 |
+| 检索问答 | 召回排序 | `retrieval_hit_at_5` | 50 | 50 | 100.0% | 1.000 |
+| 检索问答 | 召回排序 | `retrieval_mrr` | 50 | 50 | 100.0% | 1.000 |
+| 检索问答 | 召回排序 | `retrieval_recall_at_5` | 50 | 50 | 100.0% | 1.000 |
+| 检索问答 | 幻觉控制 | `unnecessary_uncertainty_absence` | 50 | 50 | 100.0% | - |
+| 检索问答 | 幻觉控制 | `unsupported_claim_absence` | 50 | 50 | 100.0% | - |
+| 检索问答 | 答案完整性 | `answer_must_include` | 50 | 50 | 100.0% | 1.000 |
+| 检索问答 | 证据支撑 | `answer_source_citation` | 50 | 50 | 100.0% | 1.000 |
+| 记忆写入 | 写入召回 | `memory_must_write_recall` | 50 | 50 | 100.0% | 1.000 |
+| 记忆写入 | 写入精度 | `memory_must_not_write_precision` | 45 | 50 | 90.0% | - |
+| 记忆写入 | 写入精度 | `memory_write_precision` | 45 | 50 | 90.0% | 0.950 |
+| 记忆写入 | 去重 | `memory_duplicate_rate` | 50 | 50 | 100.0% | 1.000 |
+| 记忆写入 | 来源追溯 | `memory_source_grounding` | 50 | 50 | 100.0% | - |
+| 路由 / 工具调用 | 工具参数 | `tool_args_accuracy` | 38 | 38 | 100.0% | - |
+| 路由 / 工具调用 | 工具选择 | `prohibited_tool_absence` | 50 | 50 | 100.0% | - |
+| 路由 / 工具调用 | 工具选择 | `tool_selection_accuracy` | 38 | 38 | 100.0% | - |
+| 路由 / 工具调用 | 路由分类 | `router_label_accuracy` | 50 | 50 | 100.0% | - |
 
 ### 成本与 Trace
 
-- LLM 调用次数：132
-- 工具调用次数：125
-- Token 总量：263610
-- 单次 LLM 平均 token：1997.045
-- 平均延迟：1416.012 ms
-- P95 延迟：2620.000 ms
+- LLM 调用次数：220
+- 工具调用次数：208
+- Token 总量：441550
+- 单次 LLM 平均 token：2007.045
+- 平均延迟：1426.869 ms
+- P95 延迟：2633.000 ms
 
 ## 失败样本
 
@@ -141,17 +141,37 @@
 - `medium_memory_020_t1` / `memory_write_precision`：写入记忆里混入了非长期事实，写入精度不足。Matched 1 required writes across 2 written memories.
 - `medium_memory_030_t1` / `memory_must_not_write_precision`：把不应该写入的临时信息写成了长期记忆。原始信息：Wrote prohibited memory transient_030: 用户今天上午想安静一会儿。
 - `medium_memory_030_t1` / `memory_write_precision`：写入记忆里混入了非长期事实，写入精度不足。Matched 1 required writes across 2 written memories.
+- `medium_memory_040_t1` / `memory_must_not_write_precision`：把不应该写入的临时信息写成了长期记忆。原始信息：Wrote prohibited memory transient_040: 用户今天想喝奶茶。
+- `medium_memory_040_t1` / `memory_write_precision`：写入记忆里混入了非长期事实，写入精度不足。Matched 1 required writes across 2 written memories.
+- `medium_memory_050_t1` / `memory_must_not_write_precision`：把不应该写入的临时信息写成了长期记忆。原始信息：Wrote prohibited memory transient_050: 用户不喜欢排太满。
+- `medium_memory_050_t1` / `memory_write_precision`：写入记忆里混入了非长期事实，写入精度不足。Matched 1 required writes across 2 written memories.
+
+## 问题排查与建议
+
+### 排查过程
+
+- 先按失败 metric 分组，再回看 `outputs.jsonl` / `debug_log.json` 中的 task result、assertion message 和 trace events。
+- 对 memory 失败，检查写入 memory 的 source_ids 和内容是否来自临时输入或显式“不要当成长期习惯”的输入。
+
+### 结论
+
+- Memory 写入边界仍需加强：临时状态或显式反例会被误写成长记忆。
+
+### 修改建议
+
+- 在 memory write prompt / schema 中显式区分长期偏好、一次性状态和用户明确否定长期化的输入。
+- 给 memory 写入增加 temporal_scope / confidence / source span 字段，低置信或短期事实默认不进入长期记忆。
 
 ## 实验详情
 
 ### 运行信息
 
-- 运行 ID：`2026-05-11-fixture-v1-medium`
+- 运行 ID：`2026-05-12-fixture-v1-medium-expanded`
 - 数据集：`evals/datasets/v1_medium`
 - 观察适配器：`fixture`
-- 场景样本数：126
-- 评估任务数：126
-- 断言通过：754/760 （99.2%）
+- 场景样本数：210
+- 评估任务数：210
+- 断言通过：1256/1266 （99.2%）
 
 ### 场景任务明细
 
@@ -189,6 +209,26 @@
 | `medium_card_028` | `medium_card_028_t1` | 通过 | 0 |
 | `medium_card_029` | `medium_card_029_t1` | 通过 | 0 |
 | `medium_card_030` | `medium_card_030_t1` | 通过 | 0 |
+| `medium_card_031` | `medium_card_031_t1` | 通过 | 0 |
+| `medium_card_032` | `medium_card_032_t1` | 通过 | 0 |
+| `medium_card_033` | `medium_card_033_t1` | 通过 | 0 |
+| `medium_card_034` | `medium_card_034_t1` | 通过 | 0 |
+| `medium_card_035` | `medium_card_035_t1` | 通过 | 0 |
+| `medium_card_036` | `medium_card_036_t1` | 通过 | 0 |
+| `medium_card_037` | `medium_card_037_t1` | 通过 | 0 |
+| `medium_card_038` | `medium_card_038_t1` | 通过 | 0 |
+| `medium_card_039` | `medium_card_039_t1` | 通过 | 0 |
+| `medium_card_040` | `medium_card_040_t1` | 通过 | 0 |
+| `medium_card_041` | `medium_card_041_t1` | 通过 | 0 |
+| `medium_card_042` | `medium_card_042_t1` | 通过 | 0 |
+| `medium_card_043` | `medium_card_043_t1` | 通过 | 0 |
+| `medium_card_044` | `medium_card_044_t1` | 通过 | 0 |
+| `medium_card_045` | `medium_card_045_t1` | 通过 | 0 |
+| `medium_card_046` | `medium_card_046_t1` | 通过 | 0 |
+| `medium_card_047` | `medium_card_047_t1` | 通过 | 0 |
+| `medium_card_048` | `medium_card_048_t1` | 通过 | 0 |
+| `medium_card_049` | `medium_card_049_t1` | 通过 | 0 |
+| `medium_card_050` | `medium_card_050_t1` | 通过 | 0 |
 
 #### 成本 / Trace
 
@@ -200,6 +240,10 @@
 | `medium_cost_020` | `medium_cost_020_t1` | 通过 | 0 |
 | `medium_cost_025` | `medium_cost_025_t1` | 通过 | 0 |
 | `medium_cost_030` | `medium_cost_030_t1` | 通过 | 0 |
+| `medium_cost_035` | `medium_cost_035_t1` | 通过 | 0 |
+| `medium_cost_040` | `medium_cost_040_t1` | 通过 | 0 |
+| `medium_cost_045` | `medium_cost_045_t1` | 通过 | 0 |
+| `medium_cost_050` | `medium_cost_050_t1` | 通过 | 0 |
 
 #### 记忆写入
 
@@ -235,6 +279,26 @@
 | `medium_memory_028` | `medium_memory_028_t1` | 通过 | 0 |
 | `medium_memory_029` | `medium_memory_029_t1` | 通过 | 0 |
 | `medium_memory_030` | `medium_memory_030_t1` | 未通过 | 2 |
+| `medium_memory_031` | `medium_memory_031_t1` | 通过 | 0 |
+| `medium_memory_032` | `medium_memory_032_t1` | 通过 | 0 |
+| `medium_memory_033` | `medium_memory_033_t1` | 通过 | 0 |
+| `medium_memory_034` | `medium_memory_034_t1` | 通过 | 0 |
+| `medium_memory_035` | `medium_memory_035_t1` | 通过 | 0 |
+| `medium_memory_036` | `medium_memory_036_t1` | 通过 | 0 |
+| `medium_memory_037` | `medium_memory_037_t1` | 通过 | 0 |
+| `medium_memory_038` | `medium_memory_038_t1` | 通过 | 0 |
+| `medium_memory_039` | `medium_memory_039_t1` | 通过 | 0 |
+| `medium_memory_040` | `medium_memory_040_t1` | 未通过 | 2 |
+| `medium_memory_041` | `medium_memory_041_t1` | 通过 | 0 |
+| `medium_memory_042` | `medium_memory_042_t1` | 通过 | 0 |
+| `medium_memory_043` | `medium_memory_043_t1` | 通过 | 0 |
+| `medium_memory_044` | `medium_memory_044_t1` | 通过 | 0 |
+| `medium_memory_045` | `medium_memory_045_t1` | 通过 | 0 |
+| `medium_memory_046` | `medium_memory_046_t1` | 通过 | 0 |
+| `medium_memory_047` | `medium_memory_047_t1` | 通过 | 0 |
+| `medium_memory_048` | `medium_memory_048_t1` | 通过 | 0 |
+| `medium_memory_049` | `medium_memory_049_t1` | 通过 | 0 |
+| `medium_memory_050` | `medium_memory_050_t1` | 未通过 | 2 |
 
 #### 检索问答
 
@@ -270,6 +334,26 @@
 | `medium_retrieval_028` | `medium_retrieval_028_t1` | 通过 | 0 |
 | `medium_retrieval_029` | `medium_retrieval_029_t1` | 通过 | 0 |
 | `medium_retrieval_030` | `medium_retrieval_030_t1` | 通过 | 0 |
+| `medium_retrieval_031` | `medium_retrieval_031_t1` | 通过 | 0 |
+| `medium_retrieval_032` | `medium_retrieval_032_t1` | 通过 | 0 |
+| `medium_retrieval_033` | `medium_retrieval_033_t1` | 通过 | 0 |
+| `medium_retrieval_034` | `medium_retrieval_034_t1` | 通过 | 0 |
+| `medium_retrieval_035` | `medium_retrieval_035_t1` | 通过 | 0 |
+| `medium_retrieval_036` | `medium_retrieval_036_t1` | 通过 | 0 |
+| `medium_retrieval_037` | `medium_retrieval_037_t1` | 通过 | 0 |
+| `medium_retrieval_038` | `medium_retrieval_038_t1` | 通过 | 0 |
+| `medium_retrieval_039` | `medium_retrieval_039_t1` | 通过 | 0 |
+| `medium_retrieval_040` | `medium_retrieval_040_t1` | 通过 | 0 |
+| `medium_retrieval_041` | `medium_retrieval_041_t1` | 通过 | 0 |
+| `medium_retrieval_042` | `medium_retrieval_042_t1` | 通过 | 0 |
+| `medium_retrieval_043` | `medium_retrieval_043_t1` | 通过 | 0 |
+| `medium_retrieval_044` | `medium_retrieval_044_t1` | 通过 | 0 |
+| `medium_retrieval_045` | `medium_retrieval_045_t1` | 通过 | 0 |
+| `medium_retrieval_046` | `medium_retrieval_046_t1` | 通过 | 0 |
+| `medium_retrieval_047` | `medium_retrieval_047_t1` | 通过 | 0 |
+| `medium_retrieval_048` | `medium_retrieval_048_t1` | 通过 | 0 |
+| `medium_retrieval_049` | `medium_retrieval_049_t1` | 通过 | 0 |
+| `medium_retrieval_050` | `medium_retrieval_050_t1` | 通过 | 0 |
 
 #### 路由 / 工具调用
 
@@ -305,15 +389,35 @@
 | `medium_tool_028` | `medium_tool_028_t1` | 通过 | 0 |
 | `medium_tool_029` | `medium_tool_029_t1` | 通过 | 0 |
 | `medium_tool_030` | `medium_tool_030_t1` | 通过 | 0 |
+| `medium_tool_031` | `medium_tool_031_t1` | 通过 | 0 |
+| `medium_tool_032` | `medium_tool_032_t1` | 通过 | 0 |
+| `medium_tool_033` | `medium_tool_033_t1` | 通过 | 0 |
+| `medium_tool_034` | `medium_tool_034_t1` | 通过 | 0 |
+| `medium_tool_035` | `medium_tool_035_t1` | 通过 | 0 |
+| `medium_tool_036` | `medium_tool_036_t1` | 通过 | 0 |
+| `medium_tool_037` | `medium_tool_037_t1` | 通过 | 0 |
+| `medium_tool_038` | `medium_tool_038_t1` | 通过 | 0 |
+| `medium_tool_039` | `medium_tool_039_t1` | 通过 | 0 |
+| `medium_tool_040` | `medium_tool_040_t1` | 通过 | 0 |
+| `medium_tool_041` | `medium_tool_041_t1` | 通过 | 0 |
+| `medium_tool_042` | `medium_tool_042_t1` | 通过 | 0 |
+| `medium_tool_043` | `medium_tool_043_t1` | 通过 | 0 |
+| `medium_tool_044` | `medium_tool_044_t1` | 通过 | 0 |
+| `medium_tool_045` | `medium_tool_045_t1` | 通过 | 0 |
+| `medium_tool_046` | `medium_tool_046_t1` | 通过 | 0 |
+| `medium_tool_047` | `medium_tool_047_t1` | 通过 | 0 |
+| `medium_tool_048` | `medium_tool_048_t1` | 通过 | 0 |
+| `medium_tool_049` | `medium_tool_049_t1` | 通过 | 0 |
+| `medium_tool_050` | `medium_tool_050_t1` | 通过 | 0 |
 
 ## 附录：数据集与 Persona 示例
 
 - 数据语言：zh-CN
-- Persona 数：30
-- 输入条数：186
-- Eval task 数：126
-- Case family 分布：card_extraction=30，cost_trace=6，memory_write=30，retrieval_qa=30，tool_calling=30
-- Task type 分布：card_extraction=30，cost_trace=6，memory_write=30，retrieval_qa=30，tool_calling=30
+- Persona 数：50
+- 输入条数：310
+- Eval task 数：210
+- Case family 分布：card_extraction=50，cost_trace=10，memory_write=50，retrieval_qa=50，tool_calling=50
+- Task type 分布：card_extraction=50，cost_trace=10，memory_write=50，retrieval_qa=50，tool_calling=50
 
 | Persona | 职业 | 城市 | 语言 | Case | 输入 | Task | 示例输入 |
 | --- | --- | --- | --- | ---: | ---: | ---: | --- |

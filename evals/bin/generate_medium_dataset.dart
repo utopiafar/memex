@@ -10,9 +10,10 @@ Future<void> main(List<String> args) async {
   await outDir.create(recursive: true);
 
   final cases = <JsonMap>[];
-  for (var i = 0; i < _profiles.length; i++) {
+  final profiles = _buildProfiles(50);
+  for (var i = 0; i < profiles.length; i++) {
     final n = i + 1;
-    final profile = _profiles[i];
+    final profile = profiles[i];
     cases.add(_cardCase(n, profile));
     cases.add(_memoryCase(n, profile, includeTransientMistake: n % 10 == 0));
     cases.add(_retrievalCase(n, profile));
@@ -33,7 +34,7 @@ Future<void> main(List<String> args) async {
     'user_input_language': 'zh-CN',
     'oracle_language': 'zh-CN',
     'case_file': 'cases.jsonl',
-    'persona_count': _profiles.length,
+    'persona_count': profiles.length,
     'case_count': cases.length,
     'families': [
       'card_extraction',
@@ -61,7 +62,7 @@ Future<void> main(List<String> args) async {
   );
 
   stdout.writeln(
-    'Generated ${cases.length} cases for ${_profiles.length} personas at ${outDir.path}',
+    'Generated ${cases.length} cases for ${profiles.length} personas at ${outDir.path}',
   );
 }
 
@@ -503,15 +504,15 @@ String _timeText(int hour) {
   return '下午${hour - 12}点半';
 }
 
-final _profiles = <JsonMap>[
-  for (var i = 0; i < 30; i++)
-    {
-      'occupation': _occupations[i % _occupations.length],
-      'city': _cities[i % _cities.length],
-      'habits': [_habits[i % _habits.length]],
-      'preferences': [_profilePrefs[i % _profilePrefs.length]],
-    }
-];
+List<JsonMap> _buildProfiles(int count) => [
+      for (var i = 0; i < count; i++)
+        {
+          'occupation': _occupations[i % _occupations.length],
+          'city': _cities[i % _cities.length],
+          'habits': [_habits[i % _habits.length]],
+          'preferences': [_profilePrefs[i % _profilePrefs.length]],
+        }
+    ];
 
 const _occupations = [
   '跨境电商运营',

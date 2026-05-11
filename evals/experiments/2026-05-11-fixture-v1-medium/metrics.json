@@ -1,32 +1,32 @@
 {
-  "run_id": "2026-05-11-fixture-v1-medium",
-  "started_at": "2026-05-11T15:52:00.734653Z",
+  "run_id": "2026-05-12-fixture-v1-medium-expanded",
+  "started_at": "2026-05-11T17:49:22.818372Z",
   "dataset_path": "evals/datasets/v1_medium",
   "adapter": "fixture",
   "llm_judge_enabled": false,
-  "case_count": 126,
-  "task_count": 126,
+  "case_count": 210,
+  "task_count": 210,
   "dataset_summary": {
-    "case_count": 126,
-    "persona_count": 30,
-    "input_count": 186,
-    "task_count": 126,
+    "case_count": 210,
+    "persona_count": 50,
+    "input_count": 310,
+    "task_count": 210,
     "languages": [
       "zh-CN"
     ],
     "cases_by_family": {
-      "card_extraction": 30,
-      "cost_trace": 6,
-      "memory_write": 30,
-      "retrieval_qa": 30,
-      "tool_calling": 30
+      "card_extraction": 50,
+      "cost_trace": 10,
+      "memory_write": 50,
+      "retrieval_qa": 50,
+      "tool_calling": 50
     },
     "tasks_by_type": {
-      "card_extraction": 30,
-      "cost_trace": 6,
-      "memory_write": 30,
-      "retrieval_qa": 30,
-      "tool_calling": 30
+      "card_extraction": 50,
+      "cost_trace": 10,
+      "memory_write": 50,
+      "retrieval_qa": 50,
+      "tool_calling": 50
     },
     "personas": [
       {
@@ -418,214 +418,474 @@
           "帮我记一下，周四下午3点半和小陈在腾讯会议讨论投流预算。",
           "以后重要会议尽量提前一天提醒我，别临近了才说。"
         ]
+      },
+      {
+        "user_id": "eval_medium_031",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周五下午4点半和Grace在飞书会议讨论版本灰度。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_032",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周二上午9点半和Jason在望京讨论客户续约。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_033",
+        "occupation": "独立开发者",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周三上午10点半和Ada在深圳湾办公室讨论活动复盘。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_034",
+        "occupation": "市场经理",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周四上午11点半和老王在公司 12 楼会议室讨论合同风险。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_035",
+        "occupation": "律师",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 5,
+        "input_count": 7,
+        "task_count": 5,
+        "sample_inputs": [
+          "帮我记一下，周五中午12点半和Annie在线上会议讨论数据看板。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_036",
+        "occupation": "财务主管",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周二下午1点半和Leo在腾讯会议讨论投流预算。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_037",
+        "occupation": "内容运营",
+        "city": "苏州",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周三下午2点半和Mina在飞书会议讨论版本灰度。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_038",
+        "occupation": "咨询顾问",
+        "city": "厦门",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周四下午3点半和小陈在望京讨论客户续约。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_039",
+        "occupation": "游戏策划",
+        "city": "南京",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周五下午4点半和Grace在深圳湾办公室讨论活动复盘。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_040",
+        "occupation": "数据分析师",
+        "city": "武汉",
+        "language": "zh-CN",
+        "case_count": 5,
+        "input_count": 7,
+        "task_count": 5,
+        "sample_inputs": [
+          "帮我记一下，周二上午9点半和Jason在公司 12 楼会议室讨论合同风险。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_041",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周三上午10点半和Ada在线上会议讨论数据看板。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_042",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周四上午11点半和老王在腾讯会议讨论投流预算。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_043",
+        "occupation": "独立开发者",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周五中午12点半和Annie在飞书会议讨论版本灰度。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_044",
+        "occupation": "市场经理",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周二下午1点半和Leo在望京讨论客户续约。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_045",
+        "occupation": "律师",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 5,
+        "input_count": 7,
+        "task_count": 5,
+        "sample_inputs": [
+          "帮我记一下，周三下午2点半和Mina在深圳湾办公室讨论活动复盘。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_046",
+        "occupation": "财务主管",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周四下午3点半和小陈在公司 12 楼会议室讨论合同风险。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_047",
+        "occupation": "内容运营",
+        "city": "苏州",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周五下午4点半和Grace在线上会议讨论数据看板。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_048",
+        "occupation": "咨询顾问",
+        "city": "厦门",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周二上午9点半和Jason在腾讯会议讨论投流预算。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_049",
+        "occupation": "游戏策划",
+        "city": "南京",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周三上午10点半和Ada在飞书会议讨论版本灰度。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_050",
+        "occupation": "数据分析师",
+        "city": "武汉",
+        "language": "zh-CN",
+        "case_count": 5,
+        "input_count": 7,
+        "task_count": 5,
+        "sample_inputs": [
+          "帮我记一下，周四上午11点半和老王在望京讨论客户续约。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
       }
     ]
   },
   "assertions": {
-    "passed": 754,
-    "total": 760,
-    "pass_rate": 0.9921052631578947,
-    "avg_score": 0.9869869402985075
+    "passed": 1256,
+    "total": 1266,
+    "pass_rate": 0.9921011058451816,
+    "avg_score": 0.9869496268656716
   },
   "by_family": {
     "card_extraction": {
-      "passed": 210,
-      "total": 210,
+      "passed": 350,
+      "total": 350,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "memory_write": {
-      "passed": 144,
-      "total": 150,
+      "passed": 240,
+      "total": 250,
       "pass_rate": 0.96,
       "avg_score": 0.9833333333333333
     },
     "retrieval_qa": {
-      "passed": 270,
-      "total": 270,
+      "passed": 450,
+      "total": 450,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "tool_calling": {
-      "passed": 106,
-      "total": 106,
+      "passed": 176,
+      "total": 176,
       "pass_rate": 1.0
     },
     "cost_trace": {
-      "passed": 24,
-      "total": 24,
+      "passed": 40,
+      "total": 40,
       "pass_rate": 1.0,
-      "avg_score": 0.6890625
+      "avg_score": 0.6878124999999999
     }
   },
   "by_metric": {
     "card_schema_valid": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0
     },
     "card_type_accuracy": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0
     },
     "time_parse_accuracy": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "participant_recall": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "location_accuracy": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0
     },
     "title_constraint_accuracy": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "hallucinated_field_absence": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0
     },
     "memory_must_write_recall": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "memory_source_grounding": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0
     },
     "memory_must_not_write_precision": {
-      "passed": 27,
-      "total": 30,
+      "passed": 45,
+      "total": 50,
       "pass_rate": 0.9
     },
     "memory_write_precision": {
-      "passed": 27,
-      "total": 30,
+      "passed": 45,
+      "total": 50,
       "pass_rate": 0.9,
       "avg_score": 0.95
     },
     "memory_duplicate_rate": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "retrieval_hit_at_1": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "retrieval_hit_at_3": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "retrieval_hit_at_5": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "retrieval_mrr": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "retrieval_recall_at_5": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "answer_must_include": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "unsupported_claim_absence": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0
     },
     "unnecessary_uncertainty_absence": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0
     },
     "answer_source_citation": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "tool_selection_accuracy": {
-      "passed": 23,
-      "total": 23,
+      "passed": 38,
+      "total": 38,
       "pass_rate": 1.0
     },
     "tool_args_accuracy": {
-      "passed": 23,
-      "total": 23,
+      "passed": 38,
+      "total": 38,
       "pass_rate": 1.0
     },
     "prohibited_tool_absence": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0
     },
     "router_label_accuracy": {
-      "passed": 30,
-      "total": 30,
+      "passed": 50,
+      "total": 50,
       "pass_rate": 1.0
     },
     "total_token_budget": {
-      "passed": 6,
-      "total": 6,
+      "passed": 10,
+      "total": 10,
       "pass_rate": 1.0,
-      "avg_score": 0.378125
+      "avg_score": 0.375625
     },
     "latency_budget": {
-      "passed": 6,
-      "total": 6,
+      "passed": 10,
+      "total": 10,
       "pass_rate": 1.0
     },
     "tool_call_budget": {
-      "passed": 6,
-      "total": 6,
+      "passed": 10,
+      "total": 10,
       "pass_rate": 1.0
     },
     "cost_answer_must_include": {
-      "passed": 6,
-      "total": 6,
+      "passed": 10,
+      "total": 10,
       "pass_rate": 1.0,
       "avg_score": 1.0
     }
   },
   "cost_trace": {
-    "llm_call_count": 132,
-    "tool_call_count": 125,
-    "avg_latency_ms": 1416.011673151751,
-    "p95_latency_ms": 2620.0,
-    "avg_total_tokens": 1997.0454545454545,
-    "total_tokens": 263610
+    "llm_call_count": 220,
+    "tool_call_count": 208,
+    "avg_latency_ms": 1426.8691588785048,
+    "p95_latency_ms": 2633.0,
+    "avg_total_tokens": 2007.0454545454545,
+    "total_tokens": 441550
   }
 }

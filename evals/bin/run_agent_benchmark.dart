@@ -129,10 +129,10 @@ class RunConfig {
 Memex Agent Eval Harness
 
 Usage:
-  dart evals/bin/run_agent_benchmark.dart --dataset evals/datasets/v1
+  dart evals/bin/run_agent_benchmark.dart --dataset evals/datasets/v1_medium
 
 Options:
-  --dataset PATH       Dataset directory or JSONL file. Default: evals/datasets/v1
+  --dataset PATH       Dataset directory or JSONL file. Default: evals/datasets/v1_medium
   --adapter NAME       Observation adapter: fixture or replay_file. Default: fixture
   --out PATH           Output directory. Default: evals/runs/<run-id>
   --run-id ID          Stable run id for output metadata.
@@ -173,7 +173,7 @@ Options:
     }
 
     return RunConfig(
-      datasetPath: values['dataset'] ?? 'evals/datasets/v1',
+      datasetPath: values['dataset'] ?? 'evals/datasets/v1_medium',
       adapter: values['adapter'] ?? 'fixture',
       outDir: values['out'],
       runId: values['run-id'],
@@ -1262,6 +1262,8 @@ class TaskGrader {
       final failedTasks =
           taskEvents.where((e) => e['status'] == 'failed').length;
       final settled = observed['tasks_settled'] != false;
+      final activeDetails = _taskIssueSummary(observed['active_tasks']);
+      final failedDetails = _taskIssueSummary(observed['failed_tasks']);
       assertions.add(
         AssertionResult.fromBool(
           evalCase: evalCase,
@@ -1269,7 +1271,9 @@ class TaskGrader {
           metric: 'task_completion_status',
           passed: settled && activeTasks == 0 && failedTasks == 0,
           message:
-              'settled=$settled, active_tasks=$activeTasks, failed_tasks=$failedTasks.',
+              'settled=$settled, active_tasks=$activeTasks, failed_tasks=$failedTasks'
+              '${activeDetails.isEmpty ? '' : ', active_details=$activeDetails'}'
+              '${failedDetails.isEmpty ? '' : ', failed_details=$failedDetails'}.',
         ),
       );
     }
@@ -1857,6 +1861,7 @@ class ReportRenderer {
     }
     buffer.writeln();
 
+    _writeFailureInvestigation(buffer, failures);
     _writeExperimentDetails(buffer, result, assertions);
     _writeDatasetAudit(buffer, result.datasetAudit);
     _writeDatasetAppendix(buffer, result);
@@ -2179,6 +2184,119 @@ class ReportRenderer {
         .where((assertion) => !assertion.passed)
         .take(20)
         .toList();
+  }
+
+  static void _writeFailureInvestigation(
+    StringBuffer buffer,
+    List<AssertionResult> failures,
+  ) {
+    if (failures.isEmpty) return;
+
+    final metrics = failures.map((failure) => failure.metric).toSet();
+    buffer.writeln('## 问题排查与建议');
+    buffer.writeln();
+    buffer.writeln('### 排查过程');
+    buffer.writeln();
+    buffer.writeln(
+        '- 先按失败 metric 分组，再回看 `outputs.jsonl` / `debug_log.json` 中的 task result、assertion message 和 trace events。');
+    if (metrics.contains('task_completion_status')) {
+      buffer.writeln(
+          '- 对全链路失败，优先查看 cost task 中的 `settled`、`active_tasks`、`failed_tasks`，再关联同一 case 的 card 断言。');
+    }
+    if (metrics.contains('card_schema_valid') ||
+        metrics.contains('card_status_accuracy') ||
+        metrics.contains('title_constraint_accuracy')) {
+      buffer.writeln(
+          '- 对 card 失败，检查对应 `input_id` 是否能通过提交返回的 fact id 找到 card，以及 card 是否停留在 processing/null。');
+    }
+    if (metrics.contains('memory_must_not_write_precision') ||
+        metrics.contains('memory_write_precision')) {
+      buffer.writeln(
+          '- 对 memory 失败，检查写入 memory 的 source_ids 和内容是否来自临时输入或显式“不要当成长期习惯”的输入。');
+    }
+    buffer.writeln();
+
+    buffer.writeln('### 结论');
+    buffer.writeln();
+    final conclusions = <String>[];
+    if (metrics.contains('task_completion_status')) {
+      conclusions.add(
+        '全链路主要问题是后台任务未在预算时间内全部收敛，后续 card 断言出现 null/缺字段更像链路未完成的下游现象。',
+      );
+      if (failures
+          .any((failure) => failure.message.contains('loopDetection'))) {
+        conclusions.add(
+          'active task 中出现 loopDetection，说明至少部分 agent task 卡在重复工具调用保护上，而不是普通网络超时。',
+        );
+      }
+    }
+    if (metrics.contains('card_schema_valid') ||
+        metrics.contains('card_status_accuracy')) {
+      conclusions.add(
+        'Card 相关失败集中在未生成、未完成或无法按输入来源取回，优先怀疑 task 生命周期、card agent 落盘和 fact_id/card_id 关联。',
+      );
+    }
+    if (metrics.contains('title_constraint_accuracy')) {
+      conclusions.add('标题关键词缺失说明即使 card 生成成功，也需要继续验证输入关键信息是否进入标题或结构化字段。');
+    }
+    if (metrics.contains('memory_must_not_write_precision') ||
+        metrics.contains('memory_write_precision')) {
+      conclusions.add('Memory 写入边界仍需加强：临时状态或显式反例会被误写成长记忆。');
+    }
+    if (metrics.contains('total_token_budget') ||
+        metrics.contains('latency_budget') ||
+        metrics.contains('tool_call_budget')) {
+      conclusions.add('成本类失败需要和 trace 一起看，判断是必要工具链过长还是重复调用。');
+    }
+    if (conclusions.isEmpty) {
+      conclusions.add('当前失败未命中特定内置模式，需要结合 debug log 逐 case 追 trace。');
+    }
+    for (final conclusion in conclusions) {
+      buffer.writeln('- $conclusion');
+    }
+    buffer.writeln();
+
+    buffer.writeln('### 修改建议');
+    buffer.writeln();
+    final suggestions = <String>[];
+    if (metrics.contains('task_completion_status')) {
+      suggestions.add(
+          '给 LocalTaskExecutor / task handler 增加按 case 可检索的任务状态摘要，明确 pending、processing、retrying 的阻塞点和最后一次错误。');
+      suggestions.add(
+          '在 replay harness 里保留每个 active task 的 type、status、attempt、updated_at，便于区分真实超时和观察窗口太短。');
+      if (failures
+          .any((failure) => failure.message.contains('loopDetection'))) {
+        suggestions.add(
+            '针对 loopDetection case，优先检查 card_agent / pkm_agent 的工具调用终止条件，避免同一工具连续调用 5 次后进入 retrying。');
+      }
+    }
+    if (metrics.contains('card_schema_valid') ||
+        metrics.contains('card_status_accuracy') ||
+        metrics.contains('title_constraint_accuracy')) {
+      suggestions.add(
+          '检查 submitInput 返回的 fact_id 到 TimelineCard 的关联路径，确认 card agent 完成后会把 status 从 processing 推进到 completed。');
+      suggestions.add(
+          '为 card agent 增加最小字段契约测试：title、status、source/fact 关联、关键主题词进入 title 或结构化字段。');
+    }
+    if (metrics.contains('memory_must_not_write_precision') ||
+        metrics.contains('memory_write_precision')) {
+      suggestions
+          .add('在 memory write prompt / schema 中显式区分长期偏好、一次性状态和用户明确否定长期化的输入。');
+      suggestions.add(
+          '给 memory 写入增加 temporal_scope / confidence / source span 字段，低置信或短期事实默认不进入长期记忆。');
+    }
+    if (metrics.contains('total_token_budget') ||
+        metrics.contains('latency_budget') ||
+        metrics.contains('tool_call_budget')) {
+      suggestions.add('对高成本 case 按 trace 聚合 agent/tool 调用，优先消除重复检索和重复 PKM 整理。');
+    }
+    if (suggestions.isEmpty) {
+      suggestions.add('保留失败 case 的 debug log，下一轮按 case_id 从 trace 入口继续定位。');
+    }
+    for (final suggestion in suggestions) {
+      buffer.writeln('- $suggestion');
+    }
+    buffer.writeln();
   }
 }
 
@@ -2718,6 +2836,22 @@ String _tokenEstimate(JsonMap cost) {
   final lower = (totalTokens * 0.8).round();
   final upper = (totalTokens * 1.2).round();
   return '本次实际消耗 $totalTokens tokens；同规模复跑可先按 $lower-$upper tokens 预留。';
+}
+
+String _taskIssueSummary(Object? rawTasks) {
+  final tasks = _list(rawTasks).map(_map).toList();
+  if (tasks.isEmpty) return '';
+  return tasks.take(4).map((task) {
+    final type = task['task_type'] ?? task['type'] ?? 'unknown_task';
+    final status = task['status'] ?? 'unknown_status';
+    final error = task['error']?.toString();
+    if (error == null || error.isEmpty) return '$type:$status';
+    final normalizedError = error.replaceAll(RegExp(r'\s+'), ' ');
+    final shortError = normalizedError.length > 100
+        ? '${normalizedError.substring(0, 100)}...'
+        : normalizedError;
+    return '$type:$status:$shortError';
+  }).join(' | ');
 }
 
 String _formatCountMap(Map<String, int> counts) {

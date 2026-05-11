@@ -27,6 +27,8 @@ evals/
 
 每次本地运行会在 `evals/runs/<run-id>/` 里留下完整排查材料：`outputs.jsonl` 记录每个 task 的断言结果，`trace.ndjson` 记录 LLM/tool/task trace，`debug_log.json` 汇总配置、指标、task 结果和 trace。这个目录默认被 git 忽略，只用于本地复盘。
 
+当前保留两条实验线：`v1_medium` 用于验证 fixture adapter、grader、指标和报告稳定性；`full_chain_medium` 用于验证真实 submitInput 到后台任务和 trace 的全链路稳定性。数据集由 `evals/bin/generate_medium_dataset.dart` 和 `evals/bin/generate_full_chain_replay_dataset.dart` 确定性生成；小样本 smoke 数据集不提交，只在需要时用 `--case-limit` 临时截取。
+
 ## Harness 原则
 
 - 和业务逻辑隔离：评估代码只能依赖业务入口，不把测试逻辑塞回产品链路。
