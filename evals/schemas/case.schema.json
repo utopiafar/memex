@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Memex Agent Eval Case",
+  "type": "object",
+  "required": ["case_id", "family", "persona", "ground_truth_world", "input_stream", "eval_tasks"],
+  "properties": {
+    "case_id": {"type": "string"},
+    "family": {"type": "string"},
+    "language": {"type": "string"},
+    "locale": {"type": "string"},
+    "persona": {"type": "object"},
+    "ground_truth_world": {"type": "object"},
+    "input_stream": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "time", "channel", "content"],
+        "properties": {
+          "id": {"type": "string"},
+          "time": {"type": "string"},
+          "channel": {"type": "string"},
+          "content": {"type": "string"}
+        }
+      }
+    },
+    "eval_tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["task_id", "type", "expected"],
+        "properties": {
+          "task_id": {"type": "string"},
+          "type": {
+            "enum": ["card_extraction", "memory_write", "retrieval_qa", "tool_calling", "cost_trace"]
+          },
+          "expected": {"type": "object"},
+          "fixture_observed": {"type": "object"}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,631 @@
+{
+  "run_id": "local_fixture_medium",
+  "started_at": "2026-05-11T12:40:07.184441Z",
+  "dataset_path": "evals/datasets/v1_medium",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 126,
+  "task_count": 126,
+  "dataset_summary": {
+    "case_count": 126,
+    "persona_count": 30,
+    "input_count": 186,
+    "task_count": 126,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "card_extraction": 30,
+      "cost_trace": 6,
+      "memory_write": 30,
+      "retrieval_qa": 30,
+      "tool_calling": 30
+    },
+    "tasks_by_type": {
+      "card_extraction": 30,
+      "cost_trace": 6,
+      "memory_write": 30,
+      "retrieval_qa": 30,
+      "tool_calling": 30
+    },
+    "personas": [
+      {
+        "user_id": "eval_medium_001",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周三上午10点半和Ada在飞书会议讨论版本灰度。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_002",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周四上午11点半和老王在望京讨论客户续约。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_003",
+        "occupation": "独立开发者",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周五中午12点半和Annie在深圳湾办公室讨论活动复盘。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_004",
+        "occupation": "市场经理",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周二下午1点半和Leo在公司 12 楼会议室讨论合同风险。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_005",
+        "occupation": "律师",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 5,
+        "input_count": 7,
+        "task_count": 5,
+        "sample_inputs": [
+          "帮我记一下，周三下午2点半和Mina在线上会议讨论数据看板。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_006",
+        "occupation": "财务主管",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周四下午3点半和小陈在腾讯会议讨论投流预算。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_007",
+        "occupation": "内容运营",
+        "city": "苏州",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周五下午4点半和Grace在飞书会议讨论版本灰度。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_008",
+        "occupation": "咨询顾问",
+        "city": "厦门",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周二上午9点半和Jason在望京讨论客户续约。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_009",
+        "occupation": "游戏策划",
+        "city": "南京",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周三上午10点半和Ada在深圳湾办公室讨论活动复盘。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_010",
+        "occupation": "数据分析师",
+        "city": "武汉",
+        "language": "zh-CN",
+        "case_count": 5,
+        "input_count": 7,
+        "task_count": 5,
+        "sample_inputs": [
+          "帮我记一下，周四上午11点半和老王在公司 12 楼会议室讨论合同风险。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_011",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周五中午12点半和Annie在线上会议讨论数据看板。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_012",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周二下午1点半和Leo在腾讯会议讨论投流预算。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_013",
+        "occupation": "独立开发者",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周三下午2点半和Mina在飞书会议讨论版本灰度。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_014",
+        "occupation": "市场经理",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周四下午3点半和小陈在望京讨论客户续约。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_015",
+        "occupation": "律师",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 5,
+        "input_count": 7,
+        "task_count": 5,
+        "sample_inputs": [
+          "帮我记一下，周五下午4点半和Grace在深圳湾办公室讨论活动复盘。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_016",
+        "occupation": "财务主管",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周二上午9点半和Jason在公司 12 楼会议室讨论合同风险。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_017",
+        "occupation": "内容运营",
+        "city": "苏州",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周三上午10点半和Ada在线上会议讨论数据看板。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_018",
+        "occupation": "咨询顾问",
+        "city": "厦门",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周四上午11点半和老王在腾讯会议讨论投流预算。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_019",
+        "occupation": "游戏策划",
+        "city": "南京",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周五中午12点半和Annie在飞书会议讨论版本灰度。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_020",
+        "occupation": "数据分析师",
+        "city": "武汉",
+        "language": "zh-CN",
+        "case_count": 5,
+        "input_count": 7,
+        "task_count": 5,
+        "sample_inputs": [
+          "帮我记一下，周二下午1点半和Leo在望京讨论客户续约。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_021",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周三下午2点半和Mina在深圳湾办公室讨论活动复盘。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_022",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周四下午3点半和小陈在公司 12 楼会议室讨论合同风险。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_023",
+        "occupation": "独立开发者",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周五下午4点半和Grace在线上会议讨论数据看板。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_024",
+        "occupation": "市场经理",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周二上午9点半和Jason在腾讯会议讨论投流预算。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_025",
+        "occupation": "律师",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 5,
+        "input_count": 7,
+        "task_count": 5,
+        "sample_inputs": [
+          "帮我记一下，周三上午10点半和Ada在飞书会议讨论版本灰度。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_026",
+        "occupation": "财务主管",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周四上午11点半和老王在望京讨论客户续约。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_027",
+        "occupation": "内容运营",
+        "city": "苏州",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周五中午12点半和Annie在深圳湾办公室讨论活动复盘。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_028",
+        "occupation": "咨询顾问",
+        "city": "厦门",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周二下午1点半和Leo在公司 12 楼会议室讨论合同风险。",
+          "我一般上午适合深度工作，下午再安排同步会。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_029",
+        "occupation": "游戏策划",
+        "city": "南京",
+        "language": "zh-CN",
+        "case_count": 4,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "帮我记一下，周三下午2点半和Mina在线上会议讨论数据看板。",
+          "以后给我项目结论时，最好带上来源，不要只给判断。"
+        ]
+      },
+      {
+        "user_id": "eval_medium_030",
+        "occupation": "数据分析师",
+        "city": "武汉",
+        "language": "zh-CN",
+        "case_count": 5,
+        "input_count": 7,
+        "task_count": 5,
+        "sample_inputs": [
+          "帮我记一下，周四下午3点半和小陈在腾讯会议讨论投流预算。",
+          "以后重要会议尽量提前一天提醒我，别临近了才说。"
+        ]
+      }
+    ]
+  },
+  "assertions": {
+    "passed": 754,
+    "total": 760,
+    "pass_rate": 0.9921052631578947,
+    "avg_score": 0.9869869402985075
+  },
+  "by_family": {
+    "card_extraction": {
+      "passed": 210,
+      "total": 210,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_write": {
+      "passed": 144,
+      "total": 150,
+      "pass_rate": 0.96,
+      "avg_score": 0.9833333333333333
+    },
+    "retrieval_qa": {
+      "passed": 270,
+      "total": 270,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "tool_calling": {
+      "passed": 106,
+      "total": 106,
+      "pass_rate": 1.0
+    },
+    "cost_trace": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0,
+      "avg_score": 0.6890625
+    }
+  },
+  "by_metric": {
+    "card_schema_valid": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0
+    },
+    "card_type_accuracy": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0
+    },
+    "time_parse_accuracy": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "participant_recall": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "location_accuracy": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0
+    },
+    "title_constraint_accuracy": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "hallucinated_field_absence": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0
+    },
+    "memory_must_write_recall": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_source_grounding": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0
+    },
+    "memory_must_not_write_precision": {
+      "passed": 27,
+      "total": 30,
+      "pass_rate": 0.9
+    },
+    "memory_write_precision": {
+      "passed": 27,
+      "total": 30,
+      "pass_rate": 0.9,
+      "avg_score": 0.95
+    },
+    "memory_duplicate_rate": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_1": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_3": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_5": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_mrr": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_recall_at_5": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "answer_must_include": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unsupported_claim_absence": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0
+    },
+    "unnecessary_uncertainty_absence": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0
+    },
+    "answer_source_citation": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "tool_selection_accuracy": {
+      "passed": 23,
+      "total": 23,
+      "pass_rate": 1.0
+    },
+    "tool_args_accuracy": {
+      "passed": 23,
+      "total": 23,
+      "pass_rate": 1.0
+    },
+    "prohibited_tool_absence": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0
+    },
+    "router_label_accuracy": {
+      "passed": 30,
+      "total": 30,
+      "pass_rate": 1.0
+    },
+    "total_token_budget": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0,
+      "avg_score": 0.378125
+    },
+    "latency_budget": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0
+    },
+    "tool_call_budget": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0
+    },
+    "cost_answer_must_include": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 132,
+    "tool_call_count": 125,
+    "avg_latency_ms": 1416.011673151751,
+    "p95_latency_ms": 2620.0,
+    "avg_total_tokens": 1997.0454545454545,
+    "total_tokens": 263610
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "dataset_id": "memex_full_chain_smoke",
+  "version": 1,
+  "description": "Tiny zh-CN replay dataset for exercising Memex submit-input and task pipeline.",
+  "created_at": "2026-05-11",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "families": [
+    "card_extraction",
+    "cost_trace"
+  ],
+  "notes": [
+    "This dataset is for full-chain pipeline smoke tests, not model-quality scoring.",
+    "Observations are produced by evals/replay/full_chain_replay_test.dart.",
+    "The deterministic no-LLM path expects rule-based snippet cards."
+  ]
+}

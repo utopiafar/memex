@@ -86,6 +86,10 @@ coverage/
 
 .state_dir/
 
+# Agent eval local outputs and secrets
+evals/runs/
+evals/.env
+
 # Android signing
 android/key-*.properties
 android/app/*.keystore

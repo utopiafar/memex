@@ -1,0 +1,27 @@
+{
+  "dataset_id": "memex_agent_eval_v1_medium",
+  "version": 1,
+  "description": "Medium deterministic zh-CN benchmark for Memex Agent eval harness.",
+  "created_at": "2026-05-11",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "user_input_language": "zh-CN",
+  "oracle_language": "zh-CN",
+  "case_file": "cases.jsonl",
+  "persona_count": 30,
+  "case_count": 126,
+  "families": [
+    "card_extraction",
+    "memory_write",
+    "retrieval_qa",
+    "tool_calling",
+    "cost_trace"
+  ],
+  "notes": [
+    "Generated deterministically by evals/bin/generate_medium_dataset.dart.",
+    "All persona metadata and user inputs target zh-CN users.",
+    "Ground truth is the only oracle source.",
+    "fixture_observed is only for harness and grader regression tests.",
+    "A small number of intentional fixture mistakes are retained for failure-mode reporting."
+  ]
+}

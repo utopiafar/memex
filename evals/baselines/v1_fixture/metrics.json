@@ -1,0 +1,423 @@
+{
+  "run_id": "local_fixture_v1_refresh",
+  "started_at": "2026-05-11T12:40:07.162447Z",
+  "dataset_path": "evals/datasets/v1",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 14,
+  "task_count": 15,
+  "dataset_summary": {
+    "case_count": 14,
+    "persona_count": 14,
+    "input_count": 17,
+    "task_count": 15,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "card_extraction": 3,
+      "cost_trace": 1,
+      "memory_write": 3,
+      "retrieval_qa": 3,
+      "tool_calling": 4
+    },
+    "tasks_by_type": {
+      "card_extraction": 3,
+      "cost_trace": 2,
+      "memory_write": 3,
+      "retrieval_qa": 3,
+      "tool_calling": 4
+    },
+    "personas": [
+      {
+        "user_id": "eval_u_001",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 2,
+        "sample_inputs": [
+          "下周三晚上七点提醒我去望京和老王吃饭"
+        ]
+      },
+      {
+        "user_id": "eval_u_002",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 2,
+        "task_count": 1,
+        "sample_inputs": [
+          "以后我都尽量上午安排深度工作，下午开会。",
+          "我今天上午想安静一会儿。"
+        ]
+      },
+      {
+        "user_id": "eval_u_003",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 2,
+        "task_count": 1,
+        "sample_inputs": [
+          "周四下午三点和 Jason 看一下投流预算，记一下。",
+          "以后订餐提醒我别点海鲜，我最近过敏又犯了。"
+        ]
+      },
+      {
+        "user_id": "eval_u_004",
+        "occupation": "工程师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "帮我把明天上午10点半和 Ada 做项目复盘加到日历，地点飞书会议。"
+        ]
+      },
+      {
+        "user_id": "eval_u_005",
+        "occupation": "设计师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "我之前说过希望你怎么和我沟通吗？"
+        ]
+      },
+      {
+        "user_id": "eval_u_006",
+        "occupation": "财务主管",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "周五下班前提醒我把 Q2 预算表发给 Annie，别忘了附上最新现金流预测。"
+        ]
+      },
+      {
+        "user_id": "eval_u_007",
+        "occupation": "内容运营",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "今天复盘了小红书活动，封面标题带具体数字的笔记点击率明显更高，后面选题要记一下。"
+        ]
+      },
+      {
+        "user_id": "eval_u_008",
+        "occupation": "咨询顾问",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "我之前说不喝咖啡，但最近又开始喝了，早上可以来一杯。"
+        ]
+      },
+      {
+        "user_id": "eval_u_009",
+        "occupation": "游戏策划",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "今天突然想喝奶茶，但只是今天，别当成习惯。"
+        ]
+      },
+      {
+        "user_id": "eval_u_010",
+        "occupation": "独立开发者",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 2,
+        "task_count": 1,
+        "sample_inputs": [
+          "Memex 评估第一阶段先别追求大量用户，重点是 trace 级 Agent eval 闭环。",
+          "路由那块先盯 schedule refresh，容易把 skip、dirty、refresh 判错。"
+        ]
+      },
+      {
+        "user_id": "eval_u_011",
+        "occupation": "律师",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "以后重要日程提前一天提醒我。"
+        ]
+      },
+      {
+        "user_id": "eval_u_012",
+        "occupation": "产品运营",
+        "city": "厦门",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "把周三的双周复盘改到周四下午4点，参会人还是 Leo 和 Mina。"
+        ]
+      },
+      {
+        "user_id": "eval_u_013",
+        "occupation": "数据分析师",
+        "city": "南京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "今天这个天气真让人犯困。"
+        ]
+      },
+      {
+        "user_id": "eval_u_014",
+        "occupation": "市场经理",
+        "city": "苏州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "帮我回顾一下最近三个营销实验的结论，简单归纳就好，别写太长。"
+        ]
+      }
+    ]
+  },
+  "assertions": {
+    "passed": 75,
+    "total": 77,
+    "pass_rate": 0.974025974025974,
+    "avg_score": 0.9530662393162393
+  },
+  "by_family": {
+    "card_extraction": {
+      "passed": 18,
+      "total": 18,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "cost_trace": {
+      "passed": 7,
+      "total": 7,
+      "pass_rate": 1.0,
+      "avg_score": 0.5565277777777777
+    },
+    "memory_write": {
+      "passed": 11,
+      "total": 13,
+      "pass_rate": 0.8461538461538461,
+      "avg_score": 0.9375
+    },
+    "retrieval_qa": {
+      "passed": 25,
+      "total": 25,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "tool_calling": {
+      "passed": 14,
+      "total": 14,
+      "pass_rate": 1.0
+    }
+  },
+  "by_metric": {
+    "card_schema_valid": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "card_type_accuracy": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "time_parse_accuracy": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "participant_recall": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "location_accuracy": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "title_constraint_accuracy": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "hallucinated_field_absence": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "total_token_budget": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 0.33479166666666665
+    },
+    "latency_budget": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "tool_call_budget": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "memory_must_write_recall": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_source_grounding": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "memory_must_not_write_precision": {
+      "passed": 1,
+      "total": 2,
+      "pass_rate": 0.5
+    },
+    "memory_write_precision": {
+      "passed": 2,
+      "total": 3,
+      "pass_rate": 0.6666666666666666,
+      "avg_score": 0.8333333333333334
+    },
+    "memory_duplicate_rate": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_1": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_3": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_5": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_mrr": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_recall_at_5": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "answer_must_include": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unsupported_claim_absence": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "unnecessary_uncertainty_absence": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "tool_selection_accuracy": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "tool_args_accuracy": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "prohibited_tool_absence": {
+      "passed": 4,
+      "total": 4,
+      "pass_rate": 1.0
+    },
+    "router_label_accuracy": {
+      "passed": 4,
+      "total": 4,
+      "pass_rate": 1.0
+    },
+    "card_field_constraint_accuracy": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_conflict_handling": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "answer_source_citation": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "cost_answer_must_include": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 16,
+    "tool_call_count": 16,
+    "avg_latency_ms": 1504.5,
+    "p95_latency_ms": 3050.0,
+    "avg_total_tokens": 2034.6875,
+    "total_tokens": 32555
+  }
+}
