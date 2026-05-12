@@ -8,10 +8,11 @@
   "user_input_language": "zh-CN",
   "oracle_language": "zh-CN",
   "case_file": "cases.jsonl",
-  "persona_count": 50,
-  "case_count": 210,
+  "persona_count": 80,
+  "case_count": 416,
   "families": [
     "card_extraction",
+    "long_horizon_timeline",
     "memory_write",
     "retrieval_qa",
     "tool_calling",
@@ -22,6 +23,7 @@
     "All persona metadata and user inputs target zh-CN users.",
     "Ground truth is the only oracle source.",
     "fixture_observed is only for harness and grader regression tests.",
-    "A small number of intentional fixture mistakes are retained for failure-mode reporting."
+    "A small number of intentional fixture mistakes are retained for failure-mode reporting.",
+    "Each persona includes a 60-input long-horizon timeline with work, life, emotion, temporary consultation, preferences, and conflicts."
   ]
 }

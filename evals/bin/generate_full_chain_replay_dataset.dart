@@ -9,111 +9,37 @@ Future<void> main(List<String> args) async {
   );
   await outDir.create(recursive: true);
 
-  final cases = <JsonMap>[
-    _case(
-      n: 1,
-      occupation: '跨境电商运营',
-      city: '深圳',
-      inputs: [
-        _input('a', '2026-05-11T09:10:00+08:00', '明天上午十点提醒我和 Ada 过一下投流预算。'),
-        _input('b', '2026-05-11T09:13:00+08:00', '周五下午三点和老王在腾讯会议复盘客户续约，记一下。'),
-      ],
-      titleNeedles: {
-        'a': ['投流预算'],
-        'b': ['客户续约'],
-      },
-    ),
-    _case(
-      n: 2,
-      occupation: '产品经理',
-      city: '杭州',
-      inputs: [
-        _input('a', '2026-05-11T10:02:00+08:00', '下周三晚上七点提醒我去望京和 Annie 吃饭。'),
-        _input('b', '2026-05-11T10:05:00+08:00', '今天下班前提醒我把数据看板周报发给 Leo。'),
-      ],
-      titleNeedles: {
-        'a': ['吃饭'],
-        'b': ['数据看板'],
-      },
-    ),
-    _case(
-      n: 3,
-      occupation: '律师',
-      city: '广州',
-      inputs: [
-        _input('a', '2026-05-11T11:20:00+08:00', '5月16日下午两点和 Mina 线上确认合同风险。'),
-        _input('b', '2026-05-11T11:24:00+08:00', '明早九点提醒我检查版本灰度监控和回滚预案。'),
-      ],
-      titleNeedles: {
-        'a': ['合同风险'],
-        'b': ['灰度'],
-      },
-    ),
-    _case(
-      n: 4,
-      occupation: '财务主管',
-      city: '成都',
-      inputs: [
-        _input('a', '2026-05-11T13:00:00+08:00', '周四中午前提醒我确认供应商付款清单。'),
-        _input(
-            'b', '2026-05-11T13:04:00+08:00', '明天下午四点和 Jason 讨论预算调整，地点飞书会议。'),
-      ],
-      titleNeedles: {
-        'a': ['付款清单'],
-        'b': ['预算调整'],
-      },
-    ),
-    _case(
-      n: 5,
-      occupation: '内容运营',
-      city: '苏州',
-      inputs: [
-        _input('a', '2026-05-11T15:30:00+08:00', '这周五提醒我整理小红书活动复盘素材。'),
-        _input('b', '2026-05-11T15:35:00+08:00', '5月18日上午十点和 Grace 看一下选题排期。'),
-      ],
-      titleNeedles: {
-        'a': ['小红书'],
-        'b': ['选题排期'],
-      },
-    ),
-    _case(
-      n: 6,
-      occupation: '数据分析师',
-      city: '武汉',
-      inputs: [
-        _input('a', '2026-05-11T16:40:00+08:00', '明天早上提醒我检查实验埋点有没有漏字段。'),
-        _input('b', '2026-05-11T16:43:00+08:00', '周三下午两点和小陈复盘转化漏斗异常。'),
-      ],
-      titleNeedles: {
-        'a': ['埋点'],
-        'b': ['转化漏斗'],
-      },
-    ),
+  final cases = [
+    for (var i = 0; i < _profiles.length; i++) _case(i + 1, _profiles[i]),
   ];
+  final inputCount = cases.fold<int>(
+    0,
+    (sum, evalCase) => sum + (evalCase['input_stream'] as List).length,
+  );
+  final taskCount = cases.fold<int>(
+    0,
+    (sum, evalCase) => sum + (evalCase['eval_tasks'] as List).length,
+  );
 
   final manifest = {
     'dataset_id': 'memex_full_chain_replay_medium',
-    'version': 1,
-    'description': '中等规模中文全链路 replay 数据集。',
-    'created_at': '2026-05-11',
+    'version': 2,
+    'description': '中等规模中文长时间线全链路 replay 数据集。',
+    'created_at': '2026-05-12',
     'language': 'zh-CN',
     'locale': 'zh-CN',
     'case_file': 'cases.jsonl',
     'persona_count': cases.length,
     'case_count': cases.length,
-    'input_count': cases.fold<int>(
-      0,
-      (sum, evalCase) => sum + (evalCase['input_stream'] as List).length,
-    ),
-    'task_count': cases.fold<int>(
-      0,
-      (sum, evalCase) => sum + (evalCase['eval_tasks'] as List).length,
-    ),
+    'input_count': inputCount,
+    'task_count': taskCount,
+    'inputs_per_persona': 16,
     'families': ['full_chain_replay'],
     'notes': [
       '所有 persona 和用户输入均为 zh-CN。',
-      '该数据集用于真实 submitInput / LocalTaskExecutor replay。',
-      'oracle 只约束链路稳定性、card 状态、关键标题信息和成本预算，不强行绑定具体模板类型。',
+      '每个 persona 覆盖 5 周左右时间线，混合工作、生活、情绪、临时咨询、长期偏好和冲突更新。',
+      '所有输入都会走真实 submitInput / LocalTaskExecutor replay。',
+      'oracle 只对关键 actionable 输入做 card 断言，对全部链路做成本和任务收敛断言。',
     ],
   };
 
@@ -127,45 +53,50 @@ Future<void> main(List<String> args) async {
   );
 
   stdout.writeln(
-    'Generated ${cases.length} full-chain replay cases at ${outDir.path}',
+    'Generated ${cases.length} full-chain replay cases, '
+    '$inputCount inputs, $taskCount tasks at ${outDir.path}',
   );
 }
 
-JsonMap _case({
-  required int n,
-  required String occupation,
-  required String city,
-  required List<JsonMap> inputs,
-  required Map<String, List<String>> titleNeedles,
-}) {
+JsonMap _case(int n, JsonMap profile) {
   final caseId = 'full_chain_medium_${_three(n)}';
   final userId = 'eval_fc_medium_${_three(n)}';
-  final tasks = <JsonMap>[];
-  for (final input in inputs) {
-    final suffix = input['suffix'] as String;
-    final inputId = input['id'] as String;
-    tasks.add({
-      'task_id': '${caseId}_card_$suffix',
-      'type': 'card_extraction',
-      'expected': {
-        'input_id': inputId,
-        'status': 'completed',
-        'title_contains': titleNeedles[suffix] ?? const <String>[],
-        'must_not_fields': ['weather', 'price'],
+  final project = _projects[n % _projects.length];
+  final person = _people[(n + 2) % _people.length];
+  final inputs = _inputs(n, project, person);
+  final titleNeedles = <String, List<String>>{
+    'i01': [project],
+    'i04': ['父母'],
+    'i08': ['回滚'],
+    'i12': ['周报'],
+    'i15': ['异常值'],
+  };
+  final tasks = <JsonMap>[
+    for (final input in inputs.where(
+      (input) => titleNeedles.containsKey(input['suffix']),
+    ))
+      {
+        'task_id': '${caseId}_card_${input['suffix']}',
+        'type': 'card_extraction',
+        'expected': {
+          'input_id': input['id'],
+          'status': 'completed',
+          'title_contains': titleNeedles[input['suffix']] ?? const <String>[],
+          'must_not_fields': ['weather', 'price'],
+        },
       },
-    });
-  }
-  tasks.add({
-    'task_id': '${caseId}_cost',
-    'type': 'cost_trace',
-    'expected': {
-      'max_total_tokens': 60000,
-      'max_latency_ms': 120000,
-      'max_tool_calls': 50,
-      'require_all_tasks_completed': true,
-      'must_include': ['Facts', 'Cards', 'tasks'],
+    {
+      'task_id': '${caseId}_cost',
+      'type': 'cost_trace',
+      'expected': {
+        'max_total_tokens': 1500000,
+        'max_latency_ms': 1200000,
+        'max_tool_calls': 4000,
+        'require_all_tasks_completed': true,
+        'must_include': ['Facts', 'Cards', 'tasks'],
+      },
     },
-  });
+  ];
 
   return {
     'case_id': caseId,
@@ -173,19 +104,20 @@ JsonMap _case({
     'language': 'zh-CN',
     'persona': {
       'user_id': userId,
-      'profile': {
-        'occupation': occupation,
-        'city': city,
-        'preferences': ['偏好中文输出', '喜欢明确提醒'],
-      },
+      'profile': profile,
     },
     'ground_truth_world': {
       'facts': [
         {
-          'id': 'fact_$caseId',
-          'type': 'replay_expectation',
-          'content': '该 persona 的输入应写入 Facts、生成 Cards、完成后台任务并产生 trace。',
-        }
+          'id': 'fact_${caseId}_preference',
+          'type': 'preference',
+          'content': '用户偏好中文输出，喜欢明确提醒，但临时情绪和临时咨询不应自动写成长记忆。',
+        },
+        {
+          'id': 'fact_${caseId}_project',
+          'type': 'project_note',
+          'content': '$project 需要关注灰度监控、客服话术、回滚预案和预算余量。',
+        },
       ],
     },
     'input_stream': inputs
@@ -202,12 +134,84 @@ JsonMap _case({
   };
 }
 
-JsonMap _input(String suffix, String time, String content) => {
-      'suffix': suffix,
-      'id':
-          'input_fc_${suffix}_${time.replaceAll(RegExp(r'[^0-9]'), '').substring(8, 12)}',
-      'time': time,
-      'content': content,
-    };
+List<JsonMap> _inputs(int n, String project, String person) {
+  final rows = [
+    ['i00', 1, 9, '这周状态有点乱，先记一下：我想把工作和生活记录都放到 Memex 里，但别把今天的情绪当成长期状态。'],
+    ['i01', 2, 10, '下周二上午十点和$person开会，讨论$project 的灰度计划，帮我记一下。'],
+    ['i02', 3, 21, '今天下班路上看到一家新开的面馆，味道不错，但排队太久了，只是生活记录。'],
+    ['i03', 4, 14, '临时咨询一下，如果晚上睡不着，除了褪黑素还有什么温和一点的方法？'],
+    ['i04', 5, 20, '这周六上午提醒我去父母家，顺便带水果和他们的体检报告复印件。'],
+    ['i05', 7, 11, '以后重要会议尽量提前一天提醒我，别临近了才说。'],
+    ['i06', 9, 22, '今天有点烦，主要是临时会太多，这只是今天，不要当成长期偏好。'],
+    ['i07', 12, 16, '如果下次写项目结论，先给判断，再列证据和下一步。'],
+    ['i08', 15, 13, '$project 这周风险：灰度监控、客服话术和回滚预案都要盯住。'],
+    ['i09', 18, 8, '我之前说不喝咖啡，但最近上午可以喝一杯，下午还是别喝。'],
+    ['i10', 21, 19, '朋友推荐了一部电影，名字叫宇宙探索编辑部，先随手记一下。'],
+    ['i11', 24, 15, '临时问问，如果客户一直不回消息，催一次怎么措辞比较自然？'],
+    ['i12', 27, 17, '周五下班前提醒我把$project 周报发给 Leo，重点写风险和 owner。'],
+    ['i13', 30, 9, '今天通勤路上听了一个睡眠播客，感觉最近应该早点睡。'],
+    ['i14', 33, 21, '这两天只是想吃清淡一点，别记成长期饮食偏好。'],
+    ['i15', 36, 10, '下次看数据时提醒我把异常值单独标出来，别混在整体均值里。'],
+  ];
+
+  return rows
+      .map(
+        (row) => _input(
+          n: n,
+          suffix: row[0] as String,
+          dayOffset: row[1] as int,
+          hour: row[2] as int,
+          content: row[3] as String,
+        ),
+      )
+      .toList();
+}
+
+JsonMap _input({
+  required int n,
+  required String suffix,
+  required int dayOffset,
+  required int hour,
+  required String content,
+}) {
+  final day = DateTime.utc(2026, 5, 1).add(Duration(days: dayOffset));
+  final month = day.month.toString().padLeft(2, '0');
+  final dayText = day.day.toString().padLeft(2, '0');
+  final hourText = hour.toString().padLeft(2, '0');
+  final minuteText = ((n * 7 + dayOffset) % 60).toString().padLeft(2, '0');
+  return {
+    'suffix': suffix,
+    'id': 'input_fc_${_three(n)}_$suffix',
+    'time': '2026-$month-${dayText}T$hourText:$minuteText:00+08:00',
+    'content': content,
+  };
+}
 
 String _three(int n) => n.toString().padLeft(3, '0');
+
+final _profiles = <JsonMap>[
+  for (var i = 0; i < 8; i++)
+    {
+      'occupation': _occupations[i % _occupations.length],
+      'city': _cities[i % _cities.length],
+      'habits': [_habits[i % _habits.length]],
+      'preferences': ['偏好中文输出', _prefs[i % _prefs.length]],
+    }
+];
+
+const _occupations = [
+  '跨境电商运营',
+  '产品经理',
+  '律师',
+  '财务主管',
+  '内容运营',
+  '数据分析师',
+  '独立开发者',
+  '咨询顾问',
+];
+
+const _cities = ['深圳', '杭州', '广州', '成都', '苏州', '武汉', '上海', '厦门'];
+const _habits = ['每周三健身', '周末看望父母', '上午深度工作', '晚上复盘当天工作'];
+const _prefs = ['喜欢明确提醒', '重要事项要列来源', '不喜欢太长总结', '能判断时少问澄清'];
+const _projects = ['北美站增长', '会员召回', 'Memex eval', '法务合同库', '数据中台', '小红书活动'];
+const _people = ['Jason', 'Ada', '老王', 'Annie', 'Leo', 'Mina', '小陈', 'Grace'];

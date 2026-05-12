@@ -1,6 +1,7 @@
 import 'dart:async';
-import 'package:meta/meta.dart';
 import 'dart:convert';
+
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:logging/logging.dart';
 import 'package:drift/drift.dart';
 import 'package:memex/db/app_database.dart';
@@ -120,8 +121,11 @@ class LocalTaskExecutor {
     _logger.info('LocalTaskExecutor stopped');
   }
 
-  // Max concurrent tasks
-  static const int _maxConcurrency = 5;
+  // Max concurrent tasks. Tests may override this to model strictly serial
+  // single-user replay without changing production behavior.
+  @visibleForTesting
+  static int? maxConcurrencyOverrideForTesting;
+  static int get _maxConcurrency => maxConcurrencyOverrideForTesting ?? 5;
 
   /// Enqueue a new task
   Future<String> enqueueTask({
@@ -341,7 +345,7 @@ class LocalTaskExecutor {
 
       if (e is! NonRetryableTaskException && nextRetry <= task.maxRetries) {
         // Exponential backoff
-        final backoff = 30; //* (1 << (task.retryCount));
+        const backoff = 30; //* (1 << (task.retryCount));
         final nextRun = now + backoff;
 
         await (_db.update(_db.tasks)..where((t) => t.id.equals(task.id))).write(

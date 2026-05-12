@@ -21,10 +21,11 @@ final _lock = Lock();
 /// 5. Enqueue Async Tasks
 Future<Map<String, dynamic>> submitInput(
   String userId,
-  List<Map<String, dynamic>> content,
-) async {
+  List<Map<String, dynamic>> content, {
+  DateTime? createdAt,
+}) async {
   return _lock.synchronized(() async {
-    final now = DateTime.now();
+    final now = createdAt ?? DateTime.now();
     _logger.info('Processing local input for user $userId at $now');
 
     final textParts = <String>[];

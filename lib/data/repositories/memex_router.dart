@@ -261,13 +261,13 @@ class MemexRouter {
         taskType: 'process_ai_reply',
         payloadBuilder: (_, event) {
           final p = event.payload as CardCommentPostedPayload;
-            return Future.value({
-              'card_id': p.cardId,
-              'content': p.content,
-              'comment_id': p.commentId,
-              if (p.createdAtTs != null) 'created_at_ts': p.createdAtTs,
-              if (p.replyToId != null) 'reply_to_id': p.replyToId,
-            });
+          return Future.value({
+            'card_id': p.cardId,
+            'content': p.content,
+            'comment_id': p.commentId,
+            if (p.createdAtTs != null) 'created_at_ts': p.createdAtTs,
+            if (p.replyToId != null) 'reply_to_id': p.replyToId,
+          });
         },
       ),
     );
@@ -362,6 +362,7 @@ class MemexRouter {
     String? textHash,
     List<String>? imageHashes,
     String? audioHash,
+    DateTime? createdAt,
   }) async {
     await _ensureInitialized();
     _logger.info(
@@ -412,7 +413,11 @@ class MemexRouter {
       throw Exception('User not logged in, cannot submit local data');
     }
 
-    return submit_input_endpoint.submitInput(userId, content);
+    return submit_input_endpoint.submitInput(
+      userId,
+      content,
+      createdAt: createdAt,
+    );
   }
 
   Future<List<String>> checkProcessedHashes(List<String> hashes) async {

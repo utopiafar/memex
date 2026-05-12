@@ -1,21 +1,23 @@
 {
   "dataset_id": "memex_full_chain_replay_medium",
-  "version": 1,
-  "description": "中等规模中文全链路 replay 数据集。",
-  "created_at": "2026-05-11",
+  "version": 2,
+  "description": "中等规模中文长时间线全链路 replay 数据集。",
+  "created_at": "2026-05-12",
   "language": "zh-CN",
   "locale": "zh-CN",
   "case_file": "cases.jsonl",
-  "persona_count": 6,
-  "case_count": 6,
-  "input_count": 12,
-  "task_count": 18,
+  "persona_count": 8,
+  "case_count": 8,
+  "input_count": 128,
+  "task_count": 48,
+  "inputs_per_persona": 16,
   "families": [
     "full_chain_replay"
   ],
   "notes": [
     "所有 persona 和用户输入均为 zh-CN。",
-    "该数据集用于真实 submitInput / LocalTaskExecutor replay。",
-    "oracle 只约束链路稳定性、card 状态、关键标题信息和成本预算，不强行绑定具体模板类型。"
+    "每个 persona 覆盖 5 周左右时间线，混合工作、生活、情绪、临时咨询、长期偏好和冲突更新。",
+    "所有输入都会走真实 submitInput / LocalTaskExecutor replay。",
+    "oracle 只对关键 actionable 输入做 card 断言，对全部链路做成本和任务收敛断言。"
   ]
 }

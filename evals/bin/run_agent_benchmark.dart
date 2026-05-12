@@ -330,7 +330,12 @@ class DatasetSummary {
       }
 
       final inputStream = _list(evalCase.raw['input_stream']);
-      inputCount += inputStream.length;
+      final operations = _list(evalCase.raw['operations']);
+      final recordOperations = operations
+          .map(_map)
+          .where((operation) => operation['type'] == 'record')
+          .toList();
+      inputCount += inputStream.length + recordOperations.length;
       taskCount += evalCase.tasks.length;
       for (final task in evalCase.tasks) {
         tasksByType.update(task.type, (value) => value + 1, ifAbsent: () => 1);
@@ -349,10 +354,18 @@ class DatasetSummary {
         ),
       );
       summary.caseCount += 1;
-      summary.inputCount += inputStream.length;
+      summary.inputCount += inputStream.length + recordOperations.length;
       summary.taskCount += evalCase.tasks.length;
       for (final rawInput in inputStream) {
         final content = _map(rawInput)['content']?.toString();
+        if (content != null &&
+            content.trim().isNotEmpty &&
+            summary.sampleInputs.length < 2) {
+          summary.sampleInputs.add(content);
+        }
+      }
+      for (final operation in recordOperations) {
+        final content = operation['content']?.toString();
         if (content != null &&
             content.trim().isNotEmpty &&
             summary.sampleInputs.length < 2) {
@@ -619,6 +632,15 @@ class TaskGrader {
         break;
       case 'tool_calling':
         assertions.addAll(_gradeToolCalling(evalCase, task, observed));
+        break;
+      case 'schedule_refresh':
+        assertions.addAll(_gradeScheduleRefresh(evalCase, task, observed));
+        break;
+      case 'pkm_organization':
+        assertions.addAll(_gradePkmOrganization(evalCase, task, observed));
+        break;
+      case 'super_agent_qa':
+        assertions.addAll(_gradeSuperAgentQa(evalCase, task, observed));
         break;
       case 'cost_trace':
         assertions.addAll(_gradeCostTrace(evalCase, task, observed));
@@ -1185,6 +1207,180 @@ class TaskGrader {
       );
     }
 
+    return assertions;
+  }
+
+  static List<AssertionResult> _gradeScheduleRefresh(
+    EvalCase evalCase,
+    EvalTask task,
+    JsonMap observed,
+  ) {
+    final assertions = <AssertionResult>[];
+    final expectedAction = task.expected['schedule_action']?.toString();
+    final observedAction = observed['predicted_schedule_action']?.toString() ??
+        observed['predicted_router_label']?.toString();
+    if (expectedAction != null && expectedAction.isNotEmpty) {
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'schedule_refresh_action_accuracy',
+          passed: observedAction == expectedAction,
+          message:
+              'Expected schedule_action=$expectedAction, observed=$observedAction.',
+        ),
+      );
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'schedule_refresh_unnecessary_absence',
+          passed: !(expectedAction == 'skip' && observedAction == 'refresh'),
+          message:
+              'Expected schedule_action=$expectedAction, observed=$observedAction.',
+        ),
+      );
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'schedule_refresh_missed_absence',
+          passed: !(expectedAction == 'refresh' && observedAction == 'skip'),
+          message:
+              'Expected schedule_action=$expectedAction, observed=$observedAction.',
+        ),
+      );
+    }
+    assertions.addAll(_gradeToolCalling(evalCase, task, observed));
+    return assertions;
+  }
+
+  static List<AssertionResult> _gradePkmOrganization(
+    EvalCase evalCase,
+    EvalTask task,
+    JsonMap observed,
+  ) {
+    final expected = task.expected;
+    final entries = _list(observed['pkm_entries']).map(_map).toList();
+    final assertions = <AssertionResult>[];
+    final expectedEntries = _list(expected['expected_entries']).map(_map);
+    for (final expectedEntry in expectedEntries) {
+      final pathNeedles = _strings(expectedEntry['path_contains']);
+      final contentNeedles = _strings(expectedEntry['content_contains']);
+      final sourceIds = _strings(expectedEntry['source_ids']);
+      final matchingByPath = entries.where((entry) {
+        final path = entry['path']?.toString() ?? '';
+        return pathNeedles.every((needle) => _contains(path, needle));
+      }).toList();
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'pkm_path_accuracy',
+          passed: matchingByPath.isNotEmpty,
+          message: matchingByPath.isEmpty
+              ? 'No PKM entry path matched ${pathNeedles.join(', ')}.'
+              : 'PKM path matched expected constraints.',
+        ),
+      );
+      final contentOk = matchingByPath.any((entry) {
+        final content =
+            '${entry['title'] ?? ''}\n${entry['content'] ?? ''}'.trim();
+        return contentNeedles.every((needle) => _contains(content, needle));
+      });
+      if (contentNeedles.isNotEmpty) {
+        assertions.add(
+          AssertionResult.fromBool(
+            evalCase: evalCase,
+            task: task,
+            metric: 'pkm_content_preservation',
+            passed: contentOk,
+            score: contentOk ? 1 : 0,
+            message: contentOk
+                ? 'PKM content preserved expected details.'
+                : 'PKM content missing expected details.',
+          ),
+        );
+      }
+      if (sourceIds.isNotEmpty) {
+        final sourceOk = matchingByPath.any((entry) {
+          final observedSources = _strings(entry['source_ids']);
+          return sourceIds.every(observedSources.contains);
+        });
+        assertions.add(
+          AssertionResult.fromBool(
+            evalCase: evalCase,
+            task: task,
+            metric: 'pkm_source_grounding',
+            passed: sourceOk,
+            message: sourceOk
+                ? 'PKM entry has expected source ids.'
+                : 'PKM entry missing expected source ids.',
+          ),
+        );
+      }
+    }
+
+    final prohibited = _strings(expected['prohibited_content']);
+    if (prohibited.isNotEmpty) {
+      final allContent = entries
+          .map((entry) => '${entry['title'] ?? ''}\n${entry['content'] ?? ''}')
+          .join('\n');
+      final present =
+          prohibited.where((needle) => _contains(allContent, needle));
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'pkm_prohibited_content_absence',
+          passed: present.isEmpty,
+          message: present.isEmpty
+              ? 'No prohibited PKM content found.'
+              : 'Prohibited PKM content found: ${present.join(', ')}.',
+        ),
+      );
+    }
+
+    return assertions;
+  }
+
+  static List<AssertionResult> _gradeSuperAgentQa(
+    EvalCase evalCase,
+    EvalTask task,
+    JsonMap observed,
+  ) {
+    final assertions = <AssertionResult>[
+      ..._gradeRetrievalQa(evalCase, task, observed),
+      ..._gradeToolCalling(evalCase, task, observed),
+    ];
+    if (task.expected['read_only'] == true) {
+      final calls = _list(observed['tool_calls']).map(_map).toList();
+      const writeMarkers = [
+        'write',
+        'update',
+        'delete',
+        'create',
+        'save',
+        'add_memory',
+        'update_memory',
+      ];
+      final writeCalls = calls
+          .map((call) => call['name']?.toString() ?? '')
+          .where(
+              (name) => writeMarkers.any((marker) => _contains(name, marker)))
+          .toList();
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'super_agent_read_only_compliance',
+          passed: writeCalls.isEmpty,
+          message: writeCalls.isEmpty
+              ? 'Super Agent stayed read-only.'
+              : 'Super Agent called write-like tools: ${writeCalls.join(', ')}.',
+        ),
+      );
+    }
     return assertions;
   }
 
@@ -1775,10 +1971,29 @@ class MetricsAggregator {
         .map((e) => (e['total_tokens'] as num?)?.toDouble())
         .whereType<double>()
         .toList();
+    var replayElapsedMs = 0.0;
+    var replayCaseElapsedTotalMs = 0.0;
+    for (final task in taskResults) {
+      final summary = task.observedSummary;
+      final suiteElapsed = summary['suite_elapsed_ms'];
+      if (suiteElapsed is num && suiteElapsed > replayElapsedMs) {
+        replayElapsedMs = suiteElapsed.toDouble();
+      }
+      final caseElapsed = summary['case_elapsed_ms'];
+      if (task.type == 'cost_trace' && caseElapsed is num) {
+        replayCaseElapsedTotalMs += caseElapsed.toDouble();
+      }
+    }
+    final benchmarkElapsedMs =
+        DateTime.now().toUtc().difference(startedAt.toUtc()).inMilliseconds;
 
     return {
       'run_id': runId,
       'started_at': startedAt.toIso8601String(),
+      'benchmark_elapsed_ms': benchmarkElapsedMs,
+      if (replayElapsedMs > 0) 'replay_elapsed_ms': replayElapsedMs.round(),
+      if (replayCaseElapsedTotalMs > 0)
+        'replay_case_elapsed_total_ms': replayCaseElapsedTotalMs.round(),
       'dataset_path': config.datasetPath,
       'adapter': config.adapter,
       'llm_judge_enabled': config.useLlmJudge,
@@ -1907,6 +2122,14 @@ class ReportRenderer {
     buffer.writeln('| LLM 调用 | ${cost['llm_call_count']} |');
     buffer.writeln('| Tool 调用 | ${cost['tool_call_count']} |');
     buffer.writeln('| 实际 token | ${cost['total_tokens'] ?? 0} |');
+    if (result.metrics['replay_elapsed_ms'] != null) {
+      buffer.writeln(
+        '| Replay 总耗时 | ${_duration(result.metrics['replay_elapsed_ms'])} |',
+      );
+    }
+    buffer.writeln(
+      '| Benchmark 评分耗时 | ${_duration(result.metrics['benchmark_elapsed_ms'])} |',
+    );
     buffer.writeln();
     buffer.writeln(
         '- 数据语言：${summary.languages.isEmpty ? '未声明' : summary.languages.join(', ')}');
@@ -1997,6 +2220,19 @@ class ReportRenderer {
     buffer.writeln('- 单次 LLM 平均 token：${_score(cost['avg_total_tokens'])}');
     buffer.writeln('- 平均延迟：${_score(cost['avg_latency_ms'])} ms');
     buffer.writeln('- P95 延迟：${_score(cost['p95_latency_ms'])} ms');
+    if (result.metrics['replay_elapsed_ms'] != null) {
+      buffer.writeln(
+        '- Replay 总耗时：${_duration(result.metrics['replay_elapsed_ms'])}',
+      );
+    }
+    if (result.metrics['replay_case_elapsed_total_ms'] != null) {
+      buffer.writeln(
+        '- Case 耗时累计：${_duration(result.metrics['replay_case_elapsed_total_ms'])}',
+      );
+    }
+    buffer.writeln(
+      '- Benchmark 评分耗时：${_duration(result.metrics['benchmark_elapsed_ms'])}',
+    );
     buffer.writeln();
   }
 
@@ -2014,6 +2250,14 @@ class ReportRenderer {
     buffer.writeln('- 观察适配器：`${result.adapter}`');
     buffer.writeln('- 场景样本数：${result.caseCount}');
     buffer.writeln('- 评估任务数：${result.taskCount}');
+    if (result.metrics['replay_elapsed_ms'] != null) {
+      buffer.writeln(
+        '- Replay 运行耗时：${_duration(result.metrics['replay_elapsed_ms'])}',
+      );
+    }
+    buffer.writeln(
+      '- Benchmark 评分耗时：${_duration(result.metrics['benchmark_elapsed_ms'])}',
+    );
     buffer.writeln(
       '- 断言通过：${assertions['passed']}/${assertions['total']} '
       '（${_pct((assertions['pass_rate'] as num?)?.toDouble() ?? 0)}）',
@@ -2076,6 +2320,12 @@ class ReportRenderer {
       'LLM 调用次数：${cost['llm_call_count'] ?? 0}；'
       '工具调用次数：${cost['tool_call_count'] ?? 0}。',
     );
+    if (result.metrics['replay_elapsed_ms'] != null) {
+      buffer.writeln(
+        '- Replay 实测耗时：${_duration(result.metrics['replay_elapsed_ms'])}；'
+        'Benchmark 评分耗时：${_duration(result.metrics['benchmark_elapsed_ms'])}。',
+      );
+    }
     final firstFailures = result.taskResults
         .expand((task) => task.assertions)
         .where((assertion) => !assertion.passed)
@@ -2310,6 +2560,12 @@ String _scenarioLabel(String key) {
       return '检索问答';
     case 'tool_calling':
       return '路由 / 工具调用';
+    case 'schedule_refresh':
+      return '日程刷新';
+    case 'pkm_organization':
+      return 'PKM 整理';
+    case 'super_agent_qa':
+      return 'Super Agent 问答';
     case 'cost_trace':
       return '成本 / Trace';
     case 'full_chain_replay':
@@ -2329,6 +2585,12 @@ String _scenarioDescription(String key) {
       return '检查查询时是否召回正确来源，并基于证据回答。';
     case 'tool_calling':
       return '检查路由标签、工具选择、工具参数和禁止工具调用。';
+    case 'schedule_refresh':
+      return '检查日程相关输入是否正确 skip / dirty / refresh，并控制不必要刷新。';
+    case 'pkm_organization':
+      return '检查 PKM 条目是否放到正确路径、保留关键信息并引用来源。';
+    case 'super_agent_qa':
+      return '检查 Super Agent 是否基于记忆和来源回答，并遵守只读/写入边界。';
     case 'cost_trace':
       return '检查 token、延迟和工具调用数量是否在预算内。';
     case 'full_chain_replay':
@@ -2366,6 +2628,15 @@ String _metricScenario(String metric) {
       metric == 'task_completion_status' ||
       metric == 'cost_answer_must_include') {
     return '成本 / Trace';
+  }
+  if (metric.startsWith('schedule_refresh_')) {
+    return '日程刷新';
+  }
+  if (metric.startsWith('pkm_')) {
+    return 'PKM 整理';
+  }
+  if (metric.startsWith('super_agent_')) {
+    return 'Super Agent 问答';
   }
   if (metric.startsWith('tool_') ||
       metric == 'prohibited_tool_absence' ||
@@ -2423,6 +2694,22 @@ String _metricCategory(String metric) {
       return '工具参数';
     case 'router_label_accuracy':
       return '路由分类';
+    case 'schedule_refresh_action_accuracy':
+      return '刷新决策';
+    case 'schedule_refresh_unnecessary_absence':
+      return '刷新精度';
+    case 'schedule_refresh_missed_absence':
+      return '刷新召回';
+    case 'pkm_path_accuracy':
+      return '路径分类';
+    case 'pkm_content_preservation':
+      return '内容保真';
+    case 'pkm_source_grounding':
+      return '来源追溯';
+    case 'pkm_prohibited_content_absence':
+      return '幻觉控制';
+    case 'super_agent_read_only_compliance':
+      return '操作边界';
     case 'total_token_budget':
       return 'Token 成本';
     case 'latency_budget':
@@ -2496,6 +2783,22 @@ String _metricDescription(String metric) {
       return '是否没有调用被禁止的工具。';
     case 'router_label_accuracy':
       return '路由分类是否等于期望标签。';
+    case 'schedule_refresh_action_accuracy':
+      return '日程刷新决策是否等于期望的 skip / dirty / refresh。';
+    case 'schedule_refresh_unnecessary_absence':
+      return '无需刷新时是否没有触发重刷新。';
+    case 'schedule_refresh_missed_absence':
+      return '必须刷新时是否没有漏掉刷新。';
+    case 'pkm_path_accuracy':
+      return 'PKM 条目路径是否包含期望目录或项目名。';
+    case 'pkm_content_preservation':
+      return 'PKM 条目是否保留关键事实、结论和下一步。';
+    case 'pkm_source_grounding':
+      return 'PKM 条目是否保留期望来源 id。';
+    case 'pkm_prohibited_content_absence':
+      return 'PKM 条目是否没有写入明确禁止的临时信息。';
+    case 'super_agent_read_only_compliance':
+      return '只读问答场景下 Super Agent 是否没有调用写入类工具。';
     case 'total_token_budget':
       return '总 token 是否未超过预算。';
     case 'latency_budget':
@@ -2584,6 +2887,20 @@ List<JsonMap> _normalizeTrace({
 
 JsonMap _summarizeObservation(JsonMap observed) {
   return {
+    if (observed['case_elapsed_ms'] != null)
+      'case_elapsed_ms': observed['case_elapsed_ms'],
+    if (observed['suite_elapsed_ms'] != null)
+      'suite_elapsed_ms': observed['suite_elapsed_ms'],
+    if (observed['input_count'] != null) 'input_count': observed['input_count'],
+    if (observed['task_count'] != null) 'task_count': observed['task_count'],
+    if (observed['tasks_settled'] != null)
+      'tasks_settled': observed['tasks_settled'],
+    if (observed['task_status_counts'] != null)
+      'task_status_counts': observed['task_status_counts'],
+    if (observed['active_tasks'] != null)
+      'active_tasks': observed['active_tasks'],
+    if (observed['failed_tasks'] != null)
+      'failed_tasks': observed['failed_tasks'],
     if (observed['card'] != null)
       'card': {
         'card_type': _map(observed['card'])['card_type'],
@@ -2826,6 +3143,22 @@ String _pct(double value) => '${(value * 100).toStringAsFixed(1)}%';
 String _score(Object? value) {
   if (value is num) return value.toStringAsFixed(3);
   return '-';
+}
+
+String _duration(Object? value) {
+  if (value is! num) return '-';
+  final duration = Duration(milliseconds: value.round());
+  final hours = duration.inHours;
+  final minutes = duration.inMinutes.remainder(60);
+  final seconds = duration.inSeconds.remainder(60);
+  if (hours > 0) {
+    return '$hours小时${minutes.toString().padLeft(2, '0')}分'
+        '${seconds.toString().padLeft(2, '0')}秒';
+  }
+  if (minutes > 0) {
+    return '$minutes分${seconds.toString().padLeft(2, '0')}秒';
+  }
+  return '$seconds秒';
 }
 
 String _tokenEstimate(JsonMap cost) {

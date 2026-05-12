@@ -1,0 +1,155 @@
+{
+  "run_id": "2026-05-12-full-chain-serial-smoke",
+  "started_at": "2026-05-12T08:29:14.231808Z",
+  "benchmark_elapsed_ms": 36,
+  "replay_elapsed_ms": 405808,
+  "replay_case_elapsed_total_ms": 405730,
+  "dataset_path": "evals/datasets/full_chain_serial_smoke",
+  "adapter": "replay_file",
+  "llm_judge_enabled": false,
+  "case_count": 1,
+  "task_count": 3,
+  "dataset_summary": {
+    "case_count": 1,
+    "persona_count": 1,
+    "input_count": 5,
+    "task_count": 3,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "full_chain_serial_replay": 1
+    },
+    "tasks_by_type": {
+      "cost_trace": 1,
+      "memory_write": 1,
+      "super_agent_qa": 1
+    },
+    "personas": [
+      {
+        "user_id": "eval_serial_u_001",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 5,
+        "task_count": 3,
+        "sample_inputs": [
+          "以后重要会议尽量提前一天提醒我，别临近了才说。",
+          "我不喝咖啡，早上也不要。"
+        ]
+      }
+    ]
+  },
+  "assertions": {
+    "passed": 15,
+    "total": 15,
+    "pass_rate": 1.0,
+    "avg_score": 0.9926733333333333
+  },
+  "by_family": {
+    "cost_trace": {
+      "passed": 5,
+      "total": 5,
+      "pass_rate": 1.0,
+      "avg_score": 0.97802
+    },
+    "memory_write": {
+      "passed": 5,
+      "total": 5,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "super_agent_qa": {
+      "passed": 5,
+      "total": 5,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "by_metric": {
+    "total_token_budget": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 0.95604
+    },
+    "latency_budget": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "tool_call_budget": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "task_completion_status": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "cost_answer_must_include": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_must_write_recall": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_must_not_write_precision": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "memory_write_precision": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_conflict_handling": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "answer_must_include": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unsupported_claim_absence": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "unnecessary_uncertainty_absence": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "prohibited_tool_absence": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "super_agent_read_only_compliance": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 18,
+    "tool_call_count": 69,
+    "avg_latency_ms": 13739.130434782608,
+    "p95_latency_ms": 98000.0,
+    "avg_total_tokens": 1465.3333333333333,
+    "total_tokens": 26376
+  }
+}

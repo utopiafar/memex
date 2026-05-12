@@ -27,7 +27,12 @@ evals/
 
 每次本地运行会在 `evals/runs/<run-id>/` 里留下完整排查材料：`outputs.jsonl` 记录每个 task 的断言结果，`trace.ndjson` 记录 LLM/tool/task trace，`debug_log.json` 汇总配置、指标、task 结果和 trace。这个目录默认被 git 忽略，只用于本地复盘。
 
-当前保留两条实验线：`v1_medium` 用于验证 fixture adapter、grader、指标和报告稳定性；`full_chain_medium` 用于验证真实 submitInput 到后台任务和 trace 的全链路稳定性。数据集由 `evals/bin/generate_medium_dataset.dart` 和 `evals/bin/generate_full_chain_replay_dataset.dart` 确定性生成；小样本 smoke 数据集不提交，只在需要时用 `--case-limit` 临时截取。
+当前保留两类实验线：
+
+- 模块基线：`module_smoke` 用于验证 Card、Memory、Retrieval、Router/Tool、Schedule、PKM、Super Agent 和成本 Trace 的 grader、指标和报告口径。
+- 串行全链路：`full_chain_serial_smoke` 用于验证真实单用户操作脚本，从 `submitInput`、后台 task、memory 写入到 Super Agent 问答是否闭环。
+
+中等规模数据集仍可通过 `generate_medium_dataset.dart` / `generate_full_chain_replay_dataset.dart` 扩展，但默认先跑小样本，避免把模型 TPS、任务并发和真实质量问题混在一起。
 
 ## Harness 原则
 
@@ -56,9 +61,11 @@ evals/
 ## 给 AI 工具看的约束
 
 - 默认只改 `evals/`；除非用户明确要求，不改 Memex 业务逻辑。
+- 如果为了评估真实性必须触碰主逻辑，只允许加默认不改变产品行为的测试钩子，例如可选时间注入或测试并发覆盖。
 - 新增一次评估时，新建 `evals/experiments/<date>-<short-topic>/`，至少提交 `report.md` 和 `metrics.json`。
 - 不把 `evals/runs/`、`.env`、API key、完整 LLM 原始响应或临时 trace 提交进 git。
 - 报告用中文，结论靠前，数据集/persona 示例放在最后。
 - 指标大表必须包含“场景”和“类别”，避免只看 metric id 猜含义。
 - 如果用外部模型，key 只能通过环境变量或本地忽略文件传入。
 - 如果某次实验不是全绿，也要如实写进结论；评估发现真实失败，比粉饰通过更有价值。
+- 全链路 replay 默认按单用户串行执行：一个 persona、一个操作、一轮 idle，再进入下一步；不把多用户并发压测混入 Agent 质量评估。

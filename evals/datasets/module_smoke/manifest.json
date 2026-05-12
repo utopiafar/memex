@@ -1,0 +1,29 @@
+{
+  "dataset_id": "memex_module_smoke",
+  "version": 1,
+  "description": "中文小样本模块级 Agent eval 数据集，覆盖 Card、Memory、Retrieval、Router/Tool、Schedule、PKM、Super Agent 和成本 Trace。",
+  "created_at": "2026-05-12",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "case_count": 10,
+  "persona_count": 3,
+  "input_count": 6,
+  "task_count": 10,
+  "families": [
+    "card_extraction",
+    "memory_write",
+    "memory_conflict",
+    "retrieval_qa",
+    "tool_calling",
+    "schedule_refresh",
+    "pkm_organization",
+    "super_agent_qa",
+    "cost_trace"
+  ],
+  "notes": [
+    "所有 persona、输入、oracle 均为中文。",
+    "fixture_observed 只用于验证 grader 和指标口径，不代表真实链路产物。",
+    "标准答案只来自 ground_truth_world，不从 Memex 输出反推。"
+  ]
+}

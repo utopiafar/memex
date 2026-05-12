@@ -1,0 +1,21 @@
+{
+  "dataset_id": "memex_full_chain_serial_smoke",
+  "version": 1,
+  "description": "中文小样本串行全链路 replay 数据集，按真实单用户操作脚本执行。",
+  "created_at": "2026-05-12",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "case_count": 1,
+  "persona_count": 1,
+  "operation_count": 7,
+  "families": [
+    "full_chain_serial_replay"
+  ],
+  "notes": [
+    "执行器应以 maxConcurrency=1 串行处理后台任务。",
+    "每条 record 操作后等待 task idle，再进入下一步。",
+    "使用 submitInput(createdAt) 进行低侵入时间仿真。",
+    "Super Agent 问答使用 router.sendMessage 的真实 chat stream。"
+  ]
+}

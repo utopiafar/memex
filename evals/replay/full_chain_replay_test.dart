@@ -58,9 +58,26 @@ void main() {
       final caseLimit = _intFromEnv('MEMEX_EVAL_CASE_LIMIT');
       final selectedCases =
           caseLimit == null ? cases : cases.take(caseLimit).toList();
+      final selectedInputCount = selectedCases.fold<int>(
+        0,
+        (sum, evalCase) =>
+            sum + ((evalCase['input_stream'] as List?)?.length ?? 0),
+      );
+      final selectedTaskCount = selectedCases.fold<int>(
+        0,
+        (sum, evalCase) =>
+            sum + ((evalCase['eval_tasks'] as List?)?.length ?? 0),
+      );
       final observations = <Map<String, dynamic>>[];
       final caseSummaries = <Map<String, dynamic>>[];
       final suiteStartedAt = DateTime.now();
+
+      stdout.writeln(
+        '[eval replay] start dataset=$datasetPath run_dir=${runDir.path} '
+        'cases=${selectedCases.length} inputs=$selectedInputCount '
+        'eval_tasks=$selectedTaskCount llm_enabled=$_llmEnabled '
+        'task_timeout=${_formatDuration(_taskWaitTimeout)}',
+      );
 
       for (var caseIndex = 0; caseIndex < selectedCases.length; caseIndex++) {
         final evalCase = selectedCases[caseIndex];
@@ -70,8 +87,14 @@ void main() {
           'memex_full_chain_${caseId}_',
         );
 
+        LocalTaskExecutor.instance.stop();
         router.resetForLogout();
         final userId = _caseUserId(evalCase, caseIndex);
+        stdout.writeln(
+          '[eval replay] case ${caseIndex + 1}/${selectedCases.length} '
+          'start case_id=$caseId user_id=$userId inputs=${inputStream.length} '
+          'at=${DateTime.now().toIso8601String()}',
+        );
         await UserStorage.saveUser(userId);
         await UserStorage.setLocale(const Locale('zh', 'CN'));
         await UserStorage.setWorkspaceStorageToCustom(userId, dataRoot.path);
@@ -84,7 +107,10 @@ void main() {
 
         final submittedFactIdsByInput = <String, String>{};
         final startedAt = DateTime.now();
-        for (final rawInput in inputStream) {
+        for (var inputIndex = 0;
+            inputIndex < inputStream.length;
+            inputIndex++) {
+          final rawInput = inputStream[inputIndex];
           final input = Map<String, dynamic>.from(rawInput as Map);
           final inputId = input['id']?.toString() ?? 'input_${input.hashCode}';
           final response = await router.submitInput(
@@ -92,14 +118,28 @@ void main() {
             textHash: inputId,
           );
           submittedFactIdsByInput[inputId] = response['fact_id'] as String;
+          stdout.writeln(
+            '[eval replay] $caseId input ${inputIndex + 1}/${inputStream.length} '
+            'submitted input_id=$inputId fact_id=${response['fact_id']} '
+            'elapsed=${_formatDuration(DateTime.now().difference(startedAt))} '
+            'text="${_shorten(input['content']?.toString() ?? '')}"',
+          );
         }
 
+        stdout.writeln(
+          '[eval replay] $caseId waiting tasks '
+          'min=${inputStream.length * 4} timeout=${_formatDuration(_taskWaitTimeout)}',
+        );
         final waitResult = await _waitForTasksToSettle(
           minTasks: inputStream.length * 4,
           timeout: _taskWaitTimeout,
+          caseId: caseId,
+          startedAt: startedAt,
         );
         final tasks = waitResult.tasks;
         final elapsedMs = DateTime.now().difference(startedAt).inMilliseconds;
+        final suiteElapsedMs =
+            DateTime.now().difference(suiteStartedAt).inMilliseconds;
 
         final completedTaskTypes = tasks
             .where((task) => task.status == 'completed')
@@ -111,6 +151,9 @@ void main() {
                   ['pending', 'processing', 'retrying'].contains(task.status),
             )
             .toList();
+        final failedTasks =
+            tasks.where((task) => task.status == 'failed').toList();
+        final taskStatusCounts = _statusCounts(tasks);
 
         expect(tasks, isNotEmpty);
 
@@ -138,6 +181,18 @@ void main() {
                 },
               ]
             : llmCalls;
+        final llmTokenTotal = fallbackLlmCalls.fold<int>(
+          0,
+          (sum, call) => sum + _intValue(call['total_tokens']),
+        );
+
+        stdout.writeln(
+          '[eval replay] $caseId tasks settled=${waitResult.settled} '
+          'counts=${_formatStatusCounts(taskStatusCounts)} '
+          'active=${activeTasks.length} failed=${failedTasks.length} '
+          'llm_calls=${fallbackLlmCalls.length} tokens=$llmTokenTotal '
+          'elapsed=${_formatDuration(Duration(milliseconds: elapsedMs))}',
+        );
 
         for (final rawTask in (evalCase['eval_tasks'] as List)) {
           final task = Map<String, dynamic>.from(rawTask as Map);
@@ -157,6 +212,10 @@ void main() {
                 'card': _cardObservation(card),
                 'trace_events': traceEvents,
                 'llm_calls': const [],
+                'case_elapsed_ms': elapsedMs,
+                'suite_elapsed_ms': suiteElapsedMs,
+                'input_count': inputStream.length,
+                'task_count': tasks.length,
               },
             });
           } else if (taskType == 'cost_trace') {
@@ -168,12 +227,14 @@ void main() {
                     'Full chain 已写入 Facts 和 Cards，完成 ${tasks.length} 个 tasks，并生成 replay trace events。',
                 'trace_events': traceEvents,
                 'active_tasks': activeTasks.map(_taskSummary).toList(),
-                'failed_tasks': tasks
-                    .where((task) => task.status == 'failed')
-                    .map(_taskSummary)
-                    .toList(),
+                'failed_tasks': failedTasks.map(_taskSummary).toList(),
+                'task_status_counts': taskStatusCounts,
                 'tasks_settled': waitResult.settled,
                 'llm_calls': fallbackLlmCalls,
+                'case_elapsed_ms': elapsedMs,
+                'suite_elapsed_ms': suiteElapsedMs,
+                'input_count': inputStream.length,
+                'task_count': tasks.length,
               },
             });
           }
@@ -187,38 +248,50 @@ void main() {
           'task_count': tasks.length,
           'tasks_settled': waitResult.settled,
           'active_task_count': activeTasks.length,
-          'failed_task_count':
-              tasks.where((task) => task.status == 'failed').length,
+          'failed_task_count': failedTasks.length,
+          'task_status_counts': taskStatusCounts,
+          'active_tasks': activeTasks.map(_taskSummary).toList(),
+          'failed_tasks': failedTasks.map(_taskSummary).toList(),
           'completed_task_types': completedTaskTypes.toList()..sort(),
           'cards_by_input': cardJsonByInput,
           'elapsed_ms': elapsedMs,
           'llm_calls': llmCalls,
           'trace_event_count': traceEvents.length,
         });
+
+        await _writeReplayArtifacts(
+          runDir: runDir,
+          datasetPath: datasetPath,
+          selectedCaseCount: selectedCases.length,
+          selectedInputCount: selectedInputCount,
+          selectedTaskCount: selectedTaskCount,
+          observations: observations,
+          caseSummaries: caseSummaries,
+          suiteStartedAt: suiteStartedAt,
+        );
+        stdout.writeln(
+          '[eval replay] $caseId artifacts updated '
+          'observations=${observations.length} summary=${caseSummaries.length}/${selectedCases.length} '
+          'suite_elapsed=${_formatDuration(DateTime.now().difference(suiteStartedAt))}',
+        );
+        LocalTaskExecutor.instance.stop();
+        stdout.writeln('[eval replay] $caseId executor stopped for isolation');
       }
 
-      final observationFile = File(p.join(runDir.path, 'observations.jsonl'));
-      await observationFile.writeAsString(
-        observations.map(jsonEncode).join('\n'),
-        flush: true,
+      await _writeReplayArtifacts(
+        runDir: runDir,
+        datasetPath: datasetPath,
+        selectedCaseCount: selectedCases.length,
+        selectedInputCount: selectedInputCount,
+        selectedTaskCount: selectedTaskCount,
+        observations: observations,
+        caseSummaries: caseSummaries,
+        suiteStartedAt: suiteStartedAt,
       );
-
-      final summaryFile = File(p.join(runDir.path, 'summary.json'));
-      await summaryFile.writeAsString(
-        const JsonEncoder.withIndent('  ').convert({
-          'dataset_path': datasetPath,
-          'case_count': selectedCases.length,
-          'input_count': selectedCases.fold<int>(
-            0,
-            (sum, evalCase) =>
-                sum + ((evalCase['input_stream'] as List?)?.length ?? 0),
-          ),
-          'elapsed_ms':
-              DateTime.now().difference(suiteStartedAt).inMilliseconds,
-          'llm_enabled': _llmEnabled,
-          'cases': caseSummaries,
-        }),
-        flush: true,
+      stdout.writeln(
+        '[eval replay] done observations=${observations.length} '
+        'summary=${caseSummaries.length} '
+        'elapsed=${_formatDuration(DateTime.now().difference(suiteStartedAt))}',
       );
 
       LocalTaskExecutor.instance.stop();
@@ -226,7 +299,7 @@ void main() {
         await AppDatabase.instance.close();
       }
     },
-    timeout: const Timeout(Duration(minutes: 30)),
+    timeout: const Timeout(Duration(minutes: 180)),
   );
 }
 
@@ -318,15 +391,30 @@ Map<String, dynamic> _cardObservation(dynamic card) {
 Future<_TaskWaitResult> _waitForTasksToSettle({
   required int minTasks,
   required Duration timeout,
+  required String caseId,
+  required DateTime startedAt,
 }) async {
   final deadline = DateTime.now().add(timeout);
+  var nextLogAt = DateTime.now().add(const Duration(seconds: 10));
   var lastTasks = <dynamic>[];
   while (DateTime.now().isBefore(deadline)) {
     final tasks = await LocalTaskExecutor.instance.getTasks(limit: 100);
     lastTasks = tasks;
-    final active = tasks.where(
-      (task) => ['pending', 'processing', 'retrying'].contains(task.status),
-    );
+    final active = tasks
+        .where(
+          (task) => ['pending', 'processing', 'retrying'].contains(task.status),
+        )
+        .toList();
+    final now = DateTime.now();
+    if (now.isAfter(nextLogAt)) {
+      stdout.writeln(
+        '[eval replay] $caseId waiting '
+        'tasks=${tasks.length}/$minTasks active=${active.length} '
+        'status=${_formatStatusCounts(_statusCounts(tasks))} '
+        'elapsed=${_formatDuration(now.difference(startedAt))}',
+      );
+      nextLogAt = now.add(const Duration(seconds: 10));
+    }
     if (tasks.length >= minTasks && active.isEmpty) {
       return _TaskWaitResult(tasks: tasks, settled: true);
     }
@@ -355,8 +443,76 @@ Map<String, dynamic> _taskSummary(dynamic task) {
     'task_id': task.id,
     'task_type': task.type,
     'status': task.status,
+    if (task.updatedAt != null) 'updated_at': task.updatedAt,
     if (task.error != null) 'error': task.error,
   };
+}
+
+Map<String, int> _statusCounts(List<dynamic> tasks) {
+  final counts = <String, int>{};
+  for (final task in tasks) {
+    final status = task.status?.toString() ?? 'unknown';
+    counts[status] = (counts[status] ?? 0) + 1;
+  }
+  return counts;
+}
+
+String _formatStatusCounts(Map<String, int> counts) {
+  if (counts.isEmpty) return '-';
+  final keys = counts.keys.toList()..sort();
+  return keys.map((key) => '$key=${counts[key]}').join(',');
+}
+
+String _formatDuration(Duration duration) {
+  final hours = duration.inHours;
+  final minutes = duration.inMinutes.remainder(60);
+  final seconds = duration.inSeconds.remainder(60);
+  if (hours > 0) {
+    return '${hours}h${minutes.toString().padLeft(2, '0')}m'
+        '${seconds.toString().padLeft(2, '0')}s';
+  }
+  if (minutes > 0) {
+    return '${minutes}m${seconds.toString().padLeft(2, '0')}s';
+  }
+  return '${seconds}s';
+}
+
+String _shorten(String value, {int maxLength = 72}) {
+  final normalized = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+  if (normalized.length <= maxLength) return normalized;
+  return '${normalized.substring(0, maxLength)}...';
+}
+
+Future<void> _writeReplayArtifacts({
+  required Directory runDir,
+  required String datasetPath,
+  required int selectedCaseCount,
+  required int selectedInputCount,
+  required int selectedTaskCount,
+  required List<Map<String, dynamic>> observations,
+  required List<Map<String, dynamic>> caseSummaries,
+  required DateTime suiteStartedAt,
+}) async {
+  final observationFile = File(p.join(runDir.path, 'observations.jsonl'));
+  await observationFile.writeAsString(
+    observations.isEmpty ? '' : '${observations.map(jsonEncode).join('\n')}\n',
+    flush: true,
+  );
+
+  final summaryFile = File(p.join(runDir.path, 'summary.json'));
+  await summaryFile.writeAsString(
+    const JsonEncoder.withIndent('  ').convert({
+      'dataset_path': datasetPath,
+      'case_count': selectedCaseCount,
+      'input_count': selectedInputCount,
+      'eval_task_count': selectedTaskCount,
+      'completed_case_count': caseSummaries.length,
+      'elapsed_ms': DateTime.now().difference(suiteStartedAt).inMilliseconds,
+      'llm_enabled': _llmEnabled,
+      'cases': caseSummaries,
+    }),
+    flush: true,
+  );
 }
 
 Future<List<Map<String, dynamic>>> _agentActivityTraceEvents() async {
