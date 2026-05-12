@@ -1,27 +1,51 @@
 {
   "run_id": "2026-05-12-module-pkm-organization",
-  "started_at": "2026-05-12T08:54:07.756238Z",
-  "benchmark_elapsed_ms": 63,
+  "started_at": "2026-05-12T09:24:34.214904Z",
+  "benchmark_elapsed_ms": 24,
   "dataset_path": "evals/datasets/modules/pkm_organization",
   "adapter": "fixture",
   "llm_judge_enabled": false,
-  "case_count": 1,
-  "task_count": 1,
+  "case_count": 4,
+  "task_count": 4,
   "dataset_summary": {
-    "case_count": 1,
-    "persona_count": 1,
-    "input_count": 1,
-    "task_count": 1,
+    "case_count": 4,
+    "persona_count": 4,
+    "input_count": 5,
+    "task_count": 4,
     "languages": [
       "zh-CN"
     ],
     "cases_by_family": {
-      "pkm_organization": 1
+      "pkm_organization": 4
     },
     "tasks_by_type": {
-      "pkm_organization": 1
+      "pkm_organization": 4
     },
     "personas": [
+      {
+        "user_id": "module_u_001",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "周末去广州看爸妈，备忘里写：带降压药和保温杯。"
+        ]
+      },
+      {
+        "user_id": "module_u_002",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "需求评审结论记到项目里：先做导出，owner Alex，下周五验收。"
+        ]
+      },
       {
         "user_id": "module_u_003",
         "occupation": "数据分析师",
@@ -33,43 +57,66 @@
         "sample_inputs": [
           "Memex eval 周报重点写风险、owner 和回滚预案。"
         ]
+      },
+      {
+        "user_id": "module_u_004",
+        "occupation": "高校老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 2,
+        "task_count": 1,
+        "sample_inputs": [
+          "论文阅读笔记：retrieval eval 重点是 MRR 和 recall。",
+          "同一篇笔记里再补一句，后续要加 hit@k 对比。"
+        ]
       }
     ]
   },
   "assertions": {
-    "passed": 4,
-    "total": 4,
+    "passed": 19,
+    "total": 19,
     "pass_rate": 1.0,
     "avg_score": 1.0
   },
   "by_family": {
     "pkm_organization": {
-      "passed": 4,
-      "total": 4,
+      "passed": 19,
+      "total": 19,
       "pass_rate": 1.0,
       "avg_score": 1.0
     }
   },
   "by_metric": {
     "pkm_path_accuracy": {
-      "passed": 1,
-      "total": 1,
+      "passed": 4,
+      "total": 4,
       "pass_rate": 1.0
     },
     "pkm_content_preservation": {
-      "passed": 1,
-      "total": 1,
+      "passed": 4,
+      "total": 4,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "pkm_source_grounding": {
+      "passed": 4,
+      "total": 4,
+      "pass_rate": 1.0
+    },
+    "pkm_prohibited_content_absence": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "pkm_update_freshness": {
       "passed": 1,
       "total": 1,
       "pass_rate": 1.0
     },
-    "pkm_prohibited_content_absence": {
-      "passed": 1,
-      "total": 1,
+    "pkm_merge_split_quality": {
+      "passed": 3,
+      "total": 3,
       "pass_rate": 1.0
     }
   },

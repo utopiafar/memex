@@ -1,25 +1,25 @@
 {
   "run_id": "2026-05-12-module-retrieval-qa",
-  "started_at": "2026-05-12T08:54:07.687086Z",
-  "benchmark_elapsed_ms": 50,
+  "started_at": "2026-05-12T09:24:33.573613Z",
+  "benchmark_elapsed_ms": 23,
   "dataset_path": "evals/datasets/modules/retrieval_qa",
   "adapter": "fixture",
   "llm_judge_enabled": false,
-  "case_count": 1,
-  "task_count": 1,
+  "case_count": 4,
+  "task_count": 4,
   "dataset_summary": {
-    "case_count": 1,
-    "persona_count": 1,
+    "case_count": 4,
+    "persona_count": 4,
     "input_count": 0,
-    "task_count": 1,
+    "task_count": 4,
     "languages": [
       "zh-CN"
     ],
     "cases_by_family": {
-      "retrieval_qa": 1
+      "retrieval_qa": 4
     },
     "tasks_by_type": {
-      "retrieval_qa": 1
+      "retrieval_qa": 4
     },
     "personas": [
       {
@@ -31,75 +31,121 @@
         "input_count": 0,
         "task_count": 1,
         "sample_inputs": []
+      },
+      {
+        "user_id": "module_u_002",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 0,
+        "task_count": 1,
+        "sample_inputs": []
+      },
+      {
+        "user_id": "module_u_003",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 0,
+        "task_count": 1,
+        "sample_inputs": []
+      },
+      {
+        "user_id": "module_u_004",
+        "occupation": "高校老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 0,
+        "task_count": 1,
+        "sample_inputs": []
       }
     ]
   },
   "assertions": {
-    "passed": 9,
-    "total": 9,
+    "passed": 34,
+    "total": 34,
     "pass_rate": 1.0,
     "avg_score": 1.0
   },
   "by_family": {
     "retrieval_qa": {
-      "passed": 9,
-      "total": 9,
+      "passed": 34,
+      "total": 34,
       "pass_rate": 1.0,
       "avg_score": 1.0
     }
   },
   "by_metric": {
     "retrieval_hit_at_1": {
-      "passed": 1,
-      "total": 1,
+      "passed": 3,
+      "total": 3,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "retrieval_hit_at_3": {
-      "passed": 1,
-      "total": 1,
+      "passed": 3,
+      "total": 3,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "retrieval_hit_at_5": {
-      "passed": 1,
-      "total": 1,
+      "passed": 3,
+      "total": 3,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "retrieval_mrr": {
-      "passed": 1,
-      "total": 1,
+      "passed": 3,
+      "total": 3,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "retrieval_recall_at_5": {
-      "passed": 1,
-      "total": 1,
+      "passed": 3,
+      "total": 3,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "answer_must_include": {
-      "passed": 1,
-      "total": 1,
+      "passed": 4,
+      "total": 4,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "unsupported_claim_absence": {
-      "passed": 1,
-      "total": 1,
+      "passed": 4,
+      "total": 4,
       "pass_rate": 1.0
     },
     "unnecessary_uncertainty_absence": {
-      "passed": 1,
-      "total": 1,
+      "passed": 3,
+      "total": 3,
       "pass_rate": 1.0
     },
     "answer_source_citation": {
-      "passed": 1,
-      "total": 1,
+      "passed": 3,
+      "total": 3,
       "pass_rate": 1.0,
       "avg_score": 1.0
+    },
+    "retrieval_filter_accuracy": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "grounded_answer_rate": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "abstention_accuracy": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
     }
   },
   "cost_trace": {

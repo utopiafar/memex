@@ -1,25 +1,25 @@
 {
   "run_id": "2026-05-12-module-card-extraction",
-  "started_at": "2026-05-12T08:54:07.560207Z",
-  "benchmark_elapsed_ms": 43,
+  "started_at": "2026-05-12T09:24:33.086842Z",
+  "benchmark_elapsed_ms": 27,
   "dataset_path": "evals/datasets/modules/card_extraction",
   "adapter": "fixture",
   "llm_judge_enabled": false,
-  "case_count": 1,
-  "task_count": 1,
+  "case_count": 4,
+  "task_count": 4,
   "dataset_summary": {
-    "case_count": 1,
-    "persona_count": 1,
-    "input_count": 1,
-    "task_count": 1,
+    "case_count": 4,
+    "persona_count": 3,
+    "input_count": 5,
+    "task_count": 4,
     "languages": [
       "zh-CN"
     ],
     "cases_by_family": {
-      "card_extraction": 1
+      "card_extraction": 4
     },
     "tasks_by_type": {
-      "card_extraction": 1
+      "card_extraction": 4
     },
     "personas": [
       {
@@ -27,49 +27,74 @@
         "occupation": "跨境电商运营",
         "city": "深圳",
         "language": "zh-CN",
+        "case_count": 2,
+        "input_count": 3,
+        "task_count": 2,
+        "sample_inputs": [
+          "下周三晚上七点提醒我去望京和 Jason 讨论投流预算。",
+          "Jason 那个预算会先记周四三点。"
+        ]
+      },
+      {
+        "user_id": "module_u_002",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
         "case_count": 1,
         "input_count": 1,
         "task_count": 1,
         "sample_inputs": [
-          "下周三晚上七点提醒我去望京和 Jason 讨论投流预算。"
+          "今天有点焦虑，不过重点记一下：灰度发布风险是支付回调和老版本兼容。"
+        ]
+      },
+      {
+        "user_id": "module_u_004",
+        "occupation": "高校老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "周五晚上九点前把小林的开题报告反馈写完，别忘了。"
         ]
       }
     ]
   },
   "assertions": {
-    "passed": 7,
-    "total": 7,
+    "passed": 29,
+    "total": 29,
     "pass_rate": 1.0,
     "avg_score": 1.0
   },
   "by_family": {
     "card_extraction": {
-      "passed": 7,
-      "total": 7,
+      "passed": 29,
+      "total": 29,
       "pass_rate": 1.0,
       "avg_score": 1.0
     }
   },
   "by_metric": {
     "card_schema_valid": {
-      "passed": 1,
-      "total": 1,
+      "passed": 4,
+      "total": 4,
       "pass_rate": 1.0
     },
     "card_type_accuracy": {
-      "passed": 1,
-      "total": 1,
+      "passed": 4,
+      "total": 4,
       "pass_rate": 1.0
     },
     "time_parse_accuracy": {
-      "passed": 1,
-      "total": 1,
+      "passed": 3,
+      "total": 3,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "participant_recall": {
-      "passed": 1,
-      "total": 1,
+      "passed": 3,
+      "total": 3,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
@@ -79,12 +104,34 @@
       "pass_rate": 1.0
     },
     "title_constraint_accuracy": {
+      "passed": 4,
+      "total": 4,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "hallucinated_field_absence": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "entity_recall": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "input_to_card_latency": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "card_field_constraint_accuracy": {
       "passed": 1,
       "total": 1,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
-    "hallucinated_field_absence": {
+    "card_status_accuracy": {
       "passed": 1,
       "total": 1,
       "pass_rate": 1.0

@@ -1,76 +1,110 @@
 {
   "run_id": "2026-05-12-module-router-tool-calling",
-  "started_at": "2026-05-12T08:54:07.697701Z",
-  "benchmark_elapsed_ms": 73,
+  "started_at": "2026-05-12T09:24:33.784549Z",
+  "benchmark_elapsed_ms": 22,
   "dataset_path": "evals/datasets/modules/router_tool_calling",
   "adapter": "fixture",
   "llm_judge_enabled": false,
-  "case_count": 1,
-  "task_count": 1,
+  "case_count": 4,
+  "task_count": 4,
   "dataset_summary": {
-    "case_count": 1,
-    "persona_count": 1,
-    "input_count": 0,
-    "task_count": 1,
+    "case_count": 4,
+    "persona_count": 3,
+    "input_count": 2,
+    "task_count": 4,
     "languages": [
       "zh-CN"
     ],
     "cases_by_family": {
-      "tool_calling": 1
+      "tool_calling": 4
     },
     "tasks_by_type": {
-      "tool_calling": 1
+      "tool_calling": 4
     },
     "personas": [
       {
-        "user_id": "module_u_003",
-        "occupation": "数据分析师",
-        "city": "上海",
+        "user_id": "module_u_002",
+        "occupation": "产品经理",
+        "city": "杭州",
         "language": "zh-CN",
         "case_count": 1,
         "input_count": 0,
         "task_count": 1,
         "sample_inputs": []
+      },
+      {
+        "user_id": "module_u_003",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 2,
+        "input_count": 1,
+        "task_count": 2,
+        "sample_inputs": [
+          "把这次指标复盘整理到 Memex eval 项目笔记。"
+        ]
+      },
+      {
+        "user_id": "module_u_004",
+        "occupation": "高校老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "以后排公开课提醒我提前两天准备讲义。"
+        ]
       }
     ]
   },
   "assertions": {
-    "passed": 4,
-    "total": 4,
+    "passed": 20,
+    "total": 20,
     "pass_rate": 1.0
   },
   "by_family": {
     "tool_calling": {
-      "passed": 4,
-      "total": 4,
+      "passed": 20,
+      "total": 20,
       "pass_rate": 1.0
     }
   },
   "by_metric": {
     "tool_selection_accuracy": {
-      "passed": 1,
-      "total": 1,
+      "passed": 4,
+      "total": 4,
       "pass_rate": 1.0
     },
     "tool_args_accuracy": {
-      "passed": 1,
-      "total": 1,
+      "passed": 4,
+      "total": 4,
       "pass_rate": 1.0
     },
     "prohibited_tool_absence": {
-      "passed": 1,
-      "total": 1,
+      "passed": 3,
+      "total": 3,
       "pass_rate": 1.0
     },
     "router_label_accuracy": {
-      "passed": 1,
-      "total": 1,
+      "passed": 4,
+      "total": 4,
+      "pass_rate": 1.0
+    },
+    "tool_call_minimality": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "trace_completeness": {
+      "passed": 2,
+      "total": 2,
       "pass_rate": 1.0
     }
   },
   "cost_trace": {
-    "llm_call_count": 0,
-    "tool_call_count": 0,
+    "llm_call_count": 1,
+    "tool_call_count": 2,
     "avg_latency_ms": 0.0,
     "p95_latency_ms": 0.0,
     "avg_total_tokens": 0.0,

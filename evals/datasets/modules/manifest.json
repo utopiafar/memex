@@ -9,8 +9,8 @@
     {
       "dataset_id": "memex_module_card_extraction_smoke",
       "path": "evals/datasets/modules/card_extraction",
-      "case_count": 1,
-      "task_count": 1,
+      "case_count": 4,
+      "task_count": 4,
       "families": [
         "card_extraction"
       ]
@@ -18,8 +18,8 @@
     {
       "dataset_id": "memex_module_memory_smoke",
       "path": "evals/datasets/modules/memory",
-      "case_count": 2,
-      "task_count": 2,
+      "case_count": 6,
+      "task_count": 6,
       "families": [
         "memory_conflict",
         "memory_write"
@@ -28,8 +28,8 @@
     {
       "dataset_id": "memex_module_retrieval_qa_smoke",
       "path": "evals/datasets/modules/retrieval_qa",
-      "case_count": 1,
-      "task_count": 1,
+      "case_count": 4,
+      "task_count": 4,
       "families": [
         "retrieval_qa"
       ]
@@ -37,8 +37,8 @@
     {
       "dataset_id": "memex_module_router_tool_calling_smoke",
       "path": "evals/datasets/modules/router_tool_calling",
-      "case_count": 1,
-      "task_count": 1,
+      "case_count": 4,
+      "task_count": 4,
       "families": [
         "tool_calling"
       ]
@@ -46,8 +46,8 @@
     {
       "dataset_id": "memex_module_schedule_refresh_smoke",
       "path": "evals/datasets/modules/schedule_refresh",
-      "case_count": 2,
-      "task_count": 2,
+      "case_count": 6,
+      "task_count": 6,
       "families": [
         "schedule_refresh"
       ]
@@ -55,8 +55,8 @@
     {
       "dataset_id": "memex_module_pkm_organization_smoke",
       "path": "evals/datasets/modules/pkm_organization",
-      "case_count": 1,
-      "task_count": 1,
+      "case_count": 4,
+      "task_count": 4,
       "families": [
         "pkm_organization"
       ]
@@ -64,8 +64,8 @@
     {
       "dataset_id": "memex_module_super_agent_qa_smoke",
       "path": "evals/datasets/modules/super_agent_qa",
-      "case_count": 1,
-      "task_count": 1,
+      "case_count": 4,
+      "task_count": 4,
       "families": [
         "super_agent_qa"
       ]
@@ -73,8 +73,8 @@
     {
       "dataset_id": "memex_module_cost_trace_smoke",
       "path": "evals/datasets/modules/cost_trace",
-      "case_count": 1,
-      "task_count": 1,
+      "case_count": 3,
+      "task_count": 3,
       "families": [
         "cost_trace"
       ]

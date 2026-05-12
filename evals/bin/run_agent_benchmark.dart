@@ -830,6 +830,48 @@ class TaskGrader {
       );
     }
 
+    final expectedEntities = _strings(expected['entities']);
+    if (expectedEntities.isNotEmpty) {
+      final entityText = [
+        card['title'],
+        card['content'],
+        card['summary'],
+        card['location'],
+        card['address'],
+        ..._strings(card['participants']),
+        ..._map(card['fields']).values,
+      ].whereType<Object>().join('\n');
+      final hits =
+          expectedEntities.where((entity) => _contains(entityText, entity));
+      final recall = hits.length / expectedEntities.length;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'entity_recall',
+          passed: hits.length == expectedEntities.length,
+          score: recall,
+          message: 'Entity recall ${hits.length}/${expectedEntities.length}.',
+        ),
+      );
+    }
+
+    final maxLatencyMs = (expected['max_latency_ms'] as num?)?.toInt();
+    if (maxLatencyMs != null) {
+      final latencyMs = (observed['latency_ms'] as num?)?.toInt() ??
+          (card['latency_ms'] as num?)?.toInt() ??
+          0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'input_to_card_latency',
+          passed: latencyMs <= maxLatencyMs,
+          message: 'input_to_card_latency_ms=$latencyMs, max=$maxLatencyMs.',
+        ),
+      );
+    }
+
     return assertions;
   }
 
@@ -877,6 +919,25 @@ class TaskGrader {
             message: sourceGrounded
                 ? 'Memory ${rule['id']} has expected source ids.'
                 : 'Memory ${rule['id']} missing expected source ids.',
+          ),
+        );
+      }
+
+      final validFrom = rule['valid_from']?.toString();
+      final validUntil = rule['valid_until']?.toString();
+      if (validFrom != null || validUntil != null) {
+        final observedValidFrom = match?['valid_from']?.toString();
+        final observedValidUntil = match?['valid_until']?.toString();
+        final fromOk = validFrom == null || observedValidFrom == validFrom;
+        final untilOk = validUntil == null || observedValidUntil == validUntil;
+        assertions.add(
+          AssertionResult.fromBool(
+            evalCase: evalCase,
+            task: task,
+            metric: 'memory_temporal_validity',
+            passed: passed && fromOk && untilOk,
+            message:
+                'Expected valid_from=$validFrom valid_until=$validUntil, observed valid_from=$observedValidFrom valid_until=$observedValidUntil.',
           ),
         );
       }
@@ -962,6 +1023,23 @@ class TaskGrader {
       );
     }
 
+    final sensitiveMustNotWrite =
+        _list(expected['sensitive_must_not_write']).cast<JsonMap>();
+    for (final rule in sensitiveMustNotWrite) {
+      final match = _findMemoryMatch(entries, _strings(rule['must_include']));
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'sensitive_overwrite_absence',
+          passed: match == null,
+          message: match == null
+              ? 'No sensitive over-write found for ${rule['id']}.'
+              : 'Sensitive content was written: ${match['content']}.',
+        ),
+      );
+    }
+
     return assertions;
   }
 
@@ -1019,6 +1097,24 @@ class TaskGrader {
       );
     }
 
+    final expectedFilters = _map(expected['expected_filters']);
+    if (expectedFilters.isNotEmpty) {
+      final observedFilters = _map(observed['applied_filters']);
+      final filtersOk = _jsonContains(observedFilters, expectedFilters);
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'retrieval_filter_accuracy',
+          passed: filtersOk,
+          message: filtersOk
+              ? 'Observed filters include expected subset.'
+              : 'Observed filters did not include expected subset.',
+          details: {'expected_subset': expectedFilters},
+        ),
+      );
+    }
+
     final answer = '${observed['answer'] ?? ''}';
     final mustInclude = _strings(expected['must_include']);
     if (mustInclude.isNotEmpty) {
@@ -1055,14 +1151,7 @@ class TaskGrader {
     }
 
     if (expected['allowed_uncertainty'] == false) {
-      final uncertaintyMarkers = [
-        '不确定',
-        '不知道',
-        '无法确认',
-        'uncertain',
-        'not sure',
-      ];
-      final uncertain = uncertaintyMarkers.any((m) => _contains(answer, m));
+      final uncertain = _hasUncertainty(answer);
       assertions.add(
         AssertionResult.fromBool(
           evalCase: evalCase,
@@ -1072,6 +1161,21 @@ class TaskGrader {
           message: uncertain
               ? 'Answer expressed uncertainty when it was not allowed.'
               : 'Answer did not express unnecessary uncertainty.',
+        ),
+      );
+    }
+
+    if (expected.containsKey('should_abstain')) {
+      final shouldAbstain = expected['should_abstain'] == true;
+      final abstained = _hasUncertainty(answer);
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'abstention_accuracy',
+          passed: abstained == shouldAbstain,
+          message:
+              'Expected should_abstain=$shouldAbstain, observed_abstained=$abstained.',
         ),
       );
     }
@@ -1088,6 +1192,25 @@ class TaskGrader {
           score: expectedSources.where(citedSources.contains).length /
               expectedSources.length,
           message: 'Cited sources: ${citedSources.join(', ')}.',
+        ),
+      );
+    }
+
+    if (expected['require_grounded_answer'] == true) {
+      final mustNotInclude = _strings(expected['must_not_include']);
+      final presentUnsupported =
+          mustNotInclude.where((needle) => _contains(answer, needle));
+      final citedExpected = expectedSources.isEmpty ||
+          expectedSources.every(citedSources.contains);
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'grounded_answer_rate',
+          passed: citedExpected && presentUnsupported.isEmpty,
+          score: citedExpected && presentUnsupported.isEmpty ? 1 : 0,
+          message:
+              'cited_expected=$citedExpected unsupported_claims=${presentUnsupported.join(', ')}.',
         ),
       );
     }
@@ -1207,6 +1330,38 @@ class TaskGrader {
       );
     }
 
+    final maxToolCalls = (expected['max_tool_calls'] as num?)?.toInt();
+    if (maxToolCalls != null) {
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'tool_call_minimality',
+          passed: calls.length <= maxToolCalls,
+          message: 'tool_calls=${calls.length}, max=$maxToolCalls.',
+        ),
+      );
+    }
+
+    final expectedTraceEvents = _strings(expected['expected_trace_events']);
+    if (expectedTraceEvents.isNotEmpty) {
+      final traceTypes = _traceEventNames(observed);
+      final missing = expectedTraceEvents
+          .where((eventName) => !traceTypes.contains(eventName))
+          .toList();
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'trace_completeness',
+          passed: missing.isEmpty,
+          message: missing.isEmpty
+              ? 'Trace contains expected events.'
+              : 'Trace missing events: ${missing.join(', ')}.',
+        ),
+      );
+    }
+
     return assertions;
   }
 
@@ -1248,6 +1403,29 @@ class TaskGrader {
           passed: !(expectedAction == 'refresh' && observedAction == 'skip'),
           message:
               'Expected schedule_action=$expectedAction, observed=$observedAction.',
+        ),
+      );
+    }
+    final maxRefreshCalls =
+        (task.expected['max_refresh_tool_calls'] as num?)?.toInt();
+    if (maxRefreshCalls != null) {
+      final refreshCalls = _list(observed['tool_calls'])
+          .map(_map)
+          .where(
+            (call) => _contains(call['name']?.toString() ?? '', 'refresh'),
+          )
+          .length;
+      final duplicateRate =
+          refreshCalls <= 1 ? 0.0 : (refreshCalls - 1) / refreshCalls;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'schedule_refresh_duplicate_rate',
+          passed: refreshCalls <= maxRefreshCalls,
+          score: 1 - duplicateRate,
+          message:
+              'refresh_tool_calls=$refreshCalls, max=$maxRefreshCalls, duplicate_rate=${duplicateRate.toStringAsFixed(3)}.',
         ),
       );
     }
@@ -1319,6 +1497,48 @@ class TaskGrader {
           ),
         );
       }
+
+      final updatedAfter = expectedEntry['updated_after']?.toString();
+      if (updatedAfter != null && updatedAfter.isNotEmpty) {
+        final freshnessOk = matchingByPath.any((entry) {
+          final updatedAt = DateTime.tryParse(
+            entry['updated_at']?.toString() ?? '',
+          );
+          final cutoff = DateTime.tryParse(updatedAfter);
+          return updatedAt != null &&
+              cutoff != null &&
+              !updatedAt.isBefore(cutoff);
+        });
+        assertions.add(
+          AssertionResult.fromBool(
+            evalCase: evalCase,
+            task: task,
+            metric: 'pkm_update_freshness',
+            passed: freshnessOk,
+            message: freshnessOk
+                ? 'PKM entry update time is fresh enough.'
+                : 'PKM entry update time is older than expected.',
+          ),
+        );
+      }
+    }
+
+    final minEntryCount = (expected['min_entry_count'] as num?)?.toInt();
+    final maxEntryCount = (expected['max_entry_count'] as num?)?.toInt();
+    if (minEntryCount != null || maxEntryCount != null) {
+      final count = entries.length;
+      final minOk = minEntryCount == null || count >= minEntryCount;
+      final maxOk = maxEntryCount == null || count <= maxEntryCount;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'pkm_merge_split_quality',
+          passed: minOk && maxOk,
+          message:
+              'pkm_entry_count=$count, min=$minEntryCount, max=$maxEntryCount.',
+        ),
+      );
     }
 
     final prohibited = _strings(expected['prohibited_content']);
@@ -1381,6 +1601,45 @@ class TaskGrader {
         ),
       );
     }
+    if (task.expected.containsKey('should_clarify') ||
+        task.expected.containsKey('should_abstain')) {
+      final shouldClarify = task.expected['should_clarify'] == true ||
+          task.expected['should_abstain'] == true;
+      final answer = '${observed['answer'] ?? ''}';
+      final calibrated = _hasUncertainty(answer) == shouldClarify;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'uncertainty_calibration',
+          passed: calibrated,
+          message:
+              'Expected should_clarify_or_abstain=$shouldClarify, observed_uncertain=${_hasUncertainty(answer)}.',
+        ),
+      );
+    }
+
+    final personalizationNeedles =
+        _strings(task.expected['personalization_must_include']);
+    if (personalizationNeedles.isNotEmpty) {
+      final answer = '${observed['answer'] ?? ''}';
+      final missing = personalizationNeedles
+          .where((needle) => !_contains(answer, needle))
+          .toList();
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'personalization_accuracy',
+          passed: missing.isEmpty,
+          score: (personalizationNeedles.length - missing.length) /
+              personalizationNeedles.length,
+          message: missing.isEmpty
+              ? 'Answer contains expected personalized details.'
+              : 'Answer missing personalized details: ${missing.join(', ')}.',
+        ),
+      );
+    }
     return assertions;
   }
 
@@ -1410,6 +1669,24 @@ class TaskGrader {
               ? 0
               : max(0, 1 - totalTokens / maxTotalTokens),
           message: 'total_tokens=$totalTokens, max=$maxTotalTokens.',
+        ),
+      );
+    }
+
+    final inputCount = (observed['input_count'] as num?)?.toInt();
+    final maxTokensPerInput =
+        (expected['max_tokens_per_input'] as num?)?.toDouble();
+    if (inputCount != null && inputCount > 0 && maxTokensPerInput != null) {
+      final tokensPerInput = totalTokens / inputCount;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'cost_per_input',
+          passed: tokensPerInput <= maxTokensPerInput,
+          score: max(0, 1 - tokensPerInput / maxTokensPerInput),
+          message:
+              'tokens_per_input=${tokensPerInput.toStringAsFixed(3)}, max=$maxTokensPerInput.',
         ),
       );
     }
@@ -1470,6 +1747,76 @@ class TaskGrader {
               'settled=$settled, active_tasks=$activeTasks, failed_tasks=$failedTasks'
               '${activeDetails.isEmpty ? '' : ', active_details=$activeDetails'}'
               '${failedDetails.isEmpty ? '' : ', failed_details=$failedDetails'}.',
+        ),
+      );
+    }
+
+    final taskEvents = traceEvents.where((e) => e['event_type'] == 'task');
+    final taskCount = taskEvents.length;
+    final retryCount =
+        taskEvents.where((e) => e['status'] == 'retrying').length;
+    final failedCount = taskEvents.where((e) => e['status'] == 'failed').length;
+    final maxRetryRate = (expected['max_retry_rate'] as num?)?.toDouble();
+    if (maxRetryRate != null) {
+      final retryRate = taskCount == 0 ? 0.0 : retryCount / taskCount;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'retry_rate',
+          passed: retryRate <= maxRetryRate,
+          score: 1 - retryRate,
+          message:
+              'retry_rate=${retryRate.toStringAsFixed(3)}, max=$maxRetryRate.',
+        ),
+      );
+    }
+    final maxFailedTaskRate =
+        (expected['max_failed_task_rate'] as num?)?.toDouble();
+    if (maxFailedTaskRate != null) {
+      final failedRate = taskCount == 0 ? 0.0 : failedCount / taskCount;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'failed_task_rate',
+          passed: failedRate <= maxFailedTaskRate,
+          score: 1 - failedRate,
+          message:
+              'failed_task_rate=${failedRate.toStringAsFixed(3)}, max=$maxFailedTaskRate.',
+        ),
+      );
+    }
+
+    final maxQueueIdleMs = (expected['max_queue_idle_ms'] as num?)?.toInt();
+    if (maxQueueIdleMs != null) {
+      final queueIdleMs = (observed['queue_idle_ms'] as num?)?.toInt() ?? 0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'queue_idle_time',
+          passed: queueIdleMs <= maxQueueIdleMs,
+          message: 'queue_idle_ms=$queueIdleMs, max=$maxQueueIdleMs.',
+        ),
+      );
+    }
+
+    final expectedTraceEvents = _strings(expected['expected_trace_events']);
+    if (expectedTraceEvents.isNotEmpty) {
+      final traceTypes = _traceEventNames(observed);
+      final missing = expectedTraceEvents
+          .where((eventName) => !traceTypes.contains(eventName))
+          .toList();
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'trace_completeness',
+          passed: missing.isEmpty,
+          message: missing.isEmpty
+              ? 'Trace contains expected events.'
+              : 'Trace missing events: ${missing.join(', ')}.',
         ),
       );
     }
@@ -2609,23 +2956,32 @@ String _metricScenario(String metric) {
       metric == 'participant_recall' ||
       metric == 'location_accuracy' ||
       metric == 'title_constraint_accuracy' ||
+      metric == 'entity_recall' ||
+      metric == 'input_to_card_latency' ||
       metric == 'hallucinated_field_absence') {
     return 'Card 抽取';
   }
-  if (metric.startsWith('memory_')) {
+  if (metric.startsWith('memory_') || metric == 'sensitive_overwrite_absence') {
     return '记忆写入';
   }
   if (metric.startsWith('retrieval_') ||
       metric.startsWith('answer_') ||
+      metric == 'grounded_answer_rate' ||
+      metric == 'abstention_accuracy' ||
       metric == 'unsupported_claim_absence' ||
       metric == 'unnecessary_uncertainty_absence' ||
       metric == 'llm_grounded_answer_score') {
     return '检索问答';
   }
   if (metric == 'total_token_budget' ||
+      metric == 'cost_per_input' ||
       metric == 'latency_budget' ||
       metric == 'tool_call_budget' ||
       metric == 'task_completion_status' ||
+      metric == 'retry_rate' ||
+      metric == 'failed_task_rate' ||
+      metric == 'queue_idle_time' ||
+      metric == 'trace_completeness' ||
       metric == 'cost_answer_must_include') {
     return '成本 / Trace';
   }
@@ -2635,7 +2991,9 @@ String _metricScenario(String metric) {
   if (metric.startsWith('pkm_')) {
     return 'PKM 整理';
   }
-  if (metric.startsWith('super_agent_')) {
+  if (metric.startsWith('super_agent_') ||
+      metric == 'uncertainty_calibration' ||
+      metric == 'personalization_accuracy') {
     return 'Super Agent 问答';
   }
   if (metric.startsWith('tool_') ||
@@ -2655,10 +3013,13 @@ String _metricCategory(String metric) {
       return 'Card 状态';
     case 'time_parse_accuracy':
       return '时间解析';
+    case 'input_to_card_latency':
+      return '延迟';
     case 'participant_recall':
     case 'location_accuracy':
     case 'title_constraint_accuracy':
     case 'card_field_constraint_accuracy':
+    case 'entity_recall':
       return '字段抽取';
     case 'hallucinated_field_absence':
     case 'unsupported_claim_absence':
@@ -2671,35 +3032,49 @@ String _metricCategory(String metric) {
       return '写入精度';
     case 'memory_source_grounding':
       return '来源追溯';
+    case 'memory_temporal_validity':
+      return '时效性';
     case 'memory_duplicate_rate':
       return '去重';
     case 'memory_conflict_handling':
       return '冲突处理';
+    case 'sensitive_overwrite_absence':
+      return '隐私边界';
     case 'retrieval_hit_at_1':
     case 'retrieval_hit_at_3':
     case 'retrieval_hit_at_5':
     case 'retrieval_mrr':
     case 'retrieval_recall_at_5':
       return '召回排序';
+    case 'retrieval_filter_accuracy':
+      return '过滤准确性';
+    case 'abstention_accuracy':
+      return '不确定性控制';
     case 'answer_must_include':
     case 'cost_answer_must_include':
       return '答案完整性';
     case 'answer_source_citation':
     case 'llm_grounded_answer_score':
+    case 'grounded_answer_rate':
       return '证据支撑';
     case 'tool_selection_accuracy':
     case 'prohibited_tool_absence':
+    case 'tool_call_minimality':
       return '工具选择';
     case 'tool_args_accuracy':
       return '工具参数';
     case 'router_label_accuracy':
       return '路由分类';
+    case 'trace_completeness':
+      return 'Trace 完整性';
     case 'schedule_refresh_action_accuracy':
       return '刷新决策';
     case 'schedule_refresh_unnecessary_absence':
       return '刷新精度';
     case 'schedule_refresh_missed_absence':
       return '刷新召回';
+    case 'schedule_refresh_duplicate_rate':
+      return '去重';
     case 'pkm_path_accuracy':
       return '路径分类';
     case 'pkm_content_preservation':
@@ -2708,9 +3083,18 @@ String _metricCategory(String metric) {
       return '来源追溯';
     case 'pkm_prohibited_content_absence':
       return '幻觉控制';
+    case 'pkm_merge_split_quality':
+      return '组织质量';
+    case 'pkm_update_freshness':
+      return '时效性';
     case 'super_agent_read_only_compliance':
       return '操作边界';
+    case 'uncertainty_calibration':
+      return '不确定性控制';
+    case 'personalization_accuracy':
+      return '个性化';
     case 'total_token_budget':
+    case 'cost_per_input':
       return 'Token 成本';
     case 'latency_budget':
       return '延迟';
@@ -2718,6 +3102,11 @@ String _metricCategory(String metric) {
       return '工具成本';
     case 'task_completion_status':
       return '任务收敛';
+    case 'retry_rate':
+    case 'failed_task_rate':
+      return '稳定性';
+    case 'queue_idle_time':
+      return '队列等待';
     default:
       return '自定义';
   }
@@ -2733,6 +3122,8 @@ String _metricDescription(String metric) {
       return '后台任务结束后 card 是否离开 processing 状态。';
     case 'time_parse_accuracy':
       return '时间解析是否落在允许误差内。';
+    case 'input_to_card_latency':
+      return '从用户输入到 card 产物的延迟是否在预算内。';
     case 'participant_recall':
       return '期望人物是否都被抽取出来。';
     case 'location_accuracy':
@@ -2741,6 +3132,8 @@ String _metricDescription(String metric) {
       return '标题是否包含关键主题词。';
     case 'card_field_constraint_accuracy':
       return '指定 card 字段是否包含应保留的细节。';
+    case 'entity_recall':
+      return '标题、字段、人物和地点中是否覆盖期望实体。';
     case 'hallucinated_field_absence':
       return '是否没有编造禁止字段。';
     case 'memory_must_write_recall':
@@ -2755,6 +3148,10 @@ String _metricDescription(String metric) {
       return '重复或近似重复记忆的比例。';
     case 'memory_conflict_handling':
       return '新旧偏好冲突时是否保留最新事实、停用旧事实。';
+    case 'memory_temporal_validity':
+      return '记忆是否带有正确的有效起止时间。';
+    case 'sensitive_overwrite_absence':
+      return '敏感或临时状态是否没有被错误写成长记忆。';
     case 'retrieval_hit_at_1':
       return 'Top 1 结果中是否命中任一正确来源。';
     case 'retrieval_hit_at_3':
@@ -2765,14 +3162,20 @@ String _metricDescription(String metric) {
       return '第一个正确来源排名的倒数，越高越好。';
     case 'retrieval_recall_at_5':
       return 'Top 5 中覆盖了多少期望来源。';
+    case 'retrieval_filter_accuracy':
+      return '检索是否应用了期望的人物、时间、类型或项目过滤条件。';
     case 'answer_must_include':
       return '答案是否包含所有必须提到的信息。';
     case 'unsupported_claim_absence':
       return '答案是否没有出现禁止或无证据断言。';
     case 'unnecessary_uncertainty_absence':
       return '证据充分时是否没有不必要地说不确定。';
+    case 'abstention_accuracy':
+      return '证据不足时是否正确表达不确定，证据充分时是否不乱拒答。';
     case 'answer_source_citation':
       return '答案引用的来源是否覆盖期望来源。';
+    case 'grounded_answer_rate':
+      return '答案是否同时满足来源引用和无无证据断言。';
     case 'llm_grounded_answer_score':
       return 'LLM judge 给出的 groundedness/completeness 综合分。';
     case 'tool_selection_accuracy':
@@ -2781,14 +3184,20 @@ String _metricDescription(String metric) {
       return '工具参数是否包含期望字段和值。';
     case 'prohibited_tool_absence':
       return '是否没有调用被禁止的工具。';
+    case 'tool_call_minimality':
+      return '工具调用数量是否没有超过完成任务所需的上限。';
     case 'router_label_accuracy':
       return '路由分类是否等于期望标签。';
+    case 'trace_completeness':
+      return 'Trace 是否包含期望的关键事件或工具调用节点。';
     case 'schedule_refresh_action_accuracy':
       return '日程刷新决策是否等于期望的 skip / dirty / refresh。';
     case 'schedule_refresh_unnecessary_absence':
       return '无需刷新时是否没有触发重刷新。';
     case 'schedule_refresh_missed_absence':
       return '必须刷新时是否没有漏掉刷新。';
+    case 'schedule_refresh_duplicate_rate':
+      return '是否没有对同一日程变化触发重复刷新。';
     case 'pkm_path_accuracy':
       return 'PKM 条目路径是否包含期望目录或项目名。';
     case 'pkm_content_preservation':
@@ -2797,16 +3206,32 @@ String _metricDescription(String metric) {
       return 'PKM 条目是否保留期望来源 id。';
     case 'pkm_prohibited_content_absence':
       return 'PKM 条目是否没有写入明确禁止的临时信息。';
+    case 'pkm_merge_split_quality':
+      return 'PKM 条目数量是否符合合并/拆分预期。';
+    case 'pkm_update_freshness':
+      return 'PKM 条目是否反映最新输入或更新。';
     case 'super_agent_read_only_compliance':
       return '只读问答场景下 Super Agent 是否没有调用写入类工具。';
+    case 'uncertainty_calibration':
+      return 'Super Agent 是否在信息不足时澄清，在信息充分时给出结论。';
+    case 'personalization_accuracy':
+      return '回答是否利用用户偏好、习惯或上下文做个性化表达。';
     case 'total_token_budget':
       return '总 token 是否未超过预算。';
+    case 'cost_per_input':
+      return '平均每条用户输入消耗的 token 是否在预算内。';
     case 'latency_budget':
       return '最大延迟是否未超过预算。';
     case 'tool_call_budget':
       return '工具调用次数是否未超过预算。';
     case 'task_completion_status':
       return '全链路后台任务是否全部结束且没有 failed/processing/retrying/pending。';
+    case 'retry_rate':
+      return '任务 retry 比例是否低于预算。';
+    case 'failed_task_rate':
+      return '任务失败比例是否低于预算。';
+    case 'queue_idle_time':
+      return '任务队列等待或空转时间是否在预算内。';
     case 'cost_answer_must_include':
       return '成本受控时，回答是否仍覆盖必要结论。';
     default:
@@ -2989,6 +3414,44 @@ bool _jsonContains(JsonMap actual, JsonMap expectedSubset) {
     if (!_valueMatches(actual[entry.key], entry.value)) return false;
   }
   return true;
+}
+
+bool _hasUncertainty(String text) {
+  const uncertaintyMarkers = [
+    '不确定',
+    '不知道',
+    '无法确认',
+    '没有记录',
+    '没有找到',
+    '需要更多信息',
+    '需要你补充',
+    'uncertain',
+    'not sure',
+    'no record',
+    'need more information',
+  ];
+  return uncertaintyMarkers.any((marker) => _contains(text, marker));
+}
+
+Set<String> _traceEventNames(JsonMap observed) {
+  final names = <String>{};
+  for (final raw in _list(observed['trace_events'])) {
+    final event = _map(raw);
+    for (final key in ['event_type', 'tool_name', 'task_type']) {
+      final value = event[key]?.toString();
+      if (value != null && value.isNotEmpty) names.add(value);
+    }
+  }
+  for (final raw in _list(observed['tool_calls'])) {
+    final name = _map(raw)['name']?.toString();
+    if (name != null && name.isNotEmpty) names.add(name);
+  }
+  for (final raw in _list(observed['llm_calls'])) {
+    final agentName = _map(raw)['agent_name']?.toString();
+    if (agentName != null && agentName.isNotEmpty) names.add(agentName);
+    names.add('llm_call');
+  }
+  return names;
 }
 
 bool _valueMatches(Object? actual, Object? expected) {

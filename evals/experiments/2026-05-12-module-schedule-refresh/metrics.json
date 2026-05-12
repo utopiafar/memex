@@ -1,25 +1,25 @@
 {
   "run_id": "2026-05-12-module-schedule-refresh",
-  "started_at": "2026-05-12T08:54:07.756230Z",
-  "benchmark_elapsed_ms": 58,
+  "started_at": "2026-05-12T09:24:33.999161Z",
+  "benchmark_elapsed_ms": 23,
   "dataset_path": "evals/datasets/modules/schedule_refresh",
   "adapter": "fixture",
   "llm_judge_enabled": false,
-  "case_count": 2,
-  "task_count": 2,
+  "case_count": 6,
+  "task_count": 6,
   "dataset_summary": {
-    "case_count": 2,
-    "persona_count": 1,
-    "input_count": 0,
-    "task_count": 2,
+    "case_count": 6,
+    "persona_count": 4,
+    "input_count": 4,
+    "task_count": 6,
     "languages": [
       "zh-CN"
     ],
     "cases_by_family": {
-      "schedule_refresh": 2
+      "schedule_refresh": 6
     },
     "tasks_by_type": {
-      "schedule_refresh": 2
+      "schedule_refresh": 6
     },
     "personas": [
       {
@@ -31,56 +31,101 @@
         "input_count": 0,
         "task_count": 2,
         "sample_inputs": []
+      },
+      {
+        "user_id": "module_u_002",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "明天和 Alex 的需求评审取消了。"
+        ]
+      },
+      {
+        "user_id": "module_u_003",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "今天复盘里记一下：异常值主要来自埋点延迟。"
+        ]
+      },
+      {
+        "user_id": "module_u_004",
+        "occupation": "高校老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 2,
+        "input_count": 2,
+        "task_count": 2,
+        "sample_inputs": [
+          "周五公开课地点从二教改到三教，提醒里也同步一下。",
+          "本学期每周三晚上八点线上答疑，提前一天提醒。"
+        ]
       }
     ]
   },
   "assertions": {
-    "passed": 11,
-    "total": 11,
-    "pass_rate": 1.0
+    "passed": 38,
+    "total": 38,
+    "pass_rate": 1.0,
+    "avg_score": 1.0
   },
   "by_family": {
     "schedule_refresh": {
-      "passed": 11,
-      "total": 11,
-      "pass_rate": 1.0
+      "passed": 38,
+      "total": 38,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
     }
   },
   "by_metric": {
     "schedule_refresh_action_accuracy": {
-      "passed": 2,
-      "total": 2,
+      "passed": 6,
+      "total": 6,
       "pass_rate": 1.0
     },
     "schedule_refresh_unnecessary_absence": {
-      "passed": 2,
-      "total": 2,
+      "passed": 6,
+      "total": 6,
       "pass_rate": 1.0
     },
     "schedule_refresh_missed_absence": {
-      "passed": 2,
-      "total": 2,
+      "passed": 6,
+      "total": 6,
       "pass_rate": 1.0
     },
     "tool_selection_accuracy": {
-      "passed": 1,
-      "total": 1,
+      "passed": 4,
+      "total": 4,
       "pass_rate": 1.0
     },
     "tool_args_accuracy": {
-      "passed": 1,
-      "total": 1,
+      "passed": 4,
+      "total": 4,
       "pass_rate": 1.0
     },
     "router_label_accuracy": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0
+    },
+    "prohibited_tool_absence": {
       "passed": 2,
       "total": 2,
       "pass_rate": 1.0
     },
-    "prohibited_tool_absence": {
-      "passed": 1,
-      "total": 1,
-      "pass_rate": 1.0
+    "schedule_refresh_duplicate_rate": {
+      "passed": 4,
+      "total": 4,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
     }
   },
   "cost_trace": {

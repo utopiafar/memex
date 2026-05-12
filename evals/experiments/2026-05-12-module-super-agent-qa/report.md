@@ -9,18 +9,18 @@
 ## 结论
 
 - 整体通过，适合作为当前基线。
-- 本次覆盖 1 个 case、1 个 eval task，断言通过率 100.0%。
+- 本次覆盖 4 个 case、4 个 eval task，断言通过率 100.0%。
 - 失败断言数：0；Token 总量：0；LLM 调用次数：0；工具调用次数：0。
 
 ## 数据集与成本规模
 
 | 项目 | 数值 |
 | --- | ---: |
-| Persona | 1 |
-| Case | 1 |
+| Persona | 4 |
+| Case | 4 |
 | 用户输入 | 0 |
-| Eval task | 1 |
-| 断言 | 13 |
+| Eval task | 4 |
+| 断言 | 43 |
 | LLM 调用 | 0 |
 | Tool 调用 | 0 |
 | 实际 token | 0 |
@@ -41,6 +41,8 @@
 
 | 场景 | 类别 | 指标 | 含义 |
 | --- | --- | --- | --- |
+| Super Agent 问答 | 不确定性控制 | `uncertainty_calibration` | Super Agent 是否在信息不足时澄清，在信息充分时给出结论。 |
+| Super Agent 问答 | 个性化 | `personalization_accuracy` | 回答是否利用用户偏好、习惯或上下文做个性化表达。 |
 | Super Agent 问答 | 操作边界 | `super_agent_read_only_compliance` | 只读问答场景下 Super Agent 是否没有调用写入类工具。 |
 | 检索问答 | 召回排序 | `retrieval_hit_at_1` | Top 1 结果中是否命中任一正确来源。 |
 | 检索问答 | 召回排序 | `retrieval_hit_at_3` | Top 3 结果中是否命中任一正确来源。 |
@@ -53,6 +55,7 @@
 | 检索问答 | 证据支撑 | `answer_source_citation` | 答案引用的来源是否覆盖期望来源。 |
 | 路由 / 工具调用 | 工具参数 | `tool_args_accuracy` | 工具参数是否包含期望字段和值。 |
 | 路由 / 工具调用 | 工具选择 | `prohibited_tool_absence` | 是否没有调用被禁止的工具。 |
+| 路由 / 工具调用 | 工具选择 | `tool_call_minimality` | 工具调用数量是否没有超过完成任务所需的上限。 |
 | 路由 / 工具调用 | 工具选择 | `tool_selection_accuracy` | 是否调用了期望工具。 |
 
 ## 结果数据
@@ -61,25 +64,28 @@
 
 | 场景 | 通过 | 总数 | 通过率 | 平均分 |
 | --- | ---: | ---: | ---: | ---: |
-| Super Agent 问答 | 13 | 13 | 100.0% | 1.000 |
+| Super Agent 问答 | 43 | 43 | 100.0% | 1.000 |
 
 ### 关键指标结果
 
 | 场景 | 类别 | 指标 | 通过 | 总数 | 通过率 | 平均分 |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
-| Super Agent 问答 | 操作边界 | `super_agent_read_only_compliance` | 1 | 1 | 100.0% | - |
-| 检索问答 | 召回排序 | `retrieval_hit_at_1` | 1 | 1 | 100.0% | 1.000 |
-| 检索问答 | 召回排序 | `retrieval_hit_at_3` | 1 | 1 | 100.0% | 1.000 |
-| 检索问答 | 召回排序 | `retrieval_hit_at_5` | 1 | 1 | 100.0% | 1.000 |
-| 检索问答 | 召回排序 | `retrieval_mrr` | 1 | 1 | 100.0% | 1.000 |
-| 检索问答 | 召回排序 | `retrieval_recall_at_5` | 1 | 1 | 100.0% | 1.000 |
-| 检索问答 | 幻觉控制 | `unnecessary_uncertainty_absence` | 1 | 1 | 100.0% | - |
-| 检索问答 | 幻觉控制 | `unsupported_claim_absence` | 1 | 1 | 100.0% | - |
-| 检索问答 | 答案完整性 | `answer_must_include` | 1 | 1 | 100.0% | 1.000 |
-| 检索问答 | 证据支撑 | `answer_source_citation` | 1 | 1 | 100.0% | 1.000 |
-| 路由 / 工具调用 | 工具参数 | `tool_args_accuracy` | 1 | 1 | 100.0% | - |
-| 路由 / 工具调用 | 工具选择 | `prohibited_tool_absence` | 1 | 1 | 100.0% | - |
-| 路由 / 工具调用 | 工具选择 | `tool_selection_accuracy` | 1 | 1 | 100.0% | - |
+| Super Agent 问答 | 不确定性控制 | `uncertainty_calibration` | 1 | 1 | 100.0% | - |
+| Super Agent 问答 | 个性化 | `personalization_accuracy` | 2 | 2 | 100.0% | 1.000 |
+| Super Agent 问答 | 操作边界 | `super_agent_read_only_compliance` | 4 | 4 | 100.0% | - |
+| 检索问答 | 召回排序 | `retrieval_hit_at_1` | 3 | 3 | 100.0% | 1.000 |
+| 检索问答 | 召回排序 | `retrieval_hit_at_3` | 3 | 3 | 100.0% | 1.000 |
+| 检索问答 | 召回排序 | `retrieval_hit_at_5` | 3 | 3 | 100.0% | 1.000 |
+| 检索问答 | 召回排序 | `retrieval_mrr` | 3 | 3 | 100.0% | 1.000 |
+| 检索问答 | 召回排序 | `retrieval_recall_at_5` | 3 | 3 | 100.0% | 1.000 |
+| 检索问答 | 幻觉控制 | `unnecessary_uncertainty_absence` | 3 | 3 | 100.0% | - |
+| 检索问答 | 幻觉控制 | `unsupported_claim_absence` | 3 | 3 | 100.0% | - |
+| 检索问答 | 答案完整性 | `answer_must_include` | 4 | 4 | 100.0% | 1.000 |
+| 检索问答 | 证据支撑 | `answer_source_citation` | 3 | 3 | 100.0% | 1.000 |
+| 路由 / 工具调用 | 工具参数 | `tool_args_accuracy` | 2 | 2 | 100.0% | - |
+| 路由 / 工具调用 | 工具选择 | `prohibited_tool_absence` | 3 | 3 | 100.0% | - |
+| 路由 / 工具调用 | 工具选择 | `tool_call_minimality` | 1 | 1 | 100.0% | - |
+| 路由 / 工具调用 | 工具选择 | `tool_selection_accuracy` | 2 | 2 | 100.0% | - |
 
 ### 成本与 Trace
 
@@ -102,10 +108,10 @@
 - 运行 ID：`2026-05-12-module-super-agent-qa`
 - 数据集：`evals/datasets/modules/super_agent_qa`
 - 观察适配器：`fixture`
-- 场景样本数：1
-- 评估任务数：1
+- 场景样本数：4
+- 评估任务数：4
 - Benchmark 评分耗时：0秒
-- 断言通过：13/13 （100.0%）
+- 断言通过：43/43 （100.0%）
 
 ### 场景任务明细
 
@@ -114,16 +120,22 @@
 | Case | Task | 结果 | 失败断言数 |
 | --- | --- | --- | ---: |
 | `module_super_agent_qa_001` | `task_super_agent_qa_001` | 通过 | 0 |
+| `module_super_agent_personalized_002` | `task_super_agent_personalized_002` | 通过 | 0 |
+| `module_super_agent_clarify_003` | `task_super_agent_clarify_003` | 通过 | 0 |
+| `module_super_agent_conflict_004` | `task_super_agent_conflict_004` | 通过 | 0 |
 
 ## 附录：数据集与 Persona 示例
 
 - 数据语言：zh-CN
-- Persona 数：1
+- Persona 数：4
 - 输入条数：0
-- Eval task 数：1
-- Case family 分布：super_agent_qa=1
-- Task type 分布：super_agent_qa=1
+- Eval task 数：4
+- Case family 分布：super_agent_qa=4
+- Task type 分布：super_agent_qa=4
 
 | Persona | 职业 | 城市 | 语言 | Case | 输入 | Task | 示例输入 |
 | --- | --- | --- | --- | ---: | ---: | ---: | --- |
+| `module_u_001` | 跨境电商运营 | 深圳 | zh-CN | 1 | 0 | 1 |  |
 | `module_u_002` | 产品经理 | 杭州 | zh-CN | 1 | 0 | 1 |  |
+| `module_u_003` | 数据分析师 | 上海 | zh-CN | 1 | 0 | 1 |  |
+| `module_u_004` | 高校老师 | 北京 | zh-CN | 1 | 0 | 1 |  |

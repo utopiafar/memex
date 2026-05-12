@@ -9,18 +9,18 @@
 ## 结论
 
 - 整体通过，适合作为当前基线。
-- 本次覆盖 2 个 case、2 个 eval task，断言通过率 100.0%。
+- 本次覆盖 6 个 case、6 个 eval task，断言通过率 100.0%。
 - 失败断言数：0；Token 总量：0；LLM 调用次数：0；工具调用次数：0。
 
 ## 数据集与成本规模
 
 | 项目 | 数值 |
 | --- | ---: |
-| Persona | 1 |
-| Case | 2 |
-| 用户输入 | 0 |
-| Eval task | 2 |
-| 断言 | 11 |
+| Persona | 4 |
+| Case | 6 |
+| 用户输入 | 4 |
+| Eval task | 6 |
+| 断言 | 38 |
 | LLM 调用 | 0 |
 | Tool 调用 | 0 |
 | 实际 token | 0 |
@@ -44,6 +44,7 @@
 | 日程刷新 | 刷新决策 | `schedule_refresh_action_accuracy` | 日程刷新决策是否等于期望的 skip / dirty / refresh。 |
 | 日程刷新 | 刷新召回 | `schedule_refresh_missed_absence` | 必须刷新时是否没有漏掉刷新。 |
 | 日程刷新 | 刷新精度 | `schedule_refresh_unnecessary_absence` | 无需刷新时是否没有触发重刷新。 |
+| 日程刷新 | 去重 | `schedule_refresh_duplicate_rate` | 是否没有对同一日程变化触发重复刷新。 |
 | 路由 / 工具调用 | 工具参数 | `tool_args_accuracy` | 工具参数是否包含期望字段和值。 |
 | 路由 / 工具调用 | 工具选择 | `prohibited_tool_absence` | 是否没有调用被禁止的工具。 |
 | 路由 / 工具调用 | 工具选择 | `tool_selection_accuracy` | 是否调用了期望工具。 |
@@ -55,19 +56,20 @@
 
 | 场景 | 通过 | 总数 | 通过率 | 平均分 |
 | --- | ---: | ---: | ---: | ---: |
-| 日程刷新 | 11 | 11 | 100.0% | - |
+| 日程刷新 | 38 | 38 | 100.0% | 1.000 |
 
 ### 关键指标结果
 
 | 场景 | 类别 | 指标 | 通过 | 总数 | 通过率 | 平均分 |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
-| 日程刷新 | 刷新决策 | `schedule_refresh_action_accuracy` | 2 | 2 | 100.0% | - |
-| 日程刷新 | 刷新召回 | `schedule_refresh_missed_absence` | 2 | 2 | 100.0% | - |
-| 日程刷新 | 刷新精度 | `schedule_refresh_unnecessary_absence` | 2 | 2 | 100.0% | - |
-| 路由 / 工具调用 | 工具参数 | `tool_args_accuracy` | 1 | 1 | 100.0% | - |
-| 路由 / 工具调用 | 工具选择 | `prohibited_tool_absence` | 1 | 1 | 100.0% | - |
-| 路由 / 工具调用 | 工具选择 | `tool_selection_accuracy` | 1 | 1 | 100.0% | - |
-| 路由 / 工具调用 | 路由分类 | `router_label_accuracy` | 2 | 2 | 100.0% | - |
+| 日程刷新 | 刷新决策 | `schedule_refresh_action_accuracy` | 6 | 6 | 100.0% | - |
+| 日程刷新 | 刷新召回 | `schedule_refresh_missed_absence` | 6 | 6 | 100.0% | - |
+| 日程刷新 | 刷新精度 | `schedule_refresh_unnecessary_absence` | 6 | 6 | 100.0% | - |
+| 日程刷新 | 去重 | `schedule_refresh_duplicate_rate` | 4 | 4 | 100.0% | 1.000 |
+| 路由 / 工具调用 | 工具参数 | `tool_args_accuracy` | 4 | 4 | 100.0% | - |
+| 路由 / 工具调用 | 工具选择 | `prohibited_tool_absence` | 2 | 2 | 100.0% | - |
+| 路由 / 工具调用 | 工具选择 | `tool_selection_accuracy` | 4 | 4 | 100.0% | - |
+| 路由 / 工具调用 | 路由分类 | `router_label_accuracy` | 6 | 6 | 100.0% | - |
 
 ### 成本与 Trace
 
@@ -90,10 +92,10 @@
 - 运行 ID：`2026-05-12-module-schedule-refresh`
 - 数据集：`evals/datasets/modules/schedule_refresh`
 - 观察适配器：`fixture`
-- 场景样本数：2
-- 评估任务数：2
+- 场景样本数：6
+- 评估任务数：6
 - Benchmark 评分耗时：0秒
-- 断言通过：11/11 （100.0%）
+- 断言通过：38/38 （100.0%）
 
 ### 场景任务明细
 
@@ -103,16 +105,23 @@
 | --- | --- | --- | ---: |
 | `module_schedule_refresh_001` | `task_schedule_refresh_001` | 通过 | 0 |
 | `module_schedule_skip_001` | `task_schedule_skip_001` | 通过 | 0 |
+| `module_schedule_dirty_003` | `task_schedule_dirty_003` | 通过 | 0 |
+| `module_schedule_cancel_004` | `task_schedule_cancel_004` | 通过 | 0 |
+| `module_schedule_skip_note_005` | `task_schedule_skip_note_005` | 通过 | 0 |
+| `module_schedule_recurring_006` | `task_schedule_recurring_006` | 通过 | 0 |
 
 ## 附录：数据集与 Persona 示例
 
 - 数据语言：zh-CN
-- Persona 数：1
-- 输入条数：0
-- Eval task 数：2
-- Case family 分布：schedule_refresh=2
-- Task type 分布：schedule_refresh=2
+- Persona 数：4
+- 输入条数：4
+- Eval task 数：6
+- Case family 分布：schedule_refresh=6
+- Task type 分布：schedule_refresh=6
 
 | Persona | 职业 | 城市 | 语言 | Case | 输入 | Task | 示例输入 |
 | --- | --- | --- | --- | ---: | ---: | ---: | --- |
 | `module_u_001` | 跨境电商运营 | 深圳 | zh-CN | 2 | 0 | 2 |  |
+| `module_u_002` | 产品经理 | 杭州 | zh-CN | 1 | 1 | 1 | 明天和 Alex 的需求评审取消了。 |
+| `module_u_003` | 数据分析师 | 上海 | zh-CN | 1 | 1 | 1 | 今天复盘里记一下：异常值主要来自埋点延迟。 |
+| `module_u_004` | 高校老师 | 北京 | zh-CN | 2 | 2 | 2 | 周五公开课地点从二教改到三教，提醒里也同步一下。<br>本学期每周三晚上八点线上答疑，提前一天提醒。 |

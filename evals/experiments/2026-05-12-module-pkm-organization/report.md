@@ -9,18 +9,18 @@
 ## 结论
 
 - 整体通过，适合作为当前基线。
-- 本次覆盖 1 个 case、1 个 eval task，断言通过率 100.0%。
+- 本次覆盖 4 个 case、4 个 eval task，断言通过率 100.0%。
 - 失败断言数：0；Token 总量：0；LLM 调用次数：0；工具调用次数：0。
 
 ## 数据集与成本规模
 
 | 项目 | 数值 |
 | --- | ---: |
-| Persona | 1 |
-| Case | 1 |
-| 用户输入 | 1 |
-| Eval task | 1 |
-| 断言 | 4 |
+| Persona | 4 |
+| Case | 4 |
+| 用户输入 | 5 |
+| Eval task | 4 |
+| 断言 | 19 |
 | LLM 调用 | 0 |
 | Tool 调用 | 0 |
 | 实际 token | 0 |
@@ -43,7 +43,9 @@
 | --- | --- | --- | --- |
 | PKM 整理 | 内容保真 | `pkm_content_preservation` | PKM 条目是否保留关键事实、结论和下一步。 |
 | PKM 整理 | 幻觉控制 | `pkm_prohibited_content_absence` | PKM 条目是否没有写入明确禁止的临时信息。 |
+| PKM 整理 | 时效性 | `pkm_update_freshness` | PKM 条目是否反映最新输入或更新。 |
 | PKM 整理 | 来源追溯 | `pkm_source_grounding` | PKM 条目是否保留期望来源 id。 |
+| PKM 整理 | 组织质量 | `pkm_merge_split_quality` | PKM 条目数量是否符合合并/拆分预期。 |
 | PKM 整理 | 路径分类 | `pkm_path_accuracy` | PKM 条目路径是否包含期望目录或项目名。 |
 
 ## 结果数据
@@ -52,16 +54,18 @@
 
 | 场景 | 通过 | 总数 | 通过率 | 平均分 |
 | --- | ---: | ---: | ---: | ---: |
-| PKM 整理 | 4 | 4 | 100.0% | 1.000 |
+| PKM 整理 | 19 | 19 | 100.0% | 1.000 |
 
 ### 关键指标结果
 
 | 场景 | 类别 | 指标 | 通过 | 总数 | 通过率 | 平均分 |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
-| PKM 整理 | 内容保真 | `pkm_content_preservation` | 1 | 1 | 100.0% | 1.000 |
-| PKM 整理 | 幻觉控制 | `pkm_prohibited_content_absence` | 1 | 1 | 100.0% | - |
-| PKM 整理 | 来源追溯 | `pkm_source_grounding` | 1 | 1 | 100.0% | - |
-| PKM 整理 | 路径分类 | `pkm_path_accuracy` | 1 | 1 | 100.0% | - |
+| PKM 整理 | 内容保真 | `pkm_content_preservation` | 4 | 4 | 100.0% | 1.000 |
+| PKM 整理 | 幻觉控制 | `pkm_prohibited_content_absence` | 3 | 3 | 100.0% | - |
+| PKM 整理 | 时效性 | `pkm_update_freshness` | 1 | 1 | 100.0% | - |
+| PKM 整理 | 来源追溯 | `pkm_source_grounding` | 4 | 4 | 100.0% | - |
+| PKM 整理 | 组织质量 | `pkm_merge_split_quality` | 3 | 3 | 100.0% | - |
+| PKM 整理 | 路径分类 | `pkm_path_accuracy` | 4 | 4 | 100.0% | - |
 
 ### 成本与 Trace
 
@@ -84,10 +88,10 @@
 - 运行 ID：`2026-05-12-module-pkm-organization`
 - 数据集：`evals/datasets/modules/pkm_organization`
 - 观察适配器：`fixture`
-- 场景样本数：1
-- 评估任务数：1
+- 场景样本数：4
+- 评估任务数：4
 - Benchmark 评分耗时：0秒
-- 断言通过：4/4 （100.0%）
+- 断言通过：19/19 （100.0%）
 
 ### 场景任务明细
 
@@ -96,16 +100,22 @@
 | Case | Task | 结果 | 失败断言数 |
 | --- | --- | --- | ---: |
 | `module_pkm_organization_001` | `task_pkm_organization_001` | 通过 | 0 |
+| `module_pkm_meeting_002` | `task_pkm_meeting_002` | 通过 | 0 |
+| `module_pkm_learning_003` | `task_pkm_learning_003` | 通过 | 0 |
+| `module_pkm_travel_004` | `task_pkm_travel_004` | 通过 | 0 |
 
 ## 附录：数据集与 Persona 示例
 
 - 数据语言：zh-CN
-- Persona 数：1
-- 输入条数：1
-- Eval task 数：1
-- Case family 分布：pkm_organization=1
-- Task type 分布：pkm_organization=1
+- Persona 数：4
+- 输入条数：5
+- Eval task 数：4
+- Case family 分布：pkm_organization=4
+- Task type 分布：pkm_organization=4
 
 | Persona | 职业 | 城市 | 语言 | Case | 输入 | Task | 示例输入 |
 | --- | --- | --- | --- | ---: | ---: | ---: | --- |
+| `module_u_001` | 跨境电商运营 | 深圳 | zh-CN | 1 | 1 | 1 | 周末去广州看爸妈，备忘里写：带降压药和保温杯。 |
+| `module_u_002` | 产品经理 | 杭州 | zh-CN | 1 | 1 | 1 | 需求评审结论记到项目里：先做导出，owner Alex，下周五验收。 |
 | `module_u_003` | 数据分析师 | 上海 | zh-CN | 1 | 1 | 1 | Memex eval 周报重点写风险、owner 和回滚预案。 |
+| `module_u_004` | 高校老师 | 北京 | zh-CN | 1 | 2 | 1 | 论文阅读笔记：retrieval eval 重点是 MRR 和 recall。<br>同一篇笔记里再补一句，后续要加 hit@k 对比。 |

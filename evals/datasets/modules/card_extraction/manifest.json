@@ -7,10 +7,10 @@
   "language": "zh-CN",
   "locale": "zh-CN",
   "case_file": "cases.jsonl",
-  "case_count": 1,
-  "persona_count": 1,
-  "input_count": 1,
-  "task_count": 1,
+  "case_count": 4,
+  "persona_count": 3,
+  "input_count": 5,
+  "task_count": 4,
   "families": [
     "card_extraction"
   ],

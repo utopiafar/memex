@@ -1,25 +1,25 @@
 {
   "run_id": "2026-05-12-module-cost-trace",
-  "started_at": "2026-05-12T08:54:07.779391Z",
-  "benchmark_elapsed_ms": 53,
+  "started_at": "2026-05-12T09:24:34.640730Z",
+  "benchmark_elapsed_ms": 23,
   "dataset_path": "evals/datasets/modules/cost_trace",
   "adapter": "fixture",
   "llm_judge_enabled": false,
-  "case_count": 1,
-  "task_count": 1,
+  "case_count": 3,
+  "task_count": 3,
   "dataset_summary": {
-    "case_count": 1,
-    "persona_count": 1,
-    "input_count": 0,
-    "task_count": 1,
+    "case_count": 3,
+    "persona_count": 3,
+    "input_count": 3,
+    "task_count": 3,
     "languages": [
       "zh-CN"
     ],
     "cases_by_family": {
-      "cost_trace": 1
+      "cost_trace": 3
     },
     "tasks_by_type": {
-      "cost_trace": 1
+      "cost_trace": 3
     },
     "personas": [
       {
@@ -31,58 +31,111 @@
         "input_count": 0,
         "task_count": 1,
         "sample_inputs": []
+      },
+      {
+        "user_id": "module_u_002",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "把发布风险和 owner 记一下。"
+        ]
+      },
+      {
+        "user_id": "module_u_003",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 2,
+        "task_count": 1,
+        "sample_inputs": [
+          "记录一下今天指标复盘。",
+          "补充一个异常值说明。"
+        ]
       }
     ]
   },
   "assertions": {
-    "passed": 5,
-    "total": 5,
+    "passed": 24,
+    "total": 24,
     "pass_rate": 1.0,
-    "avg_score": 0.8958333333333333
+    "avg_score": 0.8937499999999999
   },
   "by_family": {
     "cost_trace": {
-      "passed": 5,
-      "total": 5,
+      "passed": 24,
+      "total": 24,
       "pass_rate": 1.0,
-      "avg_score": 0.8958333333333333
+      "avg_score": 0.8937499999999999
     }
   },
   "by_metric": {
     "total_token_budget": {
-      "passed": 1,
-      "total": 1,
+      "passed": 3,
+      "total": 3,
       "pass_rate": 1.0,
-      "avg_score": 0.7916666666666666
+      "avg_score": 0.7527777777777777
     },
     "latency_budget": {
-      "passed": 1,
-      "total": 1,
+      "passed": 3,
+      "total": 3,
       "pass_rate": 1.0
     },
     "tool_call_budget": {
-      "passed": 1,
-      "total": 1,
+      "passed": 3,
+      "total": 3,
       "pass_rate": 1.0
     },
     "task_completion_status": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "cost_answer_must_include": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "cost_per_input": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 0.7333333333333333
+    },
+    "retry_rate": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "failed_task_rate": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "queue_idle_time": {
       "passed": 1,
       "total": 1,
       "pass_rate": 1.0
     },
-    "cost_answer_must_include": {
-      "passed": 1,
-      "total": 1,
-      "pass_rate": 1.0,
-      "avg_score": 1.0
+    "trace_completeness": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
     }
   },
   "cost_trace": {
-    "llm_call_count": 1,
-    "tool_call_count": 1,
-    "avg_latency_ms": 5366.666666666667,
-    "p95_latency_ms": 8000.0,
-    "avg_total_tokens": 2500.0,
-    "total_tokens": 2500
+    "llm_call_count": 3,
+    "tool_call_count": 3,
+    "avg_latency_ms": 5367.777777777777,
+    "p95_latency_ms": 9000.0,
+    "avg_total_tokens": 3233.3333333333335,
+    "total_tokens": 9700
   }
 }

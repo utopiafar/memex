@@ -1,28 +1,40 @@
 {
   "run_id": "2026-05-12-module-memory",
-  "started_at": "2026-05-12T08:54:07.693114Z",
-  "benchmark_elapsed_ms": 67,
+  "started_at": "2026-05-12T09:24:33.360331Z",
+  "benchmark_elapsed_ms": 22,
   "dataset_path": "evals/datasets/modules/memory",
   "adapter": "fixture",
   "llm_judge_enabled": false,
-  "case_count": 2,
-  "task_count": 2,
+  "case_count": 6,
+  "task_count": 6,
   "dataset_summary": {
-    "case_count": 2,
-    "persona_count": 1,
-    "input_count": 4,
-    "task_count": 2,
+    "case_count": 6,
+    "persona_count": 4,
+    "input_count": 11,
+    "task_count": 6,
     "languages": [
       "zh-CN"
     ],
     "cases_by_family": {
-      "memory_conflict": 1,
-      "memory_write": 1
+      "memory_conflict": 2,
+      "memory_write": 4
     },
     "tasks_by_type": {
-      "memory_write": 2
+      "memory_write": 6
     },
     "personas": [
+      {
+        "user_id": "module_u_001",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "今天被客户催得有点烦，先让我安静会儿，这不是长期偏好。"
+        ]
+      },
       {
         "user_id": "module_u_002",
         "occupation": "产品经理",
@@ -35,55 +47,91 @@
           "以后重要会议尽量提前一天提醒我，别临近了才说。",
           "我今天上午想安静一会儿，这只是今天。"
         ]
+      },
+      {
+        "user_id": "module_u_003",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 2,
+        "task_count": 1,
+        "sample_inputs": [
+          "以后上午尽量留给深度分析，下午再排会。",
+          "对，上午别打断我这个习惯挺重要的。"
+        ]
+      },
+      {
+        "user_id": "module_u_004",
+        "occupation": "高校老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 2,
+        "input_count": 4,
+        "task_count": 2,
+        "sample_inputs": [
+          "以后订下午茶记得避开花生，我对花生过敏。",
+          "这周嗓子不舒服，课间少说话就行，不用记长期。"
+        ]
       }
     ]
   },
   "assertions": {
-    "passed": 10,
-    "total": 10,
+    "passed": 31,
+    "total": 31,
     "pass_rate": 1.0,
     "avg_score": 1.0
   },
   "by_family": {
     "memory_write": {
-      "passed": 10,
-      "total": 10,
+      "passed": 31,
+      "total": 31,
       "pass_rate": 1.0,
       "avg_score": 1.0
     }
   },
   "by_metric": {
     "memory_must_write_recall": {
-      "passed": 2,
-      "total": 2,
+      "passed": 5,
+      "total": 5,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "memory_source_grounding": {
-      "passed": 2,
-      "total": 2,
+      "passed": 5,
+      "total": 5,
       "pass_rate": 1.0
     },
     "memory_must_not_write_precision": {
-      "passed": 1,
-      "total": 1,
+      "passed": 3,
+      "total": 3,
       "pass_rate": 1.0
     },
     "memory_write_precision": {
-      "passed": 2,
-      "total": 2,
+      "passed": 6,
+      "total": 6,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "memory_duplicate_rate": {
-      "passed": 2,
-      "total": 2,
+      "passed": 6,
+      "total": 6,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
     "memory_conflict_handling": {
-      "passed": 1,
-      "total": 1,
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "memory_temporal_validity": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "sensitive_overwrite_absence": {
+      "passed": 2,
+      "total": 2,
       "pass_rate": 1.0
     }
   },

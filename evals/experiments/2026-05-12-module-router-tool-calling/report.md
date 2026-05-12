@@ -9,20 +9,20 @@
 ## 结论
 
 - 整体通过，适合作为当前基线。
-- 本次覆盖 1 个 case、1 个 eval task，断言通过率 100.0%。
-- 失败断言数：0；Token 总量：0；LLM 调用次数：0；工具调用次数：0。
+- 本次覆盖 4 个 case、4 个 eval task，断言通过率 100.0%。
+- 失败断言数：0；Token 总量：0；LLM 调用次数：1；工具调用次数：2。
 
 ## 数据集与成本规模
 
 | 项目 | 数值 |
 | --- | ---: |
-| Persona | 1 |
-| Case | 1 |
-| 用户输入 | 0 |
-| Eval task | 1 |
-| 断言 | 4 |
-| LLM 调用 | 0 |
-| Tool 调用 | 0 |
+| Persona | 3 |
+| Case | 4 |
+| 用户输入 | 2 |
+| Eval task | 4 |
+| 断言 | 20 |
+| LLM 调用 | 1 |
+| Tool 调用 | 2 |
 | 实际 token | 0 |
 | Benchmark 评分耗时 | 0秒 |
 
@@ -41,8 +41,10 @@
 
 | 场景 | 类别 | 指标 | 含义 |
 | --- | --- | --- | --- |
+| 成本 / Trace | Trace 完整性 | `trace_completeness` | Trace 是否包含期望的关键事件或工具调用节点。 |
 | 路由 / 工具调用 | 工具参数 | `tool_args_accuracy` | 工具参数是否包含期望字段和值。 |
 | 路由 / 工具调用 | 工具选择 | `prohibited_tool_absence` | 是否没有调用被禁止的工具。 |
+| 路由 / 工具调用 | 工具选择 | `tool_call_minimality` | 工具调用数量是否没有超过完成任务所需的上限。 |
 | 路由 / 工具调用 | 工具选择 | `tool_selection_accuracy` | 是否调用了期望工具。 |
 | 路由 / 工具调用 | 路由分类 | `router_label_accuracy` | 路由分类是否等于期望标签。 |
 
@@ -52,21 +54,23 @@
 
 | 场景 | 通过 | 总数 | 通过率 | 平均分 |
 | --- | ---: | ---: | ---: | ---: |
-| 路由 / 工具调用 | 4 | 4 | 100.0% | - |
+| 路由 / 工具调用 | 20 | 20 | 100.0% | - |
 
 ### 关键指标结果
 
 | 场景 | 类别 | 指标 | 通过 | 总数 | 通过率 | 平均分 |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
-| 路由 / 工具调用 | 工具参数 | `tool_args_accuracy` | 1 | 1 | 100.0% | - |
-| 路由 / 工具调用 | 工具选择 | `prohibited_tool_absence` | 1 | 1 | 100.0% | - |
-| 路由 / 工具调用 | 工具选择 | `tool_selection_accuracy` | 1 | 1 | 100.0% | - |
-| 路由 / 工具调用 | 路由分类 | `router_label_accuracy` | 1 | 1 | 100.0% | - |
+| 成本 / Trace | Trace 完整性 | `trace_completeness` | 2 | 2 | 100.0% | - |
+| 路由 / 工具调用 | 工具参数 | `tool_args_accuracy` | 4 | 4 | 100.0% | - |
+| 路由 / 工具调用 | 工具选择 | `prohibited_tool_absence` | 3 | 3 | 100.0% | - |
+| 路由 / 工具调用 | 工具选择 | `tool_call_minimality` | 3 | 3 | 100.0% | - |
+| 路由 / 工具调用 | 工具选择 | `tool_selection_accuracy` | 4 | 4 | 100.0% | - |
+| 路由 / 工具调用 | 路由分类 | `router_label_accuracy` | 4 | 4 | 100.0% | - |
 
 ### 成本与 Trace
 
-- LLM 调用次数：0
-- 工具调用次数：0
+- LLM 调用次数：1
+- 工具调用次数：2
 - Token 总量：0
 - 单次 LLM 平均 token：0.000
 - 平均延迟：0.000 ms
@@ -84,10 +88,10 @@
 - 运行 ID：`2026-05-12-module-router-tool-calling`
 - 数据集：`evals/datasets/modules/router_tool_calling`
 - 观察适配器：`fixture`
-- 场景样本数：1
-- 评估任务数：1
+- 场景样本数：4
+- 评估任务数：4
 - Benchmark 评分耗时：0秒
-- 断言通过：4/4 （100.0%）
+- 断言通过：20/20 （100.0%）
 
 ### 场景任务明细
 
@@ -96,16 +100,21 @@
 | Case | Task | 结果 | 失败断言数 |
 | --- | --- | --- | ---: |
 | `module_router_tool_001` | `task_router_tool_001` | 通过 | 0 |
+| `module_router_write_memory_002` | `task_router_write_memory_002` | 通过 | 0 |
+| `module_router_read_card_003` | `task_router_read_card_003` | 通过 | 0 |
+| `module_router_pkm_write_004` | `task_router_pkm_write_004` | 通过 | 0 |
 
 ## 附录：数据集与 Persona 示例
 
 - 数据语言：zh-CN
-- Persona 数：1
-- 输入条数：0
-- Eval task 数：1
-- Case family 分布：tool_calling=1
-- Task type 分布：tool_calling=1
+- Persona 数：3
+- 输入条数：2
+- Eval task 数：4
+- Case family 分布：tool_calling=4
+- Task type 分布：tool_calling=4
 
 | Persona | 职业 | 城市 | 语言 | Case | 输入 | Task | 示例输入 |
 | --- | --- | --- | --- | ---: | ---: | ---: | --- |
-| `module_u_003` | 数据分析师 | 上海 | zh-CN | 1 | 0 | 1 |  |
+| `module_u_002` | 产品经理 | 杭州 | zh-CN | 1 | 0 | 1 |  |
+| `module_u_003` | 数据分析师 | 上海 | zh-CN | 2 | 1 | 2 | 把这次指标复盘整理到 Memex eval 项目笔记。 |
+| `module_u_004` | 高校老师 | 北京 | zh-CN | 1 | 1 | 1 | 以后排公开课提醒我提前两天准备讲义。 |

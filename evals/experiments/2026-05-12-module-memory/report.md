@@ -9,18 +9,18 @@
 ## 结论
 
 - 整体通过，适合作为当前基线。
-- 本次覆盖 2 个 case、2 个 eval task，断言通过率 100.0%。
+- 本次覆盖 6 个 case、6 个 eval task，断言通过率 100.0%。
 - 失败断言数：0；Token 总量：0；LLM 调用次数：0；工具调用次数：0。
 
 ## 数据集与成本规模
 
 | 项目 | 数值 |
 | --- | ---: |
-| Persona | 1 |
-| Case | 2 |
-| 用户输入 | 4 |
-| Eval task | 2 |
-| 断言 | 10 |
+| Persona | 4 |
+| Case | 6 |
+| 用户输入 | 11 |
+| Eval task | 6 |
+| 断言 | 31 |
 | LLM 调用 | 0 |
 | Tool 调用 | 0 |
 | 实际 token | 0 |
@@ -46,7 +46,9 @@
 | 记忆写入 | 写入精度 | `memory_write_precision` | 写入的记忆中有多少属于期望长期事实。 |
 | 记忆写入 | 冲突处理 | `memory_conflict_handling` | 新旧偏好冲突时是否保留最新事实、停用旧事实。 |
 | 记忆写入 | 去重 | `memory_duplicate_rate` | 重复或近似重复记忆的比例。 |
+| 记忆写入 | 时效性 | `memory_temporal_validity` | 记忆是否带有正确的有效起止时间。 |
 | 记忆写入 | 来源追溯 | `memory_source_grounding` | 记忆是否能追溯到期望输入来源。 |
+| 记忆写入 | 隐私边界 | `sensitive_overwrite_absence` | 敏感或临时状态是否没有被错误写成长记忆。 |
 
 ## 结果数据
 
@@ -54,18 +56,20 @@
 
 | 场景 | 通过 | 总数 | 通过率 | 平均分 |
 | --- | ---: | ---: | ---: | ---: |
-| 记忆写入 | 10 | 10 | 100.0% | 1.000 |
+| 记忆写入 | 31 | 31 | 100.0% | 1.000 |
 
 ### 关键指标结果
 
 | 场景 | 类别 | 指标 | 通过 | 总数 | 通过率 | 平均分 |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
-| 记忆写入 | 写入召回 | `memory_must_write_recall` | 2 | 2 | 100.0% | 1.000 |
-| 记忆写入 | 写入精度 | `memory_must_not_write_precision` | 1 | 1 | 100.0% | - |
-| 记忆写入 | 写入精度 | `memory_write_precision` | 2 | 2 | 100.0% | 1.000 |
-| 记忆写入 | 冲突处理 | `memory_conflict_handling` | 1 | 1 | 100.0% | - |
-| 记忆写入 | 去重 | `memory_duplicate_rate` | 2 | 2 | 100.0% | 1.000 |
-| 记忆写入 | 来源追溯 | `memory_source_grounding` | 2 | 2 | 100.0% | - |
+| 记忆写入 | 写入召回 | `memory_must_write_recall` | 5 | 5 | 100.0% | 1.000 |
+| 记忆写入 | 写入精度 | `memory_must_not_write_precision` | 3 | 3 | 100.0% | - |
+| 记忆写入 | 写入精度 | `memory_write_precision` | 6 | 6 | 100.0% | 1.000 |
+| 记忆写入 | 冲突处理 | `memory_conflict_handling` | 2 | 2 | 100.0% | - |
+| 记忆写入 | 去重 | `memory_duplicate_rate` | 6 | 6 | 100.0% | 1.000 |
+| 记忆写入 | 时效性 | `memory_temporal_validity` | 2 | 2 | 100.0% | - |
+| 记忆写入 | 来源追溯 | `memory_source_grounding` | 5 | 5 | 100.0% | - |
+| 记忆写入 | 隐私边界 | `sensitive_overwrite_absence` | 2 | 2 | 100.0% | - |
 
 ### 成本与 Trace
 
@@ -88,10 +92,10 @@
 - 运行 ID：`2026-05-12-module-memory`
 - 数据集：`evals/datasets/modules/memory`
 - 观察适配器：`fixture`
-- 场景样本数：2
-- 评估任务数：2
+- 场景样本数：6
+- 评估任务数：6
 - Benchmark 评分耗时：0秒
-- 断言通过：10/10 （100.0%）
+- 断言通过：31/31 （100.0%）
 
 ### 场景任务明细
 
@@ -101,16 +105,23 @@
 | --- | --- | --- | ---: |
 | `module_memory_write_001` | `task_memory_write_001` | 通过 | 0 |
 | `module_memory_conflict_001` | `task_memory_conflict_001` | 通过 | 0 |
+| `module_memory_health_002` | `task_memory_health_002` | 通过 | 0 |
+| `module_memory_workhabit_003` | `task_memory_workhabit_003` | 通过 | 0 |
+| `module_memory_conflict_location_004` | `task_memory_conflict_location_004` | 通过 | 0 |
+| `module_memory_temporary_mood_005` | `task_memory_temporary_mood_005` | 通过 | 0 |
 
 ## 附录：数据集与 Persona 示例
 
 - 数据语言：zh-CN
-- Persona 数：1
-- 输入条数：4
-- Eval task 数：2
-- Case family 分布：memory_conflict=1，memory_write=1
-- Task type 分布：memory_write=2
+- Persona 数：4
+- 输入条数：11
+- Eval task 数：6
+- Case family 分布：memory_conflict=2，memory_write=4
+- Task type 分布：memory_write=6
 
 | Persona | 职业 | 城市 | 语言 | Case | 输入 | Task | 示例输入 |
 | --- | --- | --- | --- | ---: | ---: | ---: | --- |
+| `module_u_001` | 跨境电商运营 | 深圳 | zh-CN | 1 | 1 | 1 | 今天被客户催得有点烦，先让我安静会儿，这不是长期偏好。 |
 | `module_u_002` | 产品经理 | 杭州 | zh-CN | 2 | 4 | 2 | 以后重要会议尽量提前一天提醒我，别临近了才说。<br>我今天上午想安静一会儿，这只是今天。 |
+| `module_u_003` | 数据分析师 | 上海 | zh-CN | 1 | 2 | 1 | 以后上午尽量留给深度分析，下午再排会。<br>对，上午别打断我这个习惯挺重要的。 |
+| `module_u_004` | 高校老师 | 北京 | zh-CN | 2 | 4 | 2 | 以后订下午茶记得避开花生，我对花生过敏。<br>这周嗓子不舒服，课间少说话就行，不用记长期。 |
