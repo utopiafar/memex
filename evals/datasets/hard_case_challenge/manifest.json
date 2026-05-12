@@ -8,7 +8,9 @@
   "case_file": "cases.jsonl",
   "persona_count": 16,
   "case_count": 112,
-  "input_count": 112,
+  "input_count": 1568,
+  "inputs_per_case": 14,
+  "inputs_per_persona_approx": 98,
   "task_count": 112,
   "cases_per_category": 16,
   "seeded_fixture_failure_count": 28,
@@ -23,6 +25,7 @@
   ],
   "notes": [
     "该数据集是 challenge set，不追求全绿，fixture 中保留少量种子失败用于验证失败报告和 error analysis。",
+    "同一个 hard_u_xx 会跨 7 类边界场景出现；每类场景带 14 条上下文输入，因此每个 hard persona 约 98 条输入。",
     "所有 oracle 来自 ground_truth_world 和 expected constraints。",
     "后续可把 fixture_observed 替换为真实 replay 或模块 adapter 产物。"
   ]

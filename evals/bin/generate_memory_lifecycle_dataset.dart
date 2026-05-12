@@ -3,7 +3,7 @@ import 'dart:io';
 
 typedef JsonMap = Map<String, dynamic>;
 
-const _inputsPerPersona = 48;
+const _inputsPerPersona = 100;
 
 Future<void> main(List<String> args) async {
   final outDir = Directory(
@@ -382,6 +382,9 @@ List<JsonMap> _inputs({
     '咖啡以最新规则为准：上午可以，下午不喝。',
     '把这些长期偏好都保留 source，之后我要能追溯原句。',
   ];
+  while (rows.length < _inputsPerPersona) {
+    rows.add(_extraMemoryInput(rows.length, persona));
+  }
   return [
     for (var i = 0; i < rows.length; i++)
       {
@@ -391,6 +394,27 @@ List<JsonMap> _inputs({
         'content': rows[i],
       }
   ];
+}
+
+String _extraMemoryInput(int index, _MemoryPersona persona) {
+  final topic = _memoryTopics[index % _memoryTopics.length];
+  final mood = _memoryMoods[index % _memoryMoods.length];
+  final scope = _memoryScopes[index % _memoryScopes.length];
+  final templates = [
+    '今天$topic 有点乱，只是临时状态，不要写成长期偏好。',
+    '${persona.project}的$topic 如果反复出现，可以进项目事实，但不要覆盖我的个人偏好。',
+    '我又提了一遍重要会议提前一天提醒，只合并来源，不要重复写一条。',
+    '这周$topic 先观察，等我明确说长期再写进记忆。',
+    '如果${persona.owner}提到$topic，回答时先说来源，再给结论。',
+    '我今天$mood，主要是事情太碎，不代表长期情绪。',
+    '${persona.pauseHabit}的暂停范围还是只限 2026-05，别理解成永久取消。',
+    '关于$scope，能追溯原始输入比总结得漂亮更重要。',
+    '今天只是想吃${persona.oneDayFood}，继续不要改长期饮食规则。',
+    '咖啡规则没有变化，仍然是上午一杯可以，下午不喝。',
+    '如果没有记录，就说不确定；不要为了显得聪明补地点或时间。',
+    '健康、家庭争执、临时情绪这几类内容默认更谨慎，不要轻易长期化。',
+  ];
+  return templates[index % templates.length];
 }
 
 String _inputTime(int index) {
@@ -638,4 +662,41 @@ const _personas = [
     preference: '商务复盘先列风险和下一步',
     habits: ['早上跑客户', '晚上复盘现金流'],
   ),
+];
+
+const _memoryTopics = [
+  '会议材料',
+  '项目风险',
+  '饮食安排',
+  '家庭沟通',
+  '客户反馈',
+  '指标口径',
+  '日程提醒',
+  '复盘模板',
+  '工具成本',
+  '临时咨询',
+  '工作节奏',
+  '睡眠状态',
+];
+
+const _memoryMoods = [
+  '有点烦',
+  '很累',
+  '注意力散',
+  '压力大',
+  '想安静一会儿',
+  '有点焦虑',
+  '没什么胃口',
+  '不太想说话',
+];
+
+const _memoryScopes = [
+  '长期偏好',
+  '临时状态',
+  '冲突更新',
+  '撤销旧偏好',
+  '来源追溯',
+  '时间范围',
+  '敏感信息',
+  '重复合并',
 ];

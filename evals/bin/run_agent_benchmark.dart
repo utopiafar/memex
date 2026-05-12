@@ -2695,6 +2695,18 @@ class ReportRenderer {
       'LLM 调用次数：${cost['llm_call_count'] ?? 0}；'
       '工具调用次数：${cost['tool_call_count'] ?? 0}。',
     );
+    final audit = result.datasetAudit;
+    final auditScore = (audit?['overall_score'] as num?)?.toDouble();
+    if (auditScore != null) {
+      final auditVerdict = auditScore >= 0.8
+          ? '数据质量审计通过'
+          : '数据质量审计未达 0.8，不能只按断言全绿判断为强 benchmark';
+      buffer.writeln('- $auditVerdict：overall=${_score(auditScore)}。');
+      final reason = audit?['reason']?.toString();
+      if (reason != null && reason.isNotEmpty) {
+        buffer.writeln('- 审计摘要：$reason');
+      }
+    }
     if (result.metrics['replay_elapsed_ms'] != null) {
       buffer.writeln(
         '- ${_replayTimeLabel(result)}：${_duration(result.metrics['replay_elapsed_ms'])}；'

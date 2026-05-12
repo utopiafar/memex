@@ -3,7 +3,7 @@ import 'dart:io';
 
 typedef JsonMap = Map<String, dynamic>;
 
-const _inputsPerPersona = 48;
+const _inputsPerPersona = 100;
 const _tasksPerPersona = 12;
 
 Future<void> main(List<String> args) async {
@@ -226,7 +226,10 @@ List<JsonMap> _inputs({
     '如果是票务、航班、药量这类高风险问题，没有记录就明确不确定。',
     '资料归档时不要把 Resources 和 Projects 混在一起。',
   ];
-  final rows = [...seedInputs, ...fillers].take(_inputsPerPersona).toList();
+  final rows = [...seedInputs, ...fillers];
+  while (rows.length < _inputsPerPersona) {
+    rows.add(_extraRetrievalInput(rows.length, persona));
+  }
   return [
     for (var i = 0; i < rows.length; i++)
       {
@@ -237,6 +240,28 @@ List<JsonMap> _inputs({
         if (i < sources.length) 'source_id': sources[i].id,
       }
   ];
+}
+
+String _extraRetrievalInput(int index, _RetrievalPersona persona) {
+  final detail = _retrievalDetails[index % _retrievalDetails.length];
+  final intent = _retrievalIntents[index % _retrievalIntents.length];
+  final scope = _retrievalScopes[index % _retrievalScopes.length];
+  final person = index.isEven ? persona.primaryPerson : persona.secondaryPerson;
+  final templates = [
+    '今天补了一条${persona.project}的$detail，之后问到$intent 时优先看这类记录。',
+    '$person 刚刚提到$detail，先作为项目背景放着，不要写成我的长期偏好。',
+    '如果我问“上次那个$detail”，默认先按${persona.project}和$person过滤。',
+    '临时查了$intent 的资料，先不要当作已经执行过的计划。',
+    '${persona.city}这边今天只是临时线下沟通，地点不要被推断进正式来源。',
+    '${persona.project}的$scope 只基于记录回答，没有 source 就说不确定。',
+    '我把$detail 放在项目笔记里，后面回答时要引用来源，不要只给总结。',
+    '如果查询涉及$person，先查人名，再查${persona.project}，最后再看时间范围。',
+    '今天只是想到$intent 的一个可能方向，还没决策，不要当成最终结论。',
+    '复盘时如果提到${persona.metric}，要说明来自哪条 note 或 PKM。',
+    '如果问家庭、票务、药量这类问题，没有明确记录就直接说不确定。',
+    '$scope 的问题不要只靠向量相似，要结合项目、人物和类型过滤。',
+  ];
+  return templates[index % templates.length];
 }
 
 List<JsonMap> _tasks({
@@ -607,4 +632,41 @@ const _personas = [
     preference: '商务复盘先列风险和下一步',
     habits: ['早上跑客户', '晚上复盘现金流'],
   ),
+];
+
+const _retrievalDetails = [
+  '灰度风险',
+  '客户反馈',
+  '预算口径',
+  '会议结论',
+  '回滚预案',
+  '指标异常',
+  '素材来源',
+  '工具调用成本',
+  '负责人变更',
+  '数据延迟',
+  '周报下一步',
+  '复盘模板',
+];
+
+const _retrievalIntents = [
+  '最近一次讨论',
+  '项目风险',
+  '饮食注意事项',
+  '会议提醒偏好',
+  '客户问题',
+  '家庭安排',
+  '证据不足的问题',
+  '设计评审',
+];
+
+const _retrievalScopes = [
+  '按时间过滤',
+  '按人物过滤',
+  '按项目过滤',
+  '按类型过滤',
+  '跨来源总结',
+  '证据引用',
+  '拒答边界',
+  '最新事实优先',
 ];

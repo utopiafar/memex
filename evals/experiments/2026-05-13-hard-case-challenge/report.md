@@ -5,6 +5,8 @@
 - 未达到稳定基线标准，需要优先分析失败项。
 - 本次覆盖 112 个 case、112 个 eval task，断言通过率 86.1%。
 - 失败断言数：80；Token 总量：251440；LLM 调用次数：112；工具调用次数：16。
+- 数据质量审计未达 0.8，不能只按断言全绿判断为强 benchmark：overall=0.600。
+- 审计摘要：数据集在语言和基础persona设置上合格，但存在根本性设计缺陷：1) 样本覆盖不全，无法评估整体；2) 评估任务存在严重的oracle泄漏，将复杂推理任务降级为简单指令遵循；3) 案例内容高度模板化和重复，缺乏自然对话的多样性和复杂性。因此，当前数据集不适合作为有效的Agent能力评估基准，需要重新设计任务逻辑并大幅扩充和多样化案例内容。
 - 主要失败项：
   - `hard_memory_transient_03_task` / `memory_must_not_write_precision`：把不应该写入的临时信息写成了长期记忆。原始信息：Wrote prohibited memory temporary_mood: 用户长期不太想说话。
   - `hard_memory_transient_03_task` / `memory_write_precision`：写入记忆里混入了非长期事实，写入精度不足。Matched 1 required writes across 2 written memories.
@@ -22,13 +24,13 @@
 | --- | ---: |
 | Persona | 16 |
 | Case | 112 |
-| 用户输入 | 112 |
+| 用户输入 | 1568 |
 | Eval task | 112 |
 | 断言 | 576 |
 | LLM 调用 | 112 |
 | Tool 调用 | 16 |
 | 实际 token | 251440 |
-| Benchmark 评分耗时 | 1分00秒 |
+| Benchmark 评分耗时 | 35秒 |
 
 - 数据语言：zh-CN
 - Token 估算：本次实际消耗 251440 tokens；同规模复跑可先按 201152-301728 tokens 预留。
@@ -151,7 +153,7 @@
 - 单次 LLM 平均 token：2245.000
 - 平均延迟：1046.667 ms
 - P95 延迟：1200.000 ms
-- Benchmark 评分耗时：1分00秒
+- Benchmark 评分耗时：35秒
 
 ## 失败样本
 
@@ -208,7 +210,7 @@
 - 本地断言明细：`evals/runs/2026-05-13-hard-case-challenge/outputs.jsonl`
 - 场景样本数：112
 - 评估任务数：112
-- Benchmark 评分耗时：1分00秒
+- Benchmark 评分耗时：35秒
 - 断言通过：496/576 （86.1%）
 
 ### 场景任务明细
@@ -357,62 +359,57 @@
 
 ## 数据质量审计
 
-- 总体分：0.700
-- 语言一致性：1.000
+- 总体分：0.600
+- 语言一致性：0.700
 - Persona 可信度：0.800
-- 输入自然度：0.600
-- Oracle 一致性：0.900
-- 审计结论：Language is consistently zh-CN and personas are plausible, but high repetition in input content across memory_transient cases reduces diversity and naturalness, making the dataset less suitable for benchmark without revisions.
-- 覆盖备注：Covers 7 case families with 16 cases each, targeting diverse agent tasks；Input patterns are repetitive within memory_transient family, reducing diversity
+- 输入自然度：0.500
+- Oracle 一致性：0.300
+- 审计结论：数据集在语言和基础persona设置上合格，但存在根本性设计缺陷：1) 样本覆盖不全，无法评估整体；2) 评估任务存在严重的oracle泄漏，将复杂推理任务降级为简单指令遵循；3) 案例内容高度模板化和重复，缺乏自然对话的多样性和复杂性。因此，当前数据集不适合作为有效的Agent能力评估基准，需要重新设计任务逻辑并大幅扩充和多样化案例内容。
+- 覆盖备注：样本仅覆盖了 `memory_transient` 和 `memory_conflict` 两个家族，其余5个家族（如 `card_ambiguous_time`, `pkm_organization` 等）无样本，无法评估。；提供的24个样本案例在结构和内容上高度同质化，可能无法代表整个数据集的多样性。
 
 ### 审计问题
 
-- `hard_memory_transient_01` / high：Input content is identical to hard_memory_transient_09, causing redundancy；建议：Generate unique inputs for each case to improve dataset diversity
-- `hard_memory_transient_02` / high：Input content is identical to hard_memory_transient_10, causing redundancy；建议：Ensure each case has distinct input content
-- `hard_memory_transient_03` / medium：Input content is identical to hard_memory_transient_11, reducing naturalness；建议：Vary input phrasing and context across cases
-- `hard_memory_conflict_01` / low：Input pattern is similar to other conflict cases, but content is unique；建议：Maintain variation in conflict scenarios to avoid template化
+- `ALL_SAMPLE_CASES` / high：样本覆盖严重不均衡，无法评估数据集整体质量。；建议：需要从所有7个案例家族中抽取代表性样本进行审查。
+- `hard_memory_transient_01` / high：Oracle泄漏：`eval_tasks.expected` 中的 `must_write` 和 `must_not_write` 要求直接、明确地源自 `input_stream` 的第一条消息（用户指令），使得任务变成了简单的指令遵循，而非基于隐藏真相的推理。；建议：评估任务应基于 `ground_truth_world` 中隐含的、需要从对话历史中推断出的状态或规则，而非直接复述用户明确给出的指令。
+- `hard_memory_transient_01` / medium：输入内容高度模板化和重复。所有 `memory_transient` 案例的第一条输入都遵循“表达临时情绪/状态 + 强调重要会议提前一天提醒”的固定模式，且后续上下文（context）也高度相似，只是替换了关键词（如“预算复盘”、“饮食限制”）。；建议：增加用户表达的多样性和自然度，避免使用“不要把这个写成长期偏好”这类直接揭示任务目标的元指令。上下文应更贴近真实、连贯的对话流。
+- `hard_memory_conflict_01` / high：Oracle泄漏：`eval_tasks.expected` 中的 `conflicts` 要求直接对应 `input_stream` 第一条消息中用户明确陈述的新旧偏好对比，任务本质是信息提取而非冲突消解推理。；建议：冲突场景应设计得更隐蔽，例如新偏好在对话中逐渐浮现，或旧偏好存在于更早的、未直接引用的记忆中，需要Agent进行关联和判断。
+- `hard_memory_conflict_01` / medium：所有 `memory_conflict` 案例都围绕“咖啡偏好”这一单一主题，且输入表述虽有变化但语义相同，缺乏多样性。；建议：引入更多类型的偏好或事实冲突场景（如日程安排、工作习惯、饮食限制等）。
+- `ALL_CASES` / medium：`context` 流中的许多消息包含“不要影响 memory_transient 的判断”、“先不用写成长记忆”等元指令，这在真实用户交互中极不自然，像是给评估系统的提示而非用户对话。；建议：移除所有元指令，让上下文成为纯粹的用户与Agent或其他人的自然对话、笔记或状态更新。
+- `ALL_CASES` / low：时间跨度设置（2026年5月）略显刻意，且每天都有密集输入，不太符合一般用户的实际使用频率。；建议：时间设置可以更随机，输入频率可以更符合真实场景（如某些天无输入）。
 
 ### 抽样 Case 评价
 
 | Case | 分数 | 理由 |
 | --- | ---: | --- |
-| `hard_memory_transient_01` | 0.500 | Input is duplicated in hard_memory_transient_09, reducing uniqueness |
-| `hard_memory_transient_02` | 0.500 | Input is duplicated in hard_memory_transient_10, causing repetition |
-| `hard_memory_transient_03` | 0.600 | Input is duplicated in hard_memory_transient_11, but content is natural |
-| `hard_memory_transient_04` | 0.600 | Input is duplicated in hard_memory_transient_12, affecting diversity |
-| `hard_memory_transient_05` | 0.600 | Input is duplicated in hard_memory_transient_13, but persona is plausible |
-| `hard_memory_transient_06` | 0.600 | Input is duplicated in hard_memory_transient_14, reducing naturalness |
-| `hard_memory_transient_07` | 0.600 | Input is duplicated in hard_memory_transient_15, but language is consistent |
-| `hard_memory_transient_08` | 0.600 | Input is duplicated in hard_memory_transient_16, causing redundancy |
-| `hard_memory_transient_09` | 0.500 | Input is identical to hard_memory_transient_01, high duplication |
-| `hard_memory_transient_10` | 0.500 | Input is identical to hard_memory_transient_02, high duplication |
-| `hard_memory_transient_11` | 0.600 | Input is identical to hard_memory_transient_03, but expected consistency is good |
-| `hard_memory_transient_12` | 0.600 | Input is identical to hard_memory_transient_04, reducing input naturalness |
+| `hard_memory_transient_01` | 0.400 | 典型的模板化案例，存在严重的oracle泄漏问题。评估任务直接复述用户指令，无法测试Agent的推理能力。 |
+| `hard_memory_transient_02` | 0.400 | 与case 01结构完全相同，仅替换了职业、城市和少数词汇，问题性质一致。 |
+| `hard_memory_conflict_01` | 0.300 | 冲突解决任务设计失败，答案直接来自用户输入。咖啡主题重复。 |
+| `hard_memory_conflict_02` | 0.300 | 与conflict case 01本质相同，仅输入表述稍有变化，核心问题未变。 |
 
 ## 附录：数据集与 Persona 示例
 
 - 数据语言：zh-CN
 - Persona 数：16
-- 输入条数：112
+- 输入条数：1568
 - Eval task 数：112
 - Case family 分布：hard_case_card_ambiguous_time=16，hard_case_memory_conflict=16，hard_case_memory_transient=16，hard_case_pkm_organization=16，hard_case_retrieval_grounding=16，hard_case_schedule_router=16，hard_case_super_agent_boundary=16
 - Task type 分布：card_extraction=16，memory_write=32，pkm_organization=16，retrieval_qa=16，schedule_refresh=16，super_agent_qa=16
 
 | Persona | 职业 | 城市 | 语言 | Case | 输入 | Task | 示例输入 |
 | --- | --- | --- | --- | ---: | ---: | ---: | --- |
-| `hard_u_01` | 数据分析师 | 上海 | zh-CN | 7 | 7 | 7 | 今天有点低落，主要是早会被临时打断了三次，不要把这个写成长期偏好。以后重要会议还是提前一天提醒我。<br>我之前说不喝咖啡，但最近上午可以喝一杯，下午还是别喝。 |
-| `hard_u_02` | 跨境电商运营 | 深圳 | zh-CN | 7 | 7 | 7 | 今天很累，因为晚上没睡好，这只是今天的身体状态；但重要会议提前一天提醒这个规则要记住。<br>上个月说过早上也不要咖啡，现在改一下：上午一小杯可以，午后不要。 |
-| `hard_u_03` | 老师 | 北京 | zh-CN | 7 | 7 | 7 | 我现在不太想说话，只是下午连续开会后的临时反应，别写成长记忆。重要会议提前一天提醒我。<br>咖啡偏好更新下，之前完全不喝是旧信息，现在只允许上午喝。 |
-| `hard_u_04` | 产品经理 | 杭州 | zh-CN | 7 | 7 | 7 | 今天有点烦，客服群消息太多了，这只是一次性状态；以后重要会议还是提前一天提醒。<br>之前那条“不要咖啡”过期了，最近早上可以喝，下午保持不喝。 |
-| `hard_u_05` | 数据分析师 | 上海 | zh-CN | 7 | 7 | 7 | 今天脑子有点空，可能是午饭吃太少，不是长期习惯。重要会议提醒保持提前一天。<br>我又开始喝咖啡了，但限定上午，下午喝会影响睡眠。 |
-| `hard_u_06` | 跨境电商运营 | 深圳 | zh-CN | 7 | 7 | 7 | 刚刚路上堵车心情差，别把它当成长期情绪。重要会议提前一天提醒我就好。<br>别再按“完全不喝咖啡”理解我了，现在是上午可以、下午不行。 |
-| `hard_u_07` | 老师 | 北京 | zh-CN | 7 | 7 | 7 | 今天想安静一下，是因为临时材料太多，不代表以后不要开会。重要会议要提前一天通知。<br>咖啡这件事修正一下：早上开会前可以一杯，下午还是避免。 |
-| `hard_u_08` | 产品经理 | 杭州 | zh-CN | 7 | 7 | 7 | 下午有点焦虑，只是发布前的临时状态。以后重要会议提前一天提醒我。<br>以前不喝咖啡是那阵子胃不舒服，现在上午可以喝一杯。 |
-| `hard_u_09` | 数据分析师 | 上海 | zh-CN | 7 | 7 | 7 | 今天有点低落，主要是早会被临时打断了三次，不要把这个写成长期偏好。以后重要会议还是提前一天提醒我。<br>我之前说不喝咖啡，但最近上午可以喝一杯，下午还是别喝。 |
-| `hard_u_10` | 跨境电商运营 | 深圳 | zh-CN | 7 | 7 | 7 | 今天很累，因为晚上没睡好，这只是今天的身体状态；但重要会议提前一天提醒这个规则要记住。<br>上个月说过早上也不要咖啡，现在改一下：上午一小杯可以，午后不要。 |
-| `hard_u_11` | 老师 | 北京 | zh-CN | 7 | 7 | 7 | 我现在不太想说话，只是下午连续开会后的临时反应，别写成长记忆。重要会议提前一天提醒我。<br>咖啡偏好更新下，之前完全不喝是旧信息，现在只允许上午喝。 |
-| `hard_u_12` | 产品经理 | 杭州 | zh-CN | 7 | 7 | 7 | 今天有点烦，客服群消息太多了，这只是一次性状态；以后重要会议还是提前一天提醒。<br>之前那条“不要咖啡”过期了，最近早上可以喝，下午保持不喝。 |
-| `hard_u_13` | 数据分析师 | 上海 | zh-CN | 7 | 7 | 7 | 今天脑子有点空，可能是午饭吃太少，不是长期习惯。重要会议提醒保持提前一天。<br>我又开始喝咖啡了，但限定上午，下午喝会影响睡眠。 |
-| `hard_u_14` | 跨境电商运营 | 深圳 | zh-CN | 7 | 7 | 7 | 刚刚路上堵车心情差，别把它当成长期情绪。重要会议提前一天提醒我就好。<br>别再按“完全不喝咖啡”理解我了，现在是上午可以、下午不行。 |
-| `hard_u_15` | 老师 | 北京 | zh-CN | 7 | 7 | 7 | 今天想安静一下，是因为临时材料太多，不代表以后不要开会。重要会议要提前一天通知。<br>咖啡这件事修正一下：早上开会前可以一杯，下午还是避免。 |
-| `hard_u_16` | 产品经理 | 杭州 | zh-CN | 7 | 7 | 7 | 下午有点焦虑，只是发布前的临时状态。以后重要会议提前一天提醒我。<br>以前不喝咖啡是那阵子胃不舒服，现在上午可以喝一杯。 |
+| `hard_u_01` | 数据分析师 | 上海 | zh-CN | 7 | 98 | 7 | 今天有点低落，主要是早会被临时打断了三次，不要把这个写成长期偏好。以后重要会议还是提前一天提醒我。<br>今天在上海处理预算复盘，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |
+| `hard_u_02` | 跨境电商运营 | 深圳 | zh-CN | 7 | 98 | 7 | 今天很累，因为晚上没睡好，这只是今天的身体状态；但重要会议提前一天提醒这个规则要记住。<br>今天在深圳处理饮食限制，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |
+| `hard_u_03` | 老师 | 北京 | zh-CN | 7 | 98 | 7 | 我现在不太想说话，只是下午连续开会后的临时反应，别写成长记忆。重要会议提前一天提醒我。<br>今天在北京处理临时情绪，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |
+| `hard_u_04` | 产品经理 | 杭州 | zh-CN | 7 | 98 | 7 | 今天有点烦，客服群消息太多了，这只是一次性状态；以后重要会议还是提前一天提醒。<br>今天在杭州处理客户反馈，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |
+| `hard_u_05` | 数据分析师 | 上海 | zh-CN | 7 | 98 | 7 | 今天脑子有点空，可能是午饭吃太少，不是长期习惯。重要会议提醒保持提前一天。<br>今天在上海处理项目周报，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |
+| `hard_u_06` | 跨境电商运营 | 深圳 | zh-CN | 7 | 98 | 7 | 刚刚路上堵车心情差，别把它当成长期情绪。重要会议提前一天提醒我就好。<br>今天在深圳处理日程改期，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |
+| `hard_u_07` | 老师 | 北京 | zh-CN | 7 | 98 | 7 | 今天想安静一下，是因为临时材料太多，不代表以后不要开会。重要会议要提前一天通知。<br>今天在北京处理证据引用，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |
+| `hard_u_08` | 产品经理 | 杭州 | zh-CN | 7 | 98 | 7 | 下午有点焦虑，只是发布前的临时状态。以后重要会议提前一天提醒我。<br>今天在杭州处理PKM 归档，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |
+| `hard_u_09` | 数据分析师 | 上海 | zh-CN | 7 | 98 | 7 | 今天有点低落，主要是早会被临时打断了三次，不要把这个写成长期偏好。以后重要会议还是提前一天提醒我。<br>今天在上海处理工具调用，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |
+| `hard_u_10` | 跨境电商运营 | 深圳 | zh-CN | 7 | 98 | 7 | 今天很累，因为晚上没睡好，这只是今天的身体状态；但重要会议提前一天提醒这个规则要记住。<br>今天在深圳处理时间解析，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |
+| `hard_u_11` | 老师 | 北京 | zh-CN | 7 | 98 | 7 | 我现在不太想说话，只是下午连续开会后的临时反应，别写成长记忆。重要会议提前一天提醒我。<br>今天在北京处理冲突记忆，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |
+| `hard_u_12` | 产品经理 | 杭州 | zh-CN | 7 | 98 | 7 | 今天有点烦，客服群消息太多了，这只是一次性状态；以后重要会议还是提前一天提醒。<br>今天在杭州处理只读问答，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |
+| `hard_u_13` | 数据分析师 | 上海 | zh-CN | 7 | 98 | 7 | 今天脑子有点空，可能是午饭吃太少，不是长期习惯。重要会议提醒保持提前一天。<br>今天在上海处理来源追溯，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |
+| `hard_u_14` | 跨境电商运营 | 深圳 | zh-CN | 7 | 98 | 7 | 刚刚路上堵车心情差，别把它当成长期情绪。重要会议提前一天提醒我就好。<br>今天在深圳处理会议提醒，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |
+| `hard_u_15` | 老师 | 北京 | zh-CN | 7 | 98 | 7 | 今天想安静一下，是因为临时材料太多，不代表以后不要开会。重要会议要提前一天通知。<br>今天在北京处理预算复盘，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |
+| `hard_u_16` | 产品经理 | 杭州 | zh-CN | 7 | 98 | 7 | 下午有点焦虑，只是发布前的临时状态。以后重要会议提前一天提醒我。<br>今天在杭州处理饮食限制，有点碎，但这只是背景，不要影响 memory_transient 的判断。 |

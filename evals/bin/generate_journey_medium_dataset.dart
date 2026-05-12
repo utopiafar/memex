@@ -3,7 +3,7 @@ import 'dart:io';
 
 typedef JsonMap = Map<String, dynamic>;
 
-const _recordsPerPersona = 80;
+const _recordsPerPersona = 100;
 
 Future<void> main(List<String> args) async {
   final outDir = Directory(
@@ -112,6 +112,12 @@ JsonMap _case(int n, _PersonaSpec persona) {
       taskId: '${taskPrefix}_card_roadmap_sync',
       operationId: _recordId(caseId, 75),
       titleContains: [persona.project, '路线图'],
+    ),
+    _cardTask(
+      caseId: caseId,
+      taskId: '${taskPrefix}_card_final_review',
+      operationId: _recordId(caseId, 95),
+      titleContains: [persona.project, '最终复盘'],
     ),
     _memoryTask(
         caseId: caseId, taskId: '${taskPrefix}_memory', persona: persona),
@@ -431,6 +437,8 @@ String _recordContent({required int index, required _PersonaSpec persona}) {
       return '6月10日下午三点和${persona.secondaryPerson}复盘${persona.project}的失败模式，提醒我带指标截图。';
     case 75:
       return '月底和${persona.primaryPerson}确认${persona.project}路线图，先看风险 owner 和回滚预案。';
+    case 95:
+      return '6月底做${persona.project}最终复盘，提醒我把结论、来源、成本和下一步分开写。';
   }
   final detail = _details[index % _details.length];
   final habit = persona.habits[index % persona.habits.length];
@@ -469,6 +477,8 @@ List<String> _titleNeedles(
       return [persona.project, '失败模式'];
     case 75:
       return [persona.project, '路线图'];
+    case 95:
+      return [persona.project, '最终复盘'];
     default:
       return [];
   }

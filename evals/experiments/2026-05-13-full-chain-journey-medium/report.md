@@ -3,9 +3,11 @@
 ## 结论
 
 - 整体通过，适合作为当前基线。
-- 本次覆盖 6 个 case、54 个 eval task，断言通过率 100.0%。
-- 失败断言数：0；Token 总量：3113280；LLM 调用次数：1488；工具调用次数：1002。
-- 观察数据耗时：1小时36分00秒；Benchmark 评分耗时：32秒。
+- 本次覆盖 6 个 case、60 个 eval task，断言通过率 100.0%。
+- 失败断言数：0；Token 总量：3928980；LLM 调用次数：1854；工具调用次数：1248。
+- 数据质量审计未达 0.8，不能只按断言全绿判断为强 benchmark：overall=0.700。
+- 审计摘要：数据集在语言一致性、基础结构和oracle逻辑上表现良好，但存在致命缺陷：6个案例高度同质化，几乎是同一模板的简单替换。这导致数据集多样性严重不足，无法有效评估Agent在不同真实场景下的泛化能力，作为benchmark的价值大打折扣。必须首先解决模板化问题，增加案例的独特性和真实性，然后才能考虑扩大规模。
+- 观察数据耗时：2小时00分00秒；Benchmark 评分耗时：29秒。
 
 ## 实验问题与背景
 
@@ -19,17 +21,17 @@
 | --- | ---: |
 | Persona | 6 |
 | Case | 6 |
-| 用户输入 | 480 |
-| Eval task | 54 |
-| 断言 | 282 |
-| LLM 调用 | 1488 |
-| Tool 调用 | 1002 |
-| 实际 token | 3113280 |
-| 观察数据耗时 | 1小时36分00秒 |
-| Benchmark 评分耗时 | 32秒 |
+| 用户输入 | 600 |
+| Eval task | 60 |
+| 断言 | 306 |
+| LLM 调用 | 1854 |
+| Tool 调用 | 1248 |
+| 实际 token | 3928980 |
+| 观察数据耗时 | 2小时00分00秒 |
+| Benchmark 评分耗时 | 29秒 |
 
 - 数据语言：zh-CN
-- Token 估算：本次实际消耗 3113280 tokens；同规模复跑可先按 2490624-3735936 tokens 预留。
+- Token 估算：本次实际消耗 3928980 tokens；同规模复跑可先按 3143184-4714776 tokens 预留。
 
 ## 指标口径
 
@@ -75,8 +77,8 @@
 
 | 场景 | 通过 | 总数 | 通过率 | 平均分 |
 | --- | ---: | ---: | ---: | ---: |
-| Card 抽取 | 144 | 144 | 100.0% | 1.000 |
-| 成本 / Trace | 48 | 48 | 100.0% | 0.922 |
+| Card 抽取 | 168 | 168 | 100.0% | 1.000 |
+| 成本 / Trace | 48 | 48 | 100.0% | 0.905 |
 | 记忆写入 | 54 | 54 | 100.0% | 1.000 |
 | Super Agent 问答 | 36 | 36 | 100.0% | 1.000 |
 
@@ -84,14 +86,14 @@
 
 | 场景 | 类别 | 指标 | 通过 | 总数 | 通过率 | 平均分 |
 | --- | --- | --- | ---: | ---: | ---: | ---: |
-| Card 抽取 | Card 状态 | `card_status_accuracy` | 36 | 36 | 100.0% | - |
-| Card 抽取 | 字段抽取 | `title_constraint_accuracy` | 36 | 36 | 100.0% | 1.000 |
-| Card 抽取 | 幻觉控制 | `hallucinated_field_absence` | 36 | 36 | 100.0% | - |
-| Card 抽取 | 结构合法性 | `card_schema_valid` | 36 | 36 | 100.0% | - |
+| Card 抽取 | Card 状态 | `card_status_accuracy` | 42 | 42 | 100.0% | - |
+| Card 抽取 | 字段抽取 | `title_constraint_accuracy` | 42 | 42 | 100.0% | 1.000 |
+| Card 抽取 | 幻觉控制 | `hallucinated_field_absence` | 42 | 42 | 100.0% | - |
+| Card 抽取 | 结构合法性 | `card_schema_valid` | 42 | 42 | 100.0% | - |
 | Super Agent 问答 | 个性化 | `personalization_accuracy` | 6 | 6 | 100.0% | 1.000 |
 | Super Agent 问答 | 操作边界 | `super_agent_read_only_compliance` | 6 | 6 | 100.0% | - |
-| 成本 / Trace | Token 成本 | `cost_per_input` | 6 | 6 | 100.0% | 0.922 |
-| 成本 / Trace | Token 成本 | `total_token_budget` | 6 | 6 | 100.0% | 0.688 |
+| 成本 / Trace | Token 成本 | `cost_per_input` | 6 | 6 | 100.0% | 0.921 |
+| 成本 / Trace | Token 成本 | `total_token_budget` | 6 | 6 | 100.0% | 0.604 |
 | 成本 / Trace | 任务收敛 | `task_completion_status` | 6 | 6 | 100.0% | - |
 | 成本 / Trace | 工具成本 | `tool_call_budget` | 6 | 6 | 100.0% | - |
 | 成本 / Trace | 延迟 | `latency_budget` | 6 | 6 | 100.0% | - |
@@ -109,15 +111,15 @@
 
 ### 成本与 Trace
 
-- LLM 调用次数：1488
-- 工具调用次数：1002
-- Token 总量：3113280
-- 单次 LLM 平均 token：2092.258
-- 平均延迟：1565.202 ms
-- P95 延迟：3374.000 ms
-- 观察数据耗时：1小时36分00秒
-- Case 观察耗时累计：1小时36分00秒
-- Benchmark 评分耗时：32秒
+- LLM 调用次数：1854
+- 工具调用次数：1248
+- Token 总量：3928980
+- 单次 LLM 平均 token：2119.191
+- 平均延迟：1688.000 ms
+- P95 延迟：3871.000 ms
+- 观察数据耗时：2小时00分00秒
+- Case 观察耗时累计：2小时00分00秒
+- Benchmark 评分耗时：29秒
 
 ## 失败样本
 
@@ -134,10 +136,10 @@
 - 本地 Trace：`evals/runs/2026-05-13-full-chain-journey-medium/trace.ndjson`
 - 本地断言明细：`evals/runs/2026-05-13-full-chain-journey-medium/outputs.jsonl`
 - 场景样本数：6
-- 评估任务数：54
-- 观察数据耗时：1小时36分00秒
-- Benchmark 评分耗时：32秒
-- 断言通过：282/282 （100.0%）
+- 评估任务数：60
+- 观察数据耗时：2小时00分00秒
+- Benchmark 评分耗时：29秒
+- 断言通过：306/306 （100.0%）
 
 ### 场景任务明细
 
@@ -151,36 +153,42 @@
 | `journey_medium_001` | `journey_medium_001_card_cost_review` | 通过 | 0 |
 | `journey_medium_001` | `journey_medium_001_card_failure_review` | 通过 | 0 |
 | `journey_medium_001` | `journey_medium_001_card_roadmap_sync` | 通过 | 0 |
+| `journey_medium_001` | `journey_medium_001_card_final_review` | 通过 | 0 |
 | `journey_medium_002` | `journey_medium_002_card_project_meeting` | 通过 | 0 |
 | `journey_medium_002` | `journey_medium_002_card_family_visit` | 通过 | 0 |
 | `journey_medium_002` | `journey_medium_002_card_weekly_report` | 通过 | 0 |
 | `journey_medium_002` | `journey_medium_002_card_cost_review` | 通过 | 0 |
 | `journey_medium_002` | `journey_medium_002_card_failure_review` | 通过 | 0 |
 | `journey_medium_002` | `journey_medium_002_card_roadmap_sync` | 通过 | 0 |
+| `journey_medium_002` | `journey_medium_002_card_final_review` | 通过 | 0 |
 | `journey_medium_003` | `journey_medium_003_card_project_meeting` | 通过 | 0 |
 | `journey_medium_003` | `journey_medium_003_card_family_visit` | 通过 | 0 |
 | `journey_medium_003` | `journey_medium_003_card_weekly_report` | 通过 | 0 |
 | `journey_medium_003` | `journey_medium_003_card_cost_review` | 通过 | 0 |
 | `journey_medium_003` | `journey_medium_003_card_failure_review` | 通过 | 0 |
 | `journey_medium_003` | `journey_medium_003_card_roadmap_sync` | 通过 | 0 |
+| `journey_medium_003` | `journey_medium_003_card_final_review` | 通过 | 0 |
 | `journey_medium_004` | `journey_medium_004_card_project_meeting` | 通过 | 0 |
 | `journey_medium_004` | `journey_medium_004_card_family_visit` | 通过 | 0 |
 | `journey_medium_004` | `journey_medium_004_card_weekly_report` | 通过 | 0 |
 | `journey_medium_004` | `journey_medium_004_card_cost_review` | 通过 | 0 |
 | `journey_medium_004` | `journey_medium_004_card_failure_review` | 通过 | 0 |
 | `journey_medium_004` | `journey_medium_004_card_roadmap_sync` | 通过 | 0 |
+| `journey_medium_004` | `journey_medium_004_card_final_review` | 通过 | 0 |
 | `journey_medium_005` | `journey_medium_005_card_project_meeting` | 通过 | 0 |
 | `journey_medium_005` | `journey_medium_005_card_family_visit` | 通过 | 0 |
 | `journey_medium_005` | `journey_medium_005_card_weekly_report` | 通过 | 0 |
 | `journey_medium_005` | `journey_medium_005_card_cost_review` | 通过 | 0 |
 | `journey_medium_005` | `journey_medium_005_card_failure_review` | 通过 | 0 |
 | `journey_medium_005` | `journey_medium_005_card_roadmap_sync` | 通过 | 0 |
+| `journey_medium_005` | `journey_medium_005_card_final_review` | 通过 | 0 |
 | `journey_medium_006` | `journey_medium_006_card_project_meeting` | 通过 | 0 |
 | `journey_medium_006` | `journey_medium_006_card_family_visit` | 通过 | 0 |
 | `journey_medium_006` | `journey_medium_006_card_weekly_report` | 通过 | 0 |
 | `journey_medium_006` | `journey_medium_006_card_cost_review` | 通过 | 0 |
 | `journey_medium_006` | `journey_medium_006_card_failure_review` | 通过 | 0 |
 | `journey_medium_006` | `journey_medium_006_card_roadmap_sync` | 通过 | 0 |
+| `journey_medium_006` | `journey_medium_006_card_final_review` | 通过 | 0 |
 
 #### 成本 / Trace
 
@@ -217,46 +225,45 @@
 
 ## 数据质量审计
 
-- 总体分：0.750
-- 语言一致性：1.000
-- Persona 可信度：0.900
+- 总体分：0.700
+- 语言一致性：0.900
+- Persona 可信度：0.800
 - 输入自然度：0.600
-- Oracle 一致性：1.000
-- 审计结论：数据集在语言一致性、基础persona可信度和oracle内部一致性方面表现优秀。主要缺陷在于数据生成的‘模板化’和‘重复性’过高：六个案例的输入流句式、任务结构高度同构，仅通过替换项目名、城市、人名等变量生成，这使得数据集缺乏评估模型泛化能力和处理真实世界多样性的深度，更像是一个‘填空题’集合而非自然的用户交互日志。因此，它适合作为初步的功能验证（smoke test），但作为有区分度的benchmark，其自然性和多样性不足。
-- 覆盖备注：数据覆盖了用户偏好记忆（会议提醒、咖啡习惯）、项目信息（负责人）、临时指令与长期记忆的区分、复盘模板要求等多种类型。；评估任务类型全面，包括信息抽取、记忆写入、问答和成本追踪。
+- Oracle 一致性：0.900
+- 审计结论：数据集在语言一致性、基础结构和oracle逻辑上表现良好，但存在致命缺陷：6个案例高度同质化，几乎是同一模板的简单替换。这导致数据集多样性严重不足，无法有效评估Agent在不同真实场景下的泛化能力，作为benchmark的价值大打折扣。必须首先解决模板化问题，增加案例的独特性和真实性，然后才能考虑扩大规模。
+- 覆盖备注：数据集覆盖了6种不同职业和城市的persona，任务类型包括卡片提取、记忆写入、超级问答和成本追踪。；每个案例包含100条输入流和10个评估任务，结构完整。；主要问题在于6个案例的结构和内容高度同质化，缺乏多样性。
 
 ### 审计问题
 
-- `journey_medium_001` / medium：输入流存在高度模板化和重复模式，不同persona的输入仅在项目名称、城市、同事姓名等占位符上不同，句式结构高度雷同。；建议：增加输入句式的多样性，减少‘今天有点烦’、‘晚上散步想到一个点’等固定句式的机械重复，让不同职业用户的表达习惯有更明显的区分。
-- `journey_medium_002` / medium：eval_tasks 结构完全同构，6个案例的任务类型、数量、甚至部分任务描述（如 must_not_fields）完全一致，仅内容占位符不同，降低了评估的多样性。；建议：为不同persona设计略有差异的评估任务组合或侧重点，例如为数据分析师增加数据口径相关的抽取任务，为律师增加合同条款相关的记忆任务。
-- `journey_medium_003` / low：部分‘习惯’（如‘周三下午需求评审’）在输入流中未得到充分体现或演化，更像是静态设定。；建议：让用户的习惯在输入流中有更动态的体现，例如因故调整习惯时间，或习惯与其他事件产生冲突时的处理指令。
-- `journey_medium_004` / low：‘ground_truth_world’中的‘events’仅包含两个示例，与长达80条的‘input_stream’相比，关联性展示不足，可能影响对‘事实’提取任务的评估理解。；建议：在ground_truth_world中更明确地标注哪些input_stream记录对应‘事实’或‘事件’，或增加events的数量以更好地锚定关键信息。
+- `journey_medium_001` / high：高度模板化和重复性。所有6个案例的输入流结构、事件序列、甚至具体语句（如咖啡偏好更新、情绪管理、家庭事务提醒）都几乎完全相同，仅替换项目名称和协作人姓名。；建议：打破模板，为不同persona设计更符合其职业特性、生活习惯和城市背景的多样化输入流和事件。避免简单替换关键词。
+- `journey_medium_001` / medium：输入流中存在大量重复或高度相似的语句（例如，关于‘杭州通勤不稳定’、‘晚上散步想到一个点’、‘临时咨询’等），降低了自然度和挑战性。；建议：精简重复内容，增加更多反映用户长期偏好、复杂决策或独特生活细节的输入，使对话历史更丰富、更具区分度。
+- `journey_medium_001` / low：部分中文表达略显生硬或书面化，如‘先记一下’、‘帮我记一下’，在口语中可能更常说‘记一下’或‘提醒我’。；建议：微调部分语句，使其更符合中文日常口语习惯，提升自然度。
 
 ### 抽样 Case 评价
 
 | Case | 分数 | 理由 |
 | --- | ---: | --- |
-| `journey_medium_001` | 0.750 | 语言地道，persona合理，oracle一致性完美。主要扣分项在于输入流的句式存在明显的模板复制痕迹，自然度不足。 |
-| `journey_medium_002` | 0.750 | 与001案例结构高度相似，仅在项目、城市、人名上做了替换。虽然单看合理，但作为一组数据，重复性过高，影响了整体的‘自然’评分。 |
-| `journey_medium_003` | 0.750 | 数据分析师的persona（如‘指标解释要保留英文metric id’）在输入中体现不足。整体仍受限于模板化输入和同构任务的问题。 |
-| `journey_medium_004` | 0.750 | 律师persona的‘下午审合同’习惯在输入中有呼应。核心问题仍是与其他案例共享的模板化和任务同构问题。 |
-| `journey_medium_005` | 0.750 | 财务主管的‘月底结账’、‘早上核对付款’习惯在输入中得到体现。但整体数据生成模式与其他案例无异。 |
-| `journey_medium_006` | 0.750 | 内容运营的‘晚上看评论’、‘周五整理选题’习惯有体现。作为系列中的最后一个，模板化问题同样显著。 |
+| `journey_medium_001` | 0.650 | 单个案例结构完整，ground truth与任务一致。但作为样本，其内容与后续案例高度雷同，模板化严重，严重影响了数据集的整体多样性和评估有效性。 |
+| `journey_medium_002` | 0.650 | 与案例001结构完全一致，仅项目名称和协作人不同。虽然persona（跨境电商运营）和城市（深圳）设定合理，但内容缺乏独特性。 |
+| `journey_medium_003` | 0.650 | 继续重复相同的模板。数据分析师（上海）的persona未在输入流中体现出明显的数据分析工作特性（如对数据口径、指标的深入讨论不足）。 |
+| `journey_medium_004` | 0.650 | 律师（广州）的persona同样被套入通用模板，未见法律相关工作（如合同审阅、案例研究）的独特内容。 |
+| `journey_medium_005` | 0.650 | 财务主管（成都）的案例依然遵循固定模式。‘月底结账’、‘早上核对付款’等习惯在输入流中体现不足，大部分内容是通用的工作沟通。 |
+| `journey_medium_006` | 0.650 | 内容运营（苏州）的案例是模板的最后一次重复。‘小红书活动’、‘晚上看评论’等特性未得到充分发挥。 |
 
 ## 附录：数据集与 Persona 示例
 
 - 数据语言：zh-CN
 - Persona 数：6
-- 输入条数：480
-- Eval task 数：54
+- 输入条数：600
+- Eval task 数：60
 - Case family 分布：full_chain_journey_medium=6
-- Task type 分布：card_extraction=36，cost_trace=6，memory_write=6，super_agent_qa=6
+- Task type 分布：card_extraction=42，cost_trace=6，memory_write=6，super_agent_qa=6
 
 | Persona | 职业 | 城市 | 语言 | Case | 输入 | Task | 示例输入 |
 | --- | --- | --- | --- | ---: | ---: | ---: | --- |
-| `journey_u_001` | 产品经理 | 杭州 | zh-CN | 1 | 80 | 9 | 以后像导出项目评审这种重要会议，尽量提前一天提醒我，别临近了才说。<br>先记一下，我最近不喝咖啡，早上也不要，免得影响状态。 |
-| `journey_u_002` | 跨境电商运营 | 深圳 | zh-CN | 1 | 80 | 9 | 以后像北美站增长评审这种重要会议，尽量提前一天提醒我，别临近了才说。<br>先记一下，我最近不喝咖啡，早上也不要，免得影响状态。 |
-| `journey_u_003` | 数据分析师 | 上海 | zh-CN | 1 | 80 | 9 | 以后像Memex eval评审这种重要会议，尽量提前一天提醒我，别临近了才说。<br>先记一下，我最近不喝咖啡，早上也不要，免得影响状态。 |
-| `journey_u_004` | 律师 | 广州 | zh-CN | 1 | 80 | 9 | 以后像法务合同库评审这种重要会议，尽量提前一天提醒我，别临近了才说。<br>先记一下，我最近不喝咖啡，早上也不要，免得影响状态。 |
-| `journey_u_005` | 财务主管 | 成都 | zh-CN | 1 | 80 | 9 | 以后像预算月结评审这种重要会议，尽量提前一天提醒我，别临近了才说。<br>先记一下，我最近不喝咖啡，早上也不要，免得影响状态。 |
-| `journey_u_006` | 内容运营 | 苏州 | zh-CN | 1 | 80 | 9 | 以后像小红书活动评审这种重要会议，尽量提前一天提醒我，别临近了才说。<br>先记一下，我最近不喝咖啡，早上也不要，免得影响状态。 |
+| `journey_u_001` | 产品经理 | 杭州 | zh-CN | 1 | 100 | 10 | 以后像导出项目评审这种重要会议，尽量提前一天提醒我，别临近了才说。<br>先记一下，我最近不喝咖啡，早上也不要，免得影响状态。 |
+| `journey_u_002` | 跨境电商运营 | 深圳 | zh-CN | 1 | 100 | 10 | 以后像北美站增长评审这种重要会议，尽量提前一天提醒我，别临近了才说。<br>先记一下，我最近不喝咖啡，早上也不要，免得影响状态。 |
+| `journey_u_003` | 数据分析师 | 上海 | zh-CN | 1 | 100 | 10 | 以后像Memex eval评审这种重要会议，尽量提前一天提醒我，别临近了才说。<br>先记一下，我最近不喝咖啡，早上也不要，免得影响状态。 |
+| `journey_u_004` | 律师 | 广州 | zh-CN | 1 | 100 | 10 | 以后像法务合同库评审这种重要会议，尽量提前一天提醒我，别临近了才说。<br>先记一下，我最近不喝咖啡，早上也不要，免得影响状态。 |
+| `journey_u_005` | 财务主管 | 成都 | zh-CN | 1 | 100 | 10 | 以后像预算月结评审这种重要会议，尽量提前一天提醒我，别临近了才说。<br>先记一下，我最近不喝咖啡，早上也不要，免得影响状态。 |
+| `journey_u_006` | 内容运营 | 苏州 | zh-CN | 1 | 100 | 10 | 以后像小红书活动评审这种重要会议，尽量提前一天提醒我，别临近了才说。<br>先记一下，我最近不喝咖啡，早上也不要，免得影响状态。 |

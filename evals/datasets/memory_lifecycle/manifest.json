@@ -8,15 +8,15 @@
   "case_file": "cases.jsonl",
   "persona_count": 12,
   "case_count": 12,
-  "input_count": 576,
-  "inputs_per_persona": 48,
+  "input_count": 1200,
+  "inputs_per_persona": 100,
   "task_count": 60,
   "tasks_per_persona": 5,
   "families": [
     "memory_lifecycle"
   ],
   "notes": [
-    "每个 persona 有 48 条中文输入，按生命周期阶段组织。",
+    "每个 persona 有 100 条中文输入，按生命周期阶段组织。",
     "覆盖 must-write recall、write precision、conflict handling、duplicate rate、temporal validity、source grounding 和 sensitive overwrite absence。",
     "fixture_observed 是理想 memory 状态，用于验证 grader 与报告口径；后续可接真实 memory replay 产物。"
   ]

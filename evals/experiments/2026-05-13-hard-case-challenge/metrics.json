@@ -1,7 +1,7 @@
 {
   "run_id": "2026-05-13-hard-case-challenge",
-  "started_at": "2026-05-12T17:39:15.505930Z",
-  "benchmark_elapsed_ms": 60805,
+  "started_at": "2026-05-12T18:01:48.676219Z",
+  "benchmark_elapsed_ms": 35186,
   "dataset_path": "evals/datasets/hard_case_challenge",
   "adapter": "fixture",
   "llm_judge_enabled": false,
@@ -10,7 +10,7 @@
   "dataset_summary": {
     "case_count": 112,
     "persona_count": 16,
-    "input_count": 112,
+    "input_count": 1568,
     "task_count": 112,
     "languages": [
       "zh-CN"
@@ -39,11 +39,11 @@
         "city": "上海",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "今天有点低落，主要是早会被临时打断了三次，不要把这个写成长期偏好。以后重要会议还是提前一天提醒我。",
-          "我之前说不喝咖啡，但最近上午可以喝一杯，下午还是别喝。"
+          "今天在上海处理预算复盘，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       },
       {
@@ -52,11 +52,11 @@
         "city": "深圳",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "今天很累，因为晚上没睡好，这只是今天的身体状态；但重要会议提前一天提醒这个规则要记住。",
-          "上个月说过早上也不要咖啡，现在改一下：上午一小杯可以，午后不要。"
+          "今天在深圳处理饮食限制，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       },
       {
@@ -65,11 +65,11 @@
         "city": "北京",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "我现在不太想说话，只是下午连续开会后的临时反应，别写成长记忆。重要会议提前一天提醒我。",
-          "咖啡偏好更新下，之前完全不喝是旧信息，现在只允许上午喝。"
+          "今天在北京处理临时情绪，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       },
       {
@@ -78,11 +78,11 @@
         "city": "杭州",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "今天有点烦，客服群消息太多了，这只是一次性状态；以后重要会议还是提前一天提醒。",
-          "之前那条“不要咖啡”过期了，最近早上可以喝，下午保持不喝。"
+          "今天在杭州处理客户反馈，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       },
       {
@@ -91,11 +91,11 @@
         "city": "上海",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "今天脑子有点空，可能是午饭吃太少，不是长期习惯。重要会议提醒保持提前一天。",
-          "我又开始喝咖啡了，但限定上午，下午喝会影响睡眠。"
+          "今天在上海处理项目周报，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       },
       {
@@ -104,11 +104,11 @@
         "city": "深圳",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "刚刚路上堵车心情差，别把它当成长期情绪。重要会议提前一天提醒我就好。",
-          "别再按“完全不喝咖啡”理解我了，现在是上午可以、下午不行。"
+          "今天在深圳处理日程改期，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       },
       {
@@ -117,11 +117,11 @@
         "city": "北京",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "今天想安静一下，是因为临时材料太多，不代表以后不要开会。重要会议要提前一天通知。",
-          "咖啡这件事修正一下：早上开会前可以一杯，下午还是避免。"
+          "今天在北京处理证据引用，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       },
       {
@@ -130,11 +130,11 @@
         "city": "杭州",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "下午有点焦虑，只是发布前的临时状态。以后重要会议提前一天提醒我。",
-          "以前不喝咖啡是那阵子胃不舒服，现在上午可以喝一杯。"
+          "今天在杭州处理PKM 归档，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       },
       {
@@ -143,11 +143,11 @@
         "city": "上海",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "今天有点低落，主要是早会被临时打断了三次，不要把这个写成长期偏好。以后重要会议还是提前一天提醒我。",
-          "我之前说不喝咖啡，但最近上午可以喝一杯，下午还是别喝。"
+          "今天在上海处理工具调用，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       },
       {
@@ -156,11 +156,11 @@
         "city": "深圳",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "今天很累，因为晚上没睡好，这只是今天的身体状态；但重要会议提前一天提醒这个规则要记住。",
-          "上个月说过早上也不要咖啡，现在改一下：上午一小杯可以，午后不要。"
+          "今天在深圳处理时间解析，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       },
       {
@@ -169,11 +169,11 @@
         "city": "北京",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "我现在不太想说话，只是下午连续开会后的临时反应，别写成长记忆。重要会议提前一天提醒我。",
-          "咖啡偏好更新下，之前完全不喝是旧信息，现在只允许上午喝。"
+          "今天在北京处理冲突记忆，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       },
       {
@@ -182,11 +182,11 @@
         "city": "杭州",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "今天有点烦，客服群消息太多了，这只是一次性状态；以后重要会议还是提前一天提醒。",
-          "之前那条“不要咖啡”过期了，最近早上可以喝，下午保持不喝。"
+          "今天在杭州处理只读问答，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       },
       {
@@ -195,11 +195,11 @@
         "city": "上海",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "今天脑子有点空，可能是午饭吃太少，不是长期习惯。重要会议提醒保持提前一天。",
-          "我又开始喝咖啡了，但限定上午，下午喝会影响睡眠。"
+          "今天在上海处理来源追溯，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       },
       {
@@ -208,11 +208,11 @@
         "city": "深圳",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "刚刚路上堵车心情差，别把它当成长期情绪。重要会议提前一天提醒我就好。",
-          "别再按“完全不喝咖啡”理解我了，现在是上午可以、下午不行。"
+          "今天在深圳处理会议提醒，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       },
       {
@@ -221,11 +221,11 @@
         "city": "北京",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "今天想安静一下，是因为临时材料太多，不代表以后不要开会。重要会议要提前一天通知。",
-          "咖啡这件事修正一下：早上开会前可以一杯，下午还是避免。"
+          "今天在北京处理预算复盘，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       },
       {
@@ -234,174 +234,92 @@
         "city": "杭州",
         "language": "zh-CN",
         "case_count": 7,
-        "input_count": 7,
+        "input_count": 98,
         "task_count": 7,
         "sample_inputs": [
           "下午有点焦虑，只是发布前的临时状态。以后重要会议提前一天提醒我。",
-          "以前不喝咖啡是那阵子胃不舒服，现在上午可以喝一杯。"
+          "今天在杭州处理饮食限制，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
         ]
       }
     ]
   },
   "dataset_audit": {
-    "overall_score": 0.7,
-    "language_consistency": 1.0,
+    "overall_score": 0.6,
+    "language_consistency": 0.7,
     "persona_plausibility": 0.8,
-    "input_naturalness": 0.6,
-    "oracle_consistency": 0.9,
+    "input_naturalness": 0.5,
+    "oracle_consistency": 0.3,
     "coverage_notes": [
-      "Covers 7 case families with 16 cases each, targeting diverse agent tasks",
-      "Input patterns are repetitive within memory_transient family, reducing diversity"
+      "样本仅覆盖了 `memory_transient` 和 `memory_conflict` 两个家族，其余5个家族（如 `card_ambiguous_time`, `pkm_organization` 等）无样本，无法评估。",
+      "提供的24个样本案例在结构和内容上高度同质化，可能无法代表整个数据集的多样性。"
     ],
     "issues": [
       {
+        "case_id": "ALL_SAMPLE_CASES",
+        "severity": "high",
+        "issue": "样本覆盖严重不均衡，无法评估数据集整体质量。",
+        "suggestion": "需要从所有7个案例家族中抽取代表性样本进行审查。"
+      },
+      {
         "case_id": "hard_memory_transient_01",
         "severity": "high",
-        "issue": "Input content is identical to hard_memory_transient_09, causing redundancy",
-        "suggestion": "Generate unique inputs for each case to improve dataset diversity"
+        "issue": "Oracle泄漏：`eval_tasks.expected` 中的 `must_write` 和 `must_not_write` 要求直接、明确地源自 `input_stream` 的第一条消息（用户指令），使得任务变成了简单的指令遵循，而非基于隐藏真相的推理。",
+        "suggestion": "评估任务应基于 `ground_truth_world` 中隐含的、需要从对话历史中推断出的状态或规则，而非直接复述用户明确给出的指令。"
       },
       {
-        "case_id": "hard_memory_transient_02",
-        "severity": "high",
-        "issue": "Input content is identical to hard_memory_transient_10, causing redundancy",
-        "suggestion": "Ensure each case has distinct input content"
-      },
-      {
-        "case_id": "hard_memory_transient_03",
+        "case_id": "hard_memory_transient_01",
         "severity": "medium",
-        "issue": "Input content is identical to hard_memory_transient_11, reducing naturalness",
-        "suggestion": "Vary input phrasing and context across cases"
+        "issue": "输入内容高度模板化和重复。所有 `memory_transient` 案例的第一条输入都遵循“表达临时情绪/状态 + 强调重要会议提前一天提醒”的固定模式，且后续上下文（context）也高度相似，只是替换了关键词（如“预算复盘”、“饮食限制”）。",
+        "suggestion": "增加用户表达的多样性和自然度，避免使用“不要把这个写成长期偏好”这类直接揭示任务目标的元指令。上下文应更贴近真实、连贯的对话流。"
       },
       {
         "case_id": "hard_memory_conflict_01",
+        "severity": "high",
+        "issue": "Oracle泄漏：`eval_tasks.expected` 中的 `conflicts` 要求直接对应 `input_stream` 第一条消息中用户明确陈述的新旧偏好对比，任务本质是信息提取而非冲突消解推理。",
+        "suggestion": "冲突场景应设计得更隐蔽，例如新偏好在对话中逐渐浮现，或旧偏好存在于更早的、未直接引用的记忆中，需要Agent进行关联和判断。"
+      },
+      {
+        "case_id": "hard_memory_conflict_01",
+        "severity": "medium",
+        "issue": "所有 `memory_conflict` 案例都围绕“咖啡偏好”这一单一主题，且输入表述虽有变化但语义相同，缺乏多样性。",
+        "suggestion": "引入更多类型的偏好或事实冲突场景（如日程安排、工作习惯、饮食限制等）。"
+      },
+      {
+        "case_id": "ALL_CASES",
+        "severity": "medium",
+        "issue": "`context` 流中的许多消息包含“不要影响 memory_transient 的判断”、“先不用写成长记忆”等元指令，这在真实用户交互中极不自然，像是给评估系统的提示而非用户对话。",
+        "suggestion": "移除所有元指令，让上下文成为纯粹的用户与Agent或其他人的自然对话、笔记或状态更新。"
+      },
+      {
+        "case_id": "ALL_CASES",
         "severity": "low",
-        "issue": "Input pattern is similar to other conflict cases, but content is unique",
-        "suggestion": "Maintain variation in conflict scenarios to avoid template化"
+        "issue": "时间跨度设置（2026年5月）略显刻意，且每天都有密集输入，不太符合一般用户的实际使用频率。",
+        "suggestion": "时间设置可以更随机，输入频率可以更符合真实场景（如某些天无输入）。"
       }
     ],
     "sample_reviews": [
       {
         "case_id": "hard_memory_transient_01",
-        "score": 0.5,
-        "reason": "Input is duplicated in hard_memory_transient_09, reducing uniqueness"
+        "score": 0.4,
+        "reason": "典型的模板化案例，存在严重的oracle泄漏问题。评估任务直接复述用户指令，无法测试Agent的推理能力。"
       },
       {
         "case_id": "hard_memory_transient_02",
-        "score": 0.5,
-        "reason": "Input is duplicated in hard_memory_transient_10, causing repetition"
-      },
-      {
-        "case_id": "hard_memory_transient_03",
-        "score": 0.6,
-        "reason": "Input is duplicated in hard_memory_transient_11, but content is natural"
-      },
-      {
-        "case_id": "hard_memory_transient_04",
-        "score": 0.6,
-        "reason": "Input is duplicated in hard_memory_transient_12, affecting diversity"
-      },
-      {
-        "case_id": "hard_memory_transient_05",
-        "score": 0.6,
-        "reason": "Input is duplicated in hard_memory_transient_13, but persona is plausible"
-      },
-      {
-        "case_id": "hard_memory_transient_06",
-        "score": 0.6,
-        "reason": "Input is duplicated in hard_memory_transient_14, reducing naturalness"
-      },
-      {
-        "case_id": "hard_memory_transient_07",
-        "score": 0.6,
-        "reason": "Input is duplicated in hard_memory_transient_15, but language is consistent"
-      },
-      {
-        "case_id": "hard_memory_transient_08",
-        "score": 0.6,
-        "reason": "Input is duplicated in hard_memory_transient_16, causing redundancy"
-      },
-      {
-        "case_id": "hard_memory_transient_09",
-        "score": 0.5,
-        "reason": "Input is identical to hard_memory_transient_01, high duplication"
-      },
-      {
-        "case_id": "hard_memory_transient_10",
-        "score": 0.5,
-        "reason": "Input is identical to hard_memory_transient_02, high duplication"
-      },
-      {
-        "case_id": "hard_memory_transient_11",
-        "score": 0.6,
-        "reason": "Input is identical to hard_memory_transient_03, but expected consistency is good"
-      },
-      {
-        "case_id": "hard_memory_transient_12",
-        "score": 0.6,
-        "reason": "Input is identical to hard_memory_transient_04, reducing input naturalness"
-      },
-      {
-        "case_id": "hard_memory_transient_13",
-        "score": 0.6,
-        "reason": "Input is identical to hard_memory_transient_05, but oracle consistency is high"
-      },
-      {
-        "case_id": "hard_memory_transient_14",
-        "score": 0.6,
-        "reason": "Input is identical to hard_memory_transient_06, affecting diversity"
-      },
-      {
-        "case_id": "hard_memory_transient_15",
-        "score": 0.6,
-        "reason": "Input is identical to hard_memory_transient_07, but persona is believable"
-      },
-      {
-        "case_id": "hard_memory_transient_16",
-        "score": 0.6,
-        "reason": "Input is identical to hard_memory_transient_08, causing template化"
+        "score": 0.4,
+        "reason": "与case 01结构完全相同，仅替换了职业、城市和少数词汇，问题性质一致。"
       },
       {
         "case_id": "hard_memory_conflict_01",
-        "score": 0.8,
-        "reason": "Input is unique and natural, with consistent expected output"
+        "score": 0.3,
+        "reason": "冲突解决任务设计失败，答案直接来自用户输入。咖啡主题重复。"
       },
       {
         "case_id": "hard_memory_conflict_02",
-        "score": 0.8,
-        "reason": "Input is unique and plausible, oracle consistency is high"
-      },
-      {
-        "case_id": "hard_memory_conflict_03",
-        "score": 0.8,
-        "reason": "Input is natural and persona is credible, no duplication"
-      },
-      {
-        "case_id": "hard_memory_conflict_04",
-        "score": 0.8,
-        "reason": "Input is distinct and language is consistent"
-      },
-      {
-        "case_id": "hard_memory_conflict_05",
-        "score": 0.8,
-        "reason": "Input is unique and expected output aligns with input"
-      },
-      {
-        "case_id": "hard_memory_conflict_06",
-        "score": 0.8,
-        "reason": "Input is natural and persona is believable"
-      },
-      {
-        "case_id": "hard_memory_conflict_07",
-        "score": 0.8,
-        "reason": "Input is distinct and oracle consistency is good"
-      },
-      {
-        "case_id": "hard_memory_conflict_08",
-        "score": 0.8,
-        "reason": "Input is unique and language is stable"
+        "score": 0.3,
+        "reason": "与conflict case 01本质相同，仅输入表述稍有变化，核心问题未变。"
       }
     ],
-    "reason": "Language is consistently zh-CN and personas are plausible, but high repetition in input content across memory_transient cases reduces diversity and naturalness, making the dataset less suitable for benchmark without revisions."
+    "reason": "数据集在语言和基础persona设置上合格，但存在根本性设计缺陷：1) 样本覆盖不全，无法评估整体；2) 评估任务存在严重的oracle泄漏，将复杂推理任务降级为简单指令遵循；3) 案例内容高度模板化和重复，缺乏自然对话的多样性和复杂性。因此，当前数据集不适合作为有效的Agent能力评估基准，需要重新设计任务逻辑并大幅扩充和多样化案例内容。"
   },
   "assertions": {
     "passed": 496,

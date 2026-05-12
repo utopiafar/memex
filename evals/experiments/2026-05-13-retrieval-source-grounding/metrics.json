@@ -1,7 +1,7 @@
 {
   "run_id": "2026-05-13-retrieval-source-grounding",
-  "started_at": "2026-05-12T17:40:46.531593Z",
-  "benchmark_elapsed_ms": 26562,
+  "started_at": "2026-05-12T18:02:48.917337Z",
+  "benchmark_elapsed_ms": 35516,
   "dataset_path": "evals/datasets/retrieval_source_grounding",
   "adapter": "fixture",
   "llm_judge_enabled": false,
@@ -10,7 +10,7 @@
   "dataset_summary": {
     "case_count": 12,
     "persona_count": 12,
-    "input_count": 576,
+    "input_count": 1200,
     "task_count": 144,
     "languages": [
       "zh-CN"
@@ -28,7 +28,7 @@
         "city": "杭州",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 48,
+        "input_count": 100,
         "task_count": 12,
         "sample_inputs": [
           "5月8日下午三点和Alex在腾讯会议讨论导出项目预算，重点看 CPA、ROAS 和退款率。",
@@ -41,7 +41,7 @@
         "city": "深圳",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 48,
+        "input_count": 100,
         "task_count": 12,
         "sample_inputs": [
           "5月8日下午三点和Jason在腾讯会议讨论北美站增长预算，重点看 CPA、ROAS 和退款率。",
@@ -54,7 +54,7 @@
         "city": "上海",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 48,
+        "input_count": 100,
         "task_count": 12,
         "sample_inputs": [
           "5月8日下午三点和Grace在腾讯会议讨论Memex eval预算，重点看 CPA、ROAS 和退款率。",
@@ -67,7 +67,7 @@
         "city": "广州",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 48,
+        "input_count": 100,
         "task_count": 12,
         "sample_inputs": [
           "5月8日下午三点和Annie在腾讯会议讨论法务合同库预算，重点看 CPA、ROAS 和退款率。",
@@ -80,7 +80,7 @@
         "city": "成都",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 48,
+        "input_count": 100,
         "task_count": 12,
         "sample_inputs": [
           "5月8日下午三点和Mina在腾讯会议讨论预算月结预算，重点看 CPA、ROAS 和退款率。",
@@ -93,7 +93,7 @@
         "city": "苏州",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 48,
+        "input_count": 100,
         "task_count": 12,
         "sample_inputs": [
           "5月8日下午三点和Grace在腾讯会议讨论小红书活动预算，重点看 CPA、ROAS 和退款率。",
@@ -106,7 +106,7 @@
         "city": "厦门",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 48,
+        "input_count": 100,
         "task_count": 12,
         "sample_inputs": [
           "5月8日下午三点和小陈在腾讯会议讨论个人工具订阅预算，重点看 CPA、ROAS 和退款率。",
@@ -119,7 +119,7 @@
         "city": "北京",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 48,
+        "input_count": 100,
         "task_count": 12,
         "sample_inputs": [
           "5月8日下午三点和Ada在腾讯会议讨论公开课改版预算，重点看 CPA、ROAS 和退款率。",
@@ -132,7 +132,7 @@
         "city": "南京",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 48,
+        "input_count": 100,
         "task_count": 12,
         "sample_inputs": [
           "5月8日下午三点和周医生在腾讯会议讨论门诊随访系统预算，重点看 CPA、ROAS 和退款率。",
@@ -145,7 +145,7 @@
         "city": "武汉",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 48,
+        "input_count": 100,
         "task_count": 12,
         "sample_inputs": [
           "5月8日下午三点和Sophie在腾讯会议讨论绩效校准预算，重点看 CPA、ROAS 和退款率。",
@@ -158,7 +158,7 @@
         "city": "长沙",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 48,
+        "input_count": 100,
         "task_count": 12,
         "sample_inputs": [
           "5月8日下午三点和Nora在腾讯会议讨论会员页改版预算，重点看 CPA、ROAS 和退款率。",
@@ -171,7 +171,7 @@
         "city": "青岛",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 48,
+        "input_count": 100,
         "task_count": 12,
         "sample_inputs": [
           "5月8日下午三点和Ethan在腾讯会议讨论B 端试点预算，重点看 CPA、ROAS 和退款率。",
@@ -182,64 +182,81 @@
   },
   "dataset_audit": {
     "overall_score": 0.65,
-    "language_consistency": 1.0,
+    "language_consistency": 0.9,
     "persona_plausibility": 0.7,
     "input_naturalness": 0.4,
-    "oracle_consistency": 0.9,
+    "oracle_consistency": 0.8,
     "coverage_notes": [
-      "覆盖了12种不同职业和城市，结构完整。",
-      "所有案例均属于同一任务家族(retrieval_source_grounding)，任务类型单一(retrieval_qa)。",
-      "每个案例的输入流(input_stream)和评估任务(eval_tasks)数量固定，模式高度一致。"
+      "任务类型单一，全部为`retrieval_qa`，缺乏多样性。",
+      "输入流条目数量多（每个case 100条），但内容在不同persona间高度重复，仅替换项目名、人名等少数变量。",
+      "所有case共享完全相同的`ground_truth_world.facts`（如饮食、会议提醒偏好），这在不同用户场景下不太自然。",
+      "评估任务（eval_tasks）结构一致，但查询和预期答案在不同case间也高度模板化。"
     ],
     "issues": [
       {
-        "case_id": "all",
+        "case_id": "retrieval_grounding_001",
         "severity": "high",
-        "issue": "严重的模板化与内容重复",
-        "suggestion": "打破模板，为不同persona设计符合其职业、城市、生活习惯的独特输入内容、事实(facts)和笔记(notes)。避免所有persona共享完全相同的偏好、习惯和通用输入语句。"
+        "issue": "输入流（input_stream）存在大量模板化、重复性内容，不同case间仅替换少数词汇（如项目名、人名、城市），缺乏自然对话的多样性和随机性。",
+        "suggestion": "大幅重写输入流，为不同persona设计更独特、符合其职业和生活习惯的对话内容，减少跨case的句式重复。"
       },
       {
-        "case_id": "all",
+        "case_id": "retrieval_grounding_001",
         "severity": "medium",
-        "issue": "文化/职业自然性不足",
-        "suggestion": "调整persona的偏好和习惯以更贴合其职业与文化背景。例如，医生的饮食偏好可能更关注健康，律师的习惯可能与案件管理相关，而非所有人均有‘不要海鲜、少糖’等相同偏好。"
+        "issue": "`ground_truth_world.facts` 中的记忆条目（如饮食偏好、会议提醒偏好）在所有12个case中完全一致，这不符合不同用户应有不同个人偏好的现实。",
+        "suggestion": "为不同persona定制不同的个人偏好记忆，增加数据集的真实性。"
       },
       {
-        "case_id": "all",
+        "case_id": "retrieval_grounding_001",
         "severity": "medium",
-        "issue": "输入流(input_stream)缺乏多样性",
-        "suggestion": "输入流中大量条目是通用规则（如‘不要把今天想喝奶茶写成长期饮食偏好’），而非具体、自然的用户记录。应增加更多反映真实工作流和生活的具体事件、笔记和记忆。"
+        "issue": "部分职业与项目内容的搭配略显牵强。例如，律师（retrieval_u_004）讨论“法务合同库”预算时，关注点却是通用的“CPA、ROAS、退款率”，这更像是市场或运营指标，与法律合同管理的核心关注点（如合规风险、审核效率）不符。",
+        "suggestion": "调整项目内容和评估指标，使其更贴合对应职业的典型工作场景和术语。"
       },
       {
-        "case_id": "all",
+        "case_id": "retrieval_grounding_002",
         "severity": "low",
-        "issue": "评估任务(eval_tasks)同质化",
-        "suggestion": "所有案例的12个评估任务结构完全相同（10个检索，2个未知）。应根据persona和项目特点设计不同的、更具针对性的查询和评估点。"
+        "issue": "输入流中混杂了大量元指令（如“如果没有记录，回答我时直接说不确定，别猜”），这些更像是系统提示而非用户自然产生的记忆或笔记。",
+        "suggestion": "将元指令从`input_stream`中分离，或将其转化为更自然的用户表达（例如，在对话中体现用户对AI回答方式的不满和纠正）。"
+      },
+      {
+        "case_id": "retrieval_grounding_003",
+        "severity": "medium",
+        "issue": "评估任务（eval_tasks）的查询和预期答案在不同case间高度相似，仅替换项目名和人名，导致测试覆盖的场景实质单一。",
+        "suggestion": "设计更多样化、更贴近各职业独特场景的查询问题，而不仅仅是同一套问题的变量替换。"
       }
     ],
     "sample_reviews": [
       {
         "case_id": "retrieval_grounding_001",
-        "score": 0.7,
-        "reason": "结构完整，ground_truth、input、eval_tasks之间一致性高。但作为‘产品经理’，其输入流中大量通用规则（如饮食、咖啡偏好）与工作场景关联弱，显得模板化。"
+        "score": 0.6,
+        "reason": "结构完整，oracle一致性好，但输入流模板化严重，persona习惯（如‘周三下午需求评审’）过于通用，缺乏独特性。"
       },
       {
         "case_id": "retrieval_grounding_002",
         "score": 0.6,
-        "reason": "与case_001高度相似，仅替换项目名(北美站增长)、人名(Jason)和部分细节(带保温杯和降压药)。persona(跨境电商运营)的独特性未在内容中体现，重复性问题严重。"
+        "reason": "与001 case结构高度相似，仅项目名、人名、城市和个别指标（退款率）不同，输入流重复度高，多样性不足。"
       },
       {
         "case_id": "retrieval_grounding_003",
         "score": 0.6,
-        "reason": "继续重复模板。‘数据分析师’的persona本应有更多关于数据指标、分析方法的独特输入，但实际内容与其它case雷同。"
+        "reason": "数据分析师persona的‘保留英文metric id’偏好（体现在‘retry rate’）是合理细节，但整体仍受困于跨case的模板化问题。"
       },
       {
-        "case_id": "retrieval_grounding_009",
-        "score": 0.65,
-        "reason": "persona为‘医生’，但输入流中缺乏医疗相关的工作内容（如病例、诊断、会议），仍充斥通用项目管理和个人偏好规则，职业可信度低。"
+        "case_id": "retrieval_grounding_004",
+        "score": 0.6,
+        "reason": "律师persona的‘重要结论要列来源’偏好是好的设计，但项目内容（法务合同库看CPA/ROAS）与职业核心场景匹配度一般。"
+      },
+      {
+        "case_id": "retrieval_grounding_005",
+        "score": 0.6,
+        "reason": "财务主管persona的‘数字先给口径’偏好贴合职业，但输入流和任务与其他case雷同，削弱了评估价值。"
+      },
+      {
+        "case_id": "retrieval_grounding_006",
+        "score": 0.6,
+        "reason": "内容运营persona的‘复盘保留素材来源’偏好合理，但‘小红书活动’看CPA/ROAS的设定与案例001-005逻辑完全一致，缺乏场景特异性。"
       }
     ],
-    "reason": "数据集在语言一致性和基础结构（oracle一致性）上表现良好，但存在致命的模板化问题。所有persona的输入内容、偏好、习惯高度重复，导致输入自然性和persona可信度大打折扣。这更像是一个‘填空式’生成的数据集，而非反映真实多样用户场景的合成数据。作为小规模benchmark，其评估有效性存疑，必须先解决内容多样性和自然性问题。"
+    "reason": "数据集语言一致，oracle逻辑自洽，但核心问题在于严重的模板化和重复。不同persona的输入流、评估任务甚至部分世界事实高度雷同，仅进行机械替换，导致数据集多样性差，无法有效测试模型在不同真实场景下的泛化能力。作为小规模benchmark，其‘压力测试’价值有限。"
   },
   "assertions": {
     "passed": 1272,

@@ -4,6 +4,8 @@ import 'dart:io';
 typedef JsonMap = Map<String, dynamic>;
 
 const _casesPerCategory = 16;
+const _inputsPerHardCase = 14;
+const _hardCategoriesPerPersona = 7;
 
 Future<void> main(List<String> args) async {
   final outDir = Directory(
@@ -44,6 +46,8 @@ Future<void> main(List<String> args) async {
     'persona_count': _casesPerCategory,
     'case_count': cases.length,
     'input_count': inputCount,
+    'inputs_per_case': _inputsPerHardCase,
+    'inputs_per_persona_approx': _inputsPerHardCase * _hardCategoriesPerPersona,
     'task_count': taskCount,
     'cases_per_category': _casesPerCategory,
     'seeded_fixture_failure_count': seededFailures,
@@ -58,6 +62,7 @@ Future<void> main(List<String> args) async {
     ],
     'notes': [
       '该数据集是 challenge set，不追求全绿，fixture 中保留少量种子失败用于验证失败报告和 error analysis。',
+      '同一个 hard_u_xx 会跨 7 类边界场景出现；每类场景带 $_inputsPerHardCase 条上下文输入，因此每个 hard persona 约 ${_inputsPerHardCase * _hardCategoriesPerPersona} 条输入。',
       '所有 oracle 来自 ground_truth_world 和 expected constraints。',
       '后续可把 fixture_observed 替换为真实 replay 或模块 adapter 产物。',
     ],
@@ -384,10 +389,15 @@ JsonMap _case({
     'input_stream': [
       {
         'id': 'input_$id',
-        'time': '2026-05-${_two(10 + index)}T09:${_two(index * 3)}:00+08:00',
+        'time': _hardInputTime(index, 0),
         'channel': index % 3 == 0 ? 'voice_transcript' : 'text',
         'content': input,
-      }
+      },
+      ..._hardContextInputs(
+        category: category,
+        index: index,
+        caseId: id,
+      ),
     ],
     'eval_tasks': [
       {
@@ -466,6 +476,58 @@ bool _seededFailure(int index) =>
 String _cycle(List<String> values, int index) =>
     values[(index - 1) % values.length];
 
+List<JsonMap> _hardContextInputs({
+  required String category,
+  required int index,
+  required String caseId,
+}) {
+  final occupation = _occupations[index % _occupations.length];
+  final city = _cities[index % _cities.length];
+  return [
+    for (var i = 1; i < _inputsPerHardCase; i++)
+      {
+        'id': 'context_${caseId}_${_two(i)}',
+        'time': _hardInputTime(index, i),
+        'channel': (index + i) % 4 == 0 ? 'voice_transcript' : 'text',
+        'content': _hardContextContent(
+          category: category,
+          index: index,
+          offset: i,
+          occupation: occupation,
+          city: city,
+        ),
+      }
+  ];
+}
+
+String _hardContextContent({
+  required String category,
+  required int index,
+  required int offset,
+  required String occupation,
+  required String city,
+}) {
+  final topic = _cycle(_hardNoiseTopics, index + offset);
+  final person = _people[(index + offset) % _people.length];
+  final place = _places[(index + offset) % _places.length];
+  final templates = [
+    '今天在$city处理$topic，有点碎，但这只是背景，不要影响 $category 的判断。',
+    '作为$occupation，我临时问一下$topic 的写法，先不用写成长记忆。',
+    '$person 提到$topic 时要看原始来源，不要因为相似词就强行关联。',
+    '如果这条只是随手记录，就不要触发日程刷新，也不要写长期偏好。',
+    '晚上可能去$place，但还没确定，后面问起来没有记录就说不确定。',
+    '关于$topic，我更关心来源和时间，不要补没有出现过的地点。',
+    '这周重复提到$topic 时，应该合并证据，不要生成很多近似条目。',
+    '今天情绪一般，和$topic卡住有关，这不是长期状态。',
+    '如果输入里有“不要修改”，Super Agent 只能只读回答。',
+    '把$topic 放到项目笔记时，别混进生活杂记，也别写入今天心情。',
+    '日程相关内容只有明确时间和行动时才刷新，普通想法先跳过。',
+    '$person 的反馈如果没有 source id，回答时要明确不确定。',
+    '临时改期要覆盖旧时间，不能同时保留两个活跃日程。',
+  ];
+  return templates[(offset - 1) % templates.length];
+}
+
 JsonMap _taskTrace(String type) => {
       'event_type': 'task',
       'task_id': type,
@@ -490,6 +552,13 @@ JsonMap _llmCall(String agentName, int promptTokens, int completionTokens) => {
 
 String _two(int n) => n.toString().padLeft(2, '0');
 
+String _hardInputTime(int index, int offset) {
+  final date = DateTime.utc(2026, 5, 10 + index).add(Duration(days: offset));
+  final hour = [9, 13, 20][offset % 3];
+  return '${date.year}-${_two(date.month)}-${_two(date.day)}T'
+      '${_two(hour)}:${_two((index * 3 + offset * 5) % 60)}:00+08:00';
+}
+
 String _ambiguousDateText(int index) {
   final date = DateTime.utc(2026, 5, 20).add(Duration(days: index - 1));
   return '${date.month}月${date.day}日';
@@ -504,6 +573,23 @@ const _people = ['老王', 'Annie', 'Jason', 'Ada'];
 const _places = ['望京', '腾讯会议', '公司楼下', '飞书会议'];
 const _occupations = ['产品经理', '数据分析师', '跨境电商运营', '老师'];
 const _cities = ['杭州', '上海', '深圳', '北京'];
+
+const _hardNoiseTopics = [
+  '会议提醒',
+  '预算复盘',
+  '饮食限制',
+  '临时情绪',
+  '客户反馈',
+  '项目周报',
+  '日程改期',
+  '证据引用',
+  'PKM 归档',
+  '工具调用',
+  '时间解析',
+  '冲突记忆',
+  '只读问答',
+  '来源追溯',
+];
 
 const _transientNeedles = [
   '有点低落',
