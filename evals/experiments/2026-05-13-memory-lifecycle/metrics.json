@@ -1,0 +1,340 @@
+{
+  "run_id": "2026-05-13-memory-lifecycle",
+  "started_at": "2026-05-12T17:41:39.668409Z",
+  "benchmark_elapsed_ms": 24552,
+  "dataset_path": "evals/datasets/memory_lifecycle",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 12,
+  "task_count": 60,
+  "dataset_summary": {
+    "case_count": 12,
+    "persona_count": 12,
+    "input_count": 576,
+    "task_count": 60,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "memory_lifecycle": 12
+    },
+    "tasks_by_type": {
+      "memory_write": 48,
+      "super_agent_qa": 12
+    },
+    "personas": [
+      {
+        "user_id": "memory_life_u_001",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 48,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是导出项目相关评审。",
+          "点餐记一下：不要海鲜，少糖，晚上少咖啡。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_002",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 48,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是北美站增长相关评审。",
+          "外卖偏好更新：不要海鲜，少糖，生冷先避开。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_003",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 48,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是Memex eval相关评审。",
+          "午饭偏好：少油，别点海鲜，下午不要奶茶。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_004",
+        "occupation": "老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 48,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是公开课改版相关评审。",
+          "上课前别给我订太辣的，也尽量不要冰饮。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_005",
+        "occupation": "律师",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 48,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是法务合同库相关评审。",
+          "加班餐清淡一点，不要海鲜，咖啡只放上午。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_006",
+        "occupation": "财务主管",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 48,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是预算月结相关评审。",
+          "月底加班餐别太油，少糖，不要生冷。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_007",
+        "occupation": "内容运营",
+        "city": "苏州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 48,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是小红书活动相关评审。",
+          "拍摄当天午饭少糖少油，不要海鲜，避免犯困。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_008",
+        "occupation": "独立开发者",
+        "city": "厦门",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 48,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是个人工具订阅相关评审。",
+          "写代码时别给我安排高糖饮料，咖啡只上午喝。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_009",
+        "occupation": "医生",
+        "city": "南京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 48,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是门诊随访系统相关评审。",
+          "值班餐尽量清淡，不要海鲜，夜里不要咖啡。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_010",
+        "occupation": "HRBP",
+        "city": "武汉",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 48,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是绩效校准相关评审。",
+          "面谈前别安排太甜的饮料，午饭尽量少油。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_011",
+        "occupation": "设计师",
+        "city": "长沙",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 48,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是会员页改版相关评审。",
+          "评审日午饭少糖，不要冰饮，避免下午困。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_012",
+        "occupation": "创业者",
+        "city": "青岛",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 48,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是B 端试点相关评审。",
+          "跑客户当天少糖少油，咖啡只上午喝。"
+        ]
+      }
+    ]
+  },
+  "dataset_audit": {
+    "overall_score": 0.65,
+    "language_consistency": 1.0,
+    "persona_plausibility": 0.9,
+    "input_naturalness": 0.6,
+    "oracle_consistency": 0.9,
+    "coverage_notes": [
+      "数据集覆盖了12种不同职业和城市的persona，场景（记忆生命周期）统一。",
+      "每个case的输入流（48条）和评估任务（5个）结构完整，ground truth与输入流逻辑一致。",
+      "核心测试点（偏好记忆、冲突解决、时间范围、敏感信息边界、最新记忆查询）在每个case中都有体现。"
+    ],
+    "issues": [
+      {
+        "case_id": "ALL",
+        "severity": "high",
+        "issue": "严重的模板化和重复性问题。12个案例的输入序列、对话模式、甚至具体语句（如‘今天只是想吃...不是长期偏好’、‘完全不喝咖啡’、‘咖啡偏好更新’、‘周三下午需求评审暂停’等）高度雷同，仅替换了职业、城市、项目名称和少数习惯细节。",
+        "suggestion": "需要大幅增加场景和对话模式的多样性。避免在所有case中使用完全相同的对话流程和关键句式。应模拟更真实、多变的用户交互，而非填充模板。"
+      },
+      {
+        "case_id": "ALL",
+        "severity": "medium",
+        "issue": "输入内容存在‘自嗨’或过度设计的痕迹。用户频繁、明确地指示AI‘不要写成长期记忆’、‘不要更新偏好’、‘只合并证据’等，这更像是测试指令而非自然对话。真实用户可能不会如此频繁和精确地给出元指令。",
+        "suggestion": "减少用户对记忆系统操作的直接指令。将测试点（如区分临时状态与长期偏好）更自然地融入对话内容中，而非通过显式命令来体现。"
+      },
+      {
+        "case_id": "memory_lifecycle_001 至 _012",
+        "severity": "medium",
+        "issue": "文化自然度存疑。虽然语言是中文，但对话模式和某些表达（如频繁的‘不要写进长期记忆’）在中文日常交流中显得生硬，更像是实验室环境下的测试用例。",
+        "suggestion": "让对话更贴近中文用户在真实助理场景下的表达习惯，减少‘元认知’式的表述，增加生活化、场景化的交互。"
+      },
+      {
+        "case_id": "memory_lifecycle_001 至 _012",
+        "severity": "low",
+        "issue": "评估任务（eval_tasks）的设置也呈现模板化，每个case的任务ID、类型和检查点几乎完全一致，仅变量名不同。",
+        "suggestion": "在保持核心测试维度不变的前提下，可以设计一些差异化的评估任务，例如在某些case中测试记忆的检索而非写入，或引入更复杂的多跳推理。"
+      }
+    ],
+    "sample_reviews": [
+      {
+        "case_id": "memory_lifecycle_001",
+        "score": 0.7,
+        "reason": "结构完整，逻辑自洽，但作为第一个案例就暴露了整个数据集的模板化问题。输入序列是后续11个案例的‘母版’。"
+      },
+      {
+        "case_id": "memory_lifecycle_003",
+        "score": 0.65,
+        "reason": "persona（数据分析师）和项目（Memex eval）的设定有meta趣味，但对话流程与case 001无异，多样性不足。"
+      },
+      {
+        "case_id": "memory_lifecycle_009",
+        "score": 0.65,
+        "reason": "医生persona的设定（如‘值班餐’、‘夜里不要咖啡’）更贴合职业特点，但依然无法摆脱底层模板的束缚。"
+      }
+    ],
+    "reason": "数据集在语言一致性、persona基础设定和oracle逻辑自洽性上表现良好。然而，其致命缺陷在于极高的模板化程度和重复性，导致输入自然度大打折扣，整体像是一套‘换皮’生成的测试用例，而非多样化的合成数据。这限制了其作为评估基准的有效性，因为模型可能学会的是应对固定模式而非真正的记忆管理能力。需要先解决多样性问题，才能用于扩大规模。"
+  },
+  "assertions": {
+    "passed": 300,
+    "total": 300,
+    "pass_rate": 1.0,
+    "avg_score": 1.0
+  },
+  "by_family": {
+    "memory_write": {
+      "passed": 240,
+      "total": 240,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "super_agent_qa": {
+      "passed": 60,
+      "total": 60,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "by_metric": {
+    "memory_must_write_recall": {
+      "passed": 60,
+      "total": 60,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_source_grounding": {
+      "passed": 60,
+      "total": 60,
+      "pass_rate": 1.0
+    },
+    "memory_temporal_validity": {
+      "passed": 36,
+      "total": 36,
+      "pass_rate": 1.0
+    },
+    "memory_must_not_write_precision": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0
+    },
+    "memory_write_precision": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_duplicate_rate": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_conflict_handling": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0
+    },
+    "sensitive_overwrite_absence": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0
+    },
+    "answer_must_include": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unsupported_claim_absence": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0
+    },
+    "prohibited_tool_absence": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0
+    },
+    "super_agent_read_only_compliance": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0
+    },
+    "personalization_accuracy": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 60,
+    "tool_call_count": 12,
+    "avg_latency_ms": 968.0,
+    "p95_latency_ms": 1100.0,
+    "avg_total_tokens": 2720.0,
+    "total_tokens": 163200
+  }
+}

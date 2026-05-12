@@ -537,8 +537,20 @@ class BenchmarkRunner {
     final taskResults = <TaskResult>[];
     final traceEvents = <JsonMap>[];
     final datasetSummary = DatasetSummary.fromCases(cases);
+    final runStopwatch = Stopwatch()..start();
 
-    for (final evalCase in cases) {
+    stdout.writeln(
+      '[eval] run=$runId adapter=${config.adapter} '
+      'cases=${cases.length} tasks=${datasetSummary.taskCount}',
+    );
+
+    for (var caseIndex = 0; caseIndex < cases.length; caseIndex++) {
+      final evalCase = cases[caseIndex];
+      final caseStopwatch = Stopwatch()..start();
+      stdout.writeln(
+        '[eval] case ${caseIndex + 1}/${cases.length} '
+        '${evalCase.caseId} tasks=${evalCase.tasks.length}',
+      );
       for (final task in evalCase.tasks) {
         final observed = await adapter.observe(evalCase, task);
         final assertions = await TaskGrader.grade(
@@ -568,6 +580,10 @@ class BenchmarkRunner {
           ),
         );
       }
+      stdout.writeln(
+        '[eval] case done ${evalCase.caseId} '
+        'elapsed=${_duration(caseStopwatch.elapsedMilliseconds)}',
+      );
     }
 
     JsonMap? datasetAudit;
@@ -576,9 +592,16 @@ class BenchmarkRunner {
       if (activeJudge == null) {
         throw StateError('Dataset audit requires an LLM judge configuration.');
       }
+      stdout.writeln(
+        '[eval] dataset audit start sample_limit=${config.auditSampleLimit ?? 12}',
+      );
       datasetAudit = await activeJudge.auditDataset(
         cases: cases,
         sampleLimit: config.auditSampleLimit ?? 12,
+      );
+      stdout.writeln(
+        '[eval] dataset audit done '
+        'elapsed=${_duration(runStopwatch.elapsedMilliseconds)}',
       );
     }
 
@@ -2405,8 +2428,8 @@ class ReportRenderer {
     buffer.writeln('# Memex Agent Eval 实验报告');
     buffer.writeln();
 
-    _writeExperimentQuestion(buffer, result);
     _writeConclusion(buffer, result, assertions, cost);
+    _writeExperimentQuestion(buffer, result);
     _writeDatasetAndCost(buffer, result, assertions, cost);
     _writeMetricDefinitions(buffer, result);
     _writeResultData(buffer, result, cost);
@@ -2473,7 +2496,7 @@ class ReportRenderer {
     buffer.writeln('| 实际 token | ${cost['total_tokens'] ?? 0} |');
     if (result.metrics['replay_elapsed_ms'] != null) {
       buffer.writeln(
-        '| Replay 总耗时 | ${_duration(result.metrics['replay_elapsed_ms'])} |',
+        '| ${_replayTimeLabel(result)} | ${_duration(result.metrics['replay_elapsed_ms'])} |',
       );
     }
     buffer.writeln(
@@ -2571,12 +2594,12 @@ class ReportRenderer {
     buffer.writeln('- P95 延迟：${_score(cost['p95_latency_ms'])} ms');
     if (result.metrics['replay_elapsed_ms'] != null) {
       buffer.writeln(
-        '- Replay 总耗时：${_duration(result.metrics['replay_elapsed_ms'])}',
+        '- ${_replayTimeLabel(result)}：${_duration(result.metrics['replay_elapsed_ms'])}',
       );
     }
     if (result.metrics['replay_case_elapsed_total_ms'] != null) {
       buffer.writeln(
-        '- Case 耗时累计：${_duration(result.metrics['replay_case_elapsed_total_ms'])}',
+        '- Case 观察耗时累计：${_duration(result.metrics['replay_case_elapsed_total_ms'])}',
       );
     }
     buffer.writeln(
@@ -2597,11 +2620,14 @@ class ReportRenderer {
     buffer.writeln('- 运行 ID：`${result.runId}`');
     buffer.writeln('- 数据集：`${result.datasetPath}`');
     buffer.writeln('- 观察适配器：`${result.adapter}`');
+    buffer.writeln('- 本地完整日志：`evals/runs/${result.runId}/debug_log.json`');
+    buffer.writeln('- 本地 Trace：`evals/runs/${result.runId}/trace.ndjson`');
+    buffer.writeln('- 本地断言明细：`evals/runs/${result.runId}/outputs.jsonl`');
     buffer.writeln('- 场景样本数：${result.caseCount}');
     buffer.writeln('- 评估任务数：${result.taskCount}');
     if (result.metrics['replay_elapsed_ms'] != null) {
       buffer.writeln(
-        '- Replay 运行耗时：${_duration(result.metrics['replay_elapsed_ms'])}',
+        '- ${_replayTimeLabel(result)}：${_duration(result.metrics['replay_elapsed_ms'])}',
       );
     }
     buffer.writeln(
@@ -2671,7 +2697,7 @@ class ReportRenderer {
     );
     if (result.metrics['replay_elapsed_ms'] != null) {
       buffer.writeln(
-        '- Replay 实测耗时：${_duration(result.metrics['replay_elapsed_ms'])}；'
+        '- ${_replayTimeLabel(result)}：${_duration(result.metrics['replay_elapsed_ms'])}；'
         'Benchmark 评分耗时：${_duration(result.metrics['benchmark_elapsed_ms'])}。',
       );
     }
@@ -2690,6 +2716,9 @@ class ReportRenderer {
     }
     buffer.writeln();
   }
+
+  static String _replayTimeLabel(BenchmarkResult result) =>
+      result.adapter == 'replay_file' ? 'Replay 实测耗时' : '观察数据耗时';
 
   static void _writeDatasetAppendix(
     StringBuffer buffer,

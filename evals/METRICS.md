@@ -96,7 +96,7 @@ Schedule router 要用 confusion matrix 看：
 | 模块 smoke | 每次改 prompt / grader / 小逻辑后快速定位 | 每模块 1-5 cases |
 | 模块 medium | 看模块稳定性和错误分布 | 每模块 30-80 cases |
 | 单用户 full-chain smoke | 验证真实链路能跑通 | 1 persona，5-20 条输入 |
-| 单用户 full-chain journey | 贴近真实使用 | 3-5 persona，每人 80-150 条输入 |
+| 单用户 full-chain journey | 贴近真实使用 | 6-12 persona，每人 80-150 条输入 |
 | 回归大集 | 重要版本前跑 | 20+ persona，总输入 2000+，但仍建议串行或限速 |
 
 ## 读报告时的优先级

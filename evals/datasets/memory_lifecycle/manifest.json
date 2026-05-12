@@ -1,0 +1,23 @@
+{
+  "dataset_id": "memex_memory_lifecycle",
+  "version": 1,
+  "description": "中文 Memory Lifecycle Benchmark，评估长期事实、临时状态、重复表达、冲突更新、撤销和过期记忆。",
+  "created_at": "2026-05-13",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "persona_count": 12,
+  "case_count": 12,
+  "input_count": 576,
+  "inputs_per_persona": 48,
+  "task_count": 60,
+  "tasks_per_persona": 5,
+  "families": [
+    "memory_lifecycle"
+  ],
+  "notes": [
+    "每个 persona 有 48 条中文输入，按生命周期阶段组织。",
+    "覆盖 must-write recall、write precision、conflict handling、duplicate rate、temporal validity、source grounding 和 sensitive overwrite absence。",
+    "fixture_observed 是理想 memory 状态，用于验证 grader 与报告口径；后续可接真实 memory replay 产物。"
+  ]
+}

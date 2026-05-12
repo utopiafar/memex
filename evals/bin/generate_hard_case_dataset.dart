@@ -3,7 +3,7 @@ import 'dart:io';
 
 typedef JsonMap = Map<String, dynamic>;
 
-const _casesPerCategory = 8;
+const _casesPerCategory = 16;
 
 Future<void> main(List<String> args) async {
   final outDir = Directory(
@@ -37,10 +37,11 @@ Future<void> main(List<String> args) async {
     'dataset_id': 'memex_hard_case_challenge',
     'version': 1,
     'description': '中文 Hard Case Challenge Set，专门覆盖 Memex Agent 易错边界。',
-    'created_at': '2026-05-12',
+    'created_at': '2026-05-13',
     'language': 'zh-CN',
     'locale': 'zh-CN',
     'case_file': 'cases.jsonl',
+    'persona_count': _casesPerCategory,
     'case_count': cases.length,
     'input_count': inputCount,
     'task_count': taskCount,
@@ -83,7 +84,7 @@ List<JsonMap> _memoryTransientCases() => [
           category: 'memory_transient',
           index: i,
           type: 'memory_write',
-          input: _transientInputs[i - 1],
+          input: _cycle(_transientInputs, i),
           expected: {
             'must_write': [
               {
@@ -94,7 +95,7 @@ List<JsonMap> _memoryTransientCases() => [
             'must_not_write': [
               {
                 'id': 'temporary_mood',
-                'must_include': [_transientNeedles[i - 1]],
+                'must_include': [_cycle(_transientNeedles, i)],
               }
             ],
             'max_duplicate_rate': 0.25,
@@ -109,7 +110,7 @@ List<JsonMap> _memoryTransientCases() => [
               if (_seededFailure(i))
                 {
                   'id': 'mem_bad_mood',
-                  'content': '用户长期${_transientNeedles[i - 1]}。',
+                  'content': '用户长期${_cycle(_transientNeedles, i)}。',
                   'status': 'active',
                 },
             ],
@@ -124,7 +125,7 @@ List<JsonMap> _memoryConflictCases() => [
           category: 'memory_conflict',
           index: i,
           type: 'memory_write',
-          input: _conflictInputs[i - 1],
+          input: _cycle(_conflictInputs, i),
           expected: {
             'must_write': [
               {
@@ -173,10 +174,10 @@ List<JsonMap> _cardAmbiguousTimeCases() => [
           index: i,
           type: 'card_extraction',
           input:
-              '不是这周三，是5月${_two(20 + i)}日晚上七点和${_people[i % _people.length]}在${_places[i % _places.length]}吃饭，帮我改一下。',
+              '不是这周三，是${_ambiguousDateText(i)}晚上七点和${_people[i % _people.length]}在${_places[i % _places.length]}吃饭，帮我改一下。',
           expected: {
             'card_type': 'event',
-            'time': '2026-05-${_two(20 + i)}T19:00:00+08:00',
+            'time': _ambiguousIsoTime(i),
             'time_tolerance_minutes': 5,
             'participants': [_people[i % _people.length]],
             'location': _places[i % _places.length],
@@ -191,7 +192,7 @@ List<JsonMap> _cardAmbiguousTimeCases() => [
                   : '和${_people[i % _people.length]}吃饭',
               'time': _seededFailure(i)
                   ? '2026-05-${_two(13 + i)}T19:00:00+08:00'
-                  : '2026-05-${_two(20 + i)}T19:00:00+08:00',
+                  : _ambiguousIsoTime(i),
               'participants': _seededFailure(i)
                   ? const <String>[]
                   : [_people[i % _people.length]],
@@ -209,7 +210,7 @@ List<JsonMap> _retrievalGroundingCases() => [
           category: 'retrieval_grounding',
           index: i,
           type: 'retrieval_qa',
-          input: _retrievalInputs[i - 1],
+          input: _cycle(_retrievalInputs, i),
           expected: _seededFailure(i)
               ? {
                   'expected_sources': const <String>[],
@@ -245,7 +246,7 @@ List<JsonMap> _superAgentBoundaryCases() => [
           category: 'super_agent_boundary',
           index: i,
           type: 'super_agent_qa',
-          input: _superAgentInputs[i - 1],
+          input: _cycle(_superAgentInputs, i),
           expected: {
             'must_include': ['不要海鲜', '少糖'],
             'must_not_include': ['已经帮你更新'],
@@ -280,7 +281,7 @@ List<JsonMap> _scheduleRouterCases() => [
           category: 'schedule_router',
           index: i,
           type: 'schedule_refresh',
-          input: _scheduleInputs[i - 1],
+          input: _cycle(_scheduleInputs, i),
           expected: {
             'schedule_action': i.isEven ? 'refresh' : 'skip',
             'max_refresh_tool_calls': i.isEven ? 1 : 0,
@@ -321,7 +322,7 @@ List<JsonMap> _pkmOrganizationCases() => [
           category: 'pkm_organization',
           index: i,
           type: 'pkm_organization',
-          input: _pkmInputs[i - 1],
+          input: _cycle(_pkmInputs, i),
           expected: {
             'expected_entries': [
               {
@@ -450,7 +451,7 @@ JsonMap _groundTruthFor(String category, int index) {
           'id': 'event_dinner_$index',
           'type': 'event',
           'title': '和${_people[index % _people.length]}吃饭',
-          'time': '2026-05-${_two(20 + index)}T19:00:00+08:00',
+          'time': _ambiguousIsoTime(index),
           'location': _places[index % _places.length],
         }
       ],
@@ -459,7 +460,11 @@ JsonMap _groundTruthFor(String category, int index) {
   return base;
 }
 
-bool _seededFailure(int index) => index == 3 || index == 7;
+bool _seededFailure(int index) =>
+    index == 3 || index == 7 || index == 11 || index == 15;
+
+String _cycle(List<String> values, int index) =>
+    values[(index - 1) % values.length];
 
 JsonMap _taskTrace(String type) => {
       'event_type': 'task',
@@ -484,6 +489,16 @@ JsonMap _llmCall(String agentName, int promptTokens, int completionTokens) => {
     };
 
 String _two(int n) => n.toString().padLeft(2, '0');
+
+String _ambiguousDateText(int index) {
+  final date = DateTime.utc(2026, 5, 20).add(Duration(days: index - 1));
+  return '${date.month}月${date.day}日';
+}
+
+String _ambiguousIsoTime(int index) {
+  final date = DateTime.utc(2026, 5, 20).add(Duration(days: index - 1));
+  return '${date.year}-${_two(date.month)}-${_two(date.day)}T19:00:00+08:00';
+}
 
 const _people = ['老王', 'Annie', 'Jason', 'Ada'];
 const _places = ['望京', '腾讯会议', '公司楼下', '飞书会议'];

@@ -28,10 +28,14 @@ evals/
 
 每次本地运行会在 `evals/runs/<run-id>/` 里留下完整排查材料：`outputs.jsonl` 记录每个 task 的断言结果，`trace.ndjson` 记录 LLM/tool/task trace，`debug_log.json` 汇总配置、指标、task 结果和 trace。这个目录默认被 git 忽略，只用于本地复盘。
 
-当前保留两类实验线：
+当前保留四条主要实验线：
 
-- 模块基线：`datasets/modules/<module>` 下每个模块一个小实验，用于分别验证 Card、Memory、Retrieval、Router/Tool、Schedule、PKM、Super Agent 和成本 Trace 的 grader、指标和报告口径。
-- 串行全链路：`full_chain_serial_smoke` 用于验证真实单用户操作脚本，从 `submitInput`、后台 task、memory 写入到 Super Agent 问答是否闭环。
+- 中等规模全链路 Journey：`datasets/full_chain_journey_medium`，按单用户串行旅程组织，覆盖多周中文输入、card、memory、Super Agent 和成本 trace。
+- Hard Case Challenge：`datasets/hard_case_challenge`，专门保留边界和种子失败，用来验证失败报告、error analysis 和指标敏感度。
+- Retrieval / Source Grounding：`datasets/retrieval_source_grounding`，覆盖跨 card、memory、note、PKM 的 hybrid retrieval、source citation、filter 和证据不足拒答。
+- Memory Lifecycle：`datasets/memory_lifecycle`，覆盖 must-write、must-not-write、冲突更新、临时状态、过期范围、source grounding 和 Super Agent 最新记忆问答。
+
+历史模块基线仍保留在 `datasets/modules/<module>`，用于分别验证 Card、Memory、Retrieval、Router/Tool、Schedule、PKM、Super Agent 和成本 Trace 的 grader、指标和报告口径。`full_chain_serial_smoke` 继续用于验证真实单用户操作脚本，从 `submitInput`、后台 task、memory 写入到 Super Agent 问答是否闭环。
 
 中等规模数据集仍可通过 `generate_medium_dataset.dart` / `generate_full_chain_replay_dataset.dart` 扩展，但默认先跑小样本，避免把模型 TPS、任务并发和真实质量问题混在一起。
 
@@ -50,8 +54,8 @@ evals/
 
 每个 `experiments/<date>-<topic>/report.md` 至少包含：
 
-1. 实验问题与背景：这次为什么跑，要回答什么问题。
-2. 关键结论：能不能作为基线，最重要的失败是什么。
+1. 关键结论：能不能作为基线，最重要的失败是什么。
+2. 实验问题与背景：这次为什么跑，要回答什么问题。
 3. 数据集与成本规模：persona、case、输入、task、断言、token、LLM/tool 调用量。
 4. 指标口径：每个场景和关键指标到底在衡量什么。
 5. 结果数据：分场景结果、关键指标表、成本 trace。

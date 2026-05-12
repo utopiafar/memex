@@ -1,0 +1,23 @@
+{
+  "dataset_id": "memex_retrieval_source_grounding",
+  "version": 1,
+  "description": "中文 Retrieval / Source Grounding Benchmark，评估跨 card、memory、PKM、note 的召回、引用和拒答。",
+  "created_at": "2026-05-13",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "persona_count": 12,
+  "case_count": 12,
+  "input_count": 576,
+  "inputs_per_persona": 48,
+  "task_count": 144,
+  "tasks_per_persona": 12,
+  "families": [
+    "retrieval_source_grounding"
+  ],
+  "notes": [
+    "每个 persona 有 48 条中文历史输入，构成隐藏世界中的 card、memory、note、PKM 来源。",
+    "每个 persona 有 12 个 retrieval_qa 任务，覆盖人物、时间、项目、类型、多来源组合和证据不足拒答。",
+    "fixture_observed 是理想检索结果，用于验证 hit@k、MRR、citation、grounded answer 和 abstention 口径。"
+  ]
+}

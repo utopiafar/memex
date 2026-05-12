@@ -3,7 +3,7 @@ import 'dart:io';
 
 typedef JsonMap = Map<String, dynamic>;
 
-const _recordsPerPersona = 40;
+const _recordsPerPersona = 80;
 
 Future<void> main(List<String> args) async {
   final outDir = Directory(
@@ -36,12 +36,13 @@ Future<void> main(List<String> args) async {
     'dataset_id': 'memex_full_chain_journey_medium',
     'version': 1,
     'description': '中等规模中文单用户串行 Journey Benchmark，覆盖多周真实使用轨迹。',
-    'created_at': '2026-05-12',
+    'created_at': '2026-05-13',
     'language': 'zh-CN',
     'locale': 'zh-CN',
     'case_file': 'cases.jsonl',
     'persona_count': cases.length,
     'case_count': cases.length,
+    'input_count': recordCount,
     'record_operation_count': recordCount,
     'operation_count': operationCount,
     'records_per_persona': _recordsPerPersona,
@@ -93,6 +94,24 @@ JsonMap _case(int n, _PersonaSpec persona) {
       taskId: '${taskPrefix}_card_weekly_report',
       operationId: _recordId(caseId, 25),
       titleContains: [persona.project, '周报'],
+    ),
+    _cardTask(
+      caseId: caseId,
+      taskId: '${taskPrefix}_card_cost_review',
+      operationId: _recordId(caseId, 40),
+      titleContains: ['成本', '延迟', '工具调用'],
+    ),
+    _cardTask(
+      caseId: caseId,
+      taskId: '${taskPrefix}_card_failure_review',
+      operationId: _recordId(caseId, 60),
+      titleContains: [persona.project, '失败模式'],
+    ),
+    _cardTask(
+      caseId: caseId,
+      taskId: '${taskPrefix}_card_roadmap_sync',
+      operationId: _recordId(caseId, 75),
+      titleContains: [persona.project, '路线图'],
     ),
     _memoryTask(
         caseId: caseId, taskId: '${taskPrefix}_memory', persona: persona),
@@ -353,7 +372,7 @@ JsonMap _costTask({required String caseId, required String taskId}) => {
               'status': 'completed',
               'latency_ms': 1400 + i * 7,
             },
-          for (var i = 0; i < 72; i++)
+          for (var i = 0; i < _recordsPerPersona * 2; i++)
             _toolTrace(i.isEven ? 'save_card' : 'search_memory'),
         ],
         'active_tasks': const [],
@@ -361,10 +380,11 @@ JsonMap _costTask({required String caseId, required String taskId}) => {
         'task_status_counts': {'completed': _recordsPerPersona * 4},
         'tasks_settled': true,
         'llm_calls': [
-          for (var i = 0; i < 96; i++) _llmCall('journey_agent', 1600 + i, 360),
+          for (var i = 0; i < _recordsPerPersona * 3; i++)
+            _llmCall('journey_agent', 1600 + i, 360),
         ],
-        'case_elapsed_ms': 420000,
-        'suite_elapsed_ms': 1260000,
+        'case_elapsed_ms': _recordsPerPersona * 12000,
+        'suite_elapsed_ms': _recordsPerPersona * 12000 * _personas.length,
         'input_count': _recordsPerPersona,
         'task_count': _recordsPerPersona * 4,
       },
@@ -407,6 +427,10 @@ String _recordContent({required int index, required _PersonaSpec persona}) {
       return '这两天只是想吃清淡一点，别记成长期饮食偏好。';
     case 40:
       return '月底复盘要把成本、延迟和工具调用次数列出来。';
+    case 60:
+      return '6月10日下午三点和${persona.secondaryPerson}复盘${persona.project}的失败模式，提醒我带指标截图。';
+    case 75:
+      return '月底和${persona.primaryPerson}确认${persona.project}路线图，先看风险 owner 和回滚预案。';
   }
   final detail = _details[index % _details.length];
   final habit = persona.habits[index % persona.habits.length];
@@ -439,6 +463,12 @@ List<String> _titleNeedles(
       return ['父母', persona.familyItem];
     case 25:
       return [persona.project, '周报'];
+    case 40:
+      return ['成本', '延迟', '工具调用'];
+    case 60:
+      return [persona.project, '失败模式'];
+    case 75:
+      return [persona.project, '路线图'];
     default:
       return [];
   }
@@ -536,6 +566,39 @@ const _personas = [
     familyItem: '书和眼药水',
     preference: '指标解释要保留英文 metric id',
     habits: ['上午深度分析', '周四 dashboard review'],
+  ),
+  _PersonaSpec(
+    userId: 'journey_u_004',
+    occupation: '律师',
+    city: '广州',
+    project: '法务合同库',
+    primaryPerson: 'Annie',
+    secondaryPerson: '老王',
+    familyItem: '医保卡',
+    preference: '重要结论要列来源',
+    habits: ['下午审合同', '周末陪家人'],
+  ),
+  _PersonaSpec(
+    userId: 'journey_u_005',
+    occupation: '财务主管',
+    city: '成都',
+    project: '预算月结',
+    primaryPerson: 'Mina',
+    secondaryPerson: 'Ada',
+    familyItem: '血压计',
+    preference: '数字先给口径',
+    habits: ['月底结账', '早上核对付款'],
+  ),
+  _PersonaSpec(
+    userId: 'journey_u_006',
+    occupation: '内容运营',
+    city: '苏州',
+    project: '小红书活动',
+    primaryPerson: 'Grace',
+    secondaryPerson: 'Jason',
+    familyItem: '水果',
+    preference: '复盘保留素材来源',
+    habits: ['晚上看评论', '周五整理选题'],
   ),
 ];
 
