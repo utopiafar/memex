@@ -1,0 +1,28 @@
+{
+  "dataset_id": "memex_hard_case_challenge",
+  "version": 1,
+  "description": "中文 Hard Case Challenge Set，专门覆盖 Memex Agent 易错边界。",
+  "created_at": "2026-05-12",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "case_count": 56,
+  "input_count": 56,
+  "task_count": 56,
+  "cases_per_category": 8,
+  "seeded_fixture_failure_count": 14,
+  "categories": [
+    "临时状态误写",
+    "冲突记忆",
+    "相对时间和省略表达",
+    "检索证据与不确定性",
+    "Super Agent 只读边界",
+    "日程刷新路由",
+    "PKM 组织边界"
+  ],
+  "notes": [
+    "该数据集是 challenge set，不追求全绿，fixture 中保留少量种子失败用于验证失败报告和 error analysis。",
+    "所有 oracle 来自 ground_truth_world 和 expected constraints。",
+    "后续可把 fixture_observed 替换为真实 replay 或模块 adapter 产物。"
+  ]
+}

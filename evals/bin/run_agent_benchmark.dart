@@ -3345,13 +3345,26 @@ JsonMap _summarizeObservation(JsonMap observed) {
 }
 
 JsonMap _caseForDatasetAudit(EvalCase evalCase) {
+  final inputStream = _list(evalCase.raw['input_stream']);
+  final operationInputs = _list(evalCase.raw['operations'])
+      .map(_map)
+      .where((operation) => operation['type'] == 'record')
+      .map(
+        (operation) => {
+          'id': operation['id'],
+          'time': operation['time'],
+          'channel': operation['channel'] ?? 'text',
+          'content': operation['content'],
+        },
+      )
+      .toList();
   return {
     'case_id': evalCase.caseId,
     'family': evalCase.family,
     'language': evalCase.raw['language'] ?? evalCase.raw['locale'],
     'persona': evalCase.raw['persona'],
     'ground_truth_world': evalCase.raw['ground_truth_world'],
-    'input_stream': evalCase.raw['input_stream'],
+    'input_stream': inputStream.isNotEmpty ? inputStream : operationInputs,
     'eval_tasks': evalCase.tasks
         .map(
           (task) => {

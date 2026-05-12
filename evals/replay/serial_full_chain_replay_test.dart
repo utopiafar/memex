@@ -100,6 +100,10 @@ void main() {
           final startedAt = DateTime.now();
           final submittedFactIdsByOperation = <String, String>{};
           final cardsByOperation = <String, dynamic>{};
+          final superAgentAnswersByOperation = <String, String>{};
+          final superAgentToolCallsByOperation =
+              <String, List<Map<String, dynamic>>>{};
+          final chatErrorsByOperation = <String, List<String>>{};
           final operationLogs = <Map<String, dynamic>>[];
           Map<String, dynamic> lastTaskStatusCounts = {};
           List<dynamic> lastTasks = const [];
@@ -167,6 +171,9 @@ void main() {
                 quickQuery: operation['quick_query'] != false,
               );
               superAgentAnswer = chat.answer;
+              superAgentAnswersByOperation[opId] = chat.answer;
+              superAgentToolCallsByOperation[opId] = chat.toolCalls;
+              chatErrorsByOperation[opId] = chat.errors;
               superAgentToolCalls.addAll(chat.toolCalls);
               chatErrors.addAll(chat.errors);
               operationLogs.add({
@@ -207,7 +214,30 @@ void main() {
             final task = _map(rawTask);
             final taskId = task['task_id']?.toString() ?? '${caseId}_task';
             final taskType = task['type']?.toString();
-            if (taskType == 'cost_trace') {
+            final expected = _map(task['expected']);
+            if (taskType == 'card_extraction') {
+              final operationId = expected['operation_id']?.toString() ??
+                  expected['input_id']?.toString();
+              final card = operationId == null
+                  ? (cardsByOperation.values.isEmpty
+                      ? null
+                      : cardsByOperation.values.first)
+                  : cardsByOperation[operationId];
+              observations.add({
+                'case_id': caseId,
+                'task_id': taskId,
+                'observed': {
+                  'card': _cardObservationFromJson(_map(card)),
+                  'trace_events': traceEvents,
+                  'llm_calls': const [],
+                  'case_elapsed_ms': elapsedMs,
+                  'suite_elapsed_ms':
+                      DateTime.now().difference(suiteStartedAt).inMilliseconds,
+                  'input_count': submittedRecords,
+                  'task_count': lastTasks.length,
+                },
+              });
+            } else if (taskType == 'cost_trace') {
               observations.add({
                 'case_id': caseId,
                 'task_id': taskId,
@@ -241,18 +271,30 @@ void main() {
                 },
               });
             } else if (taskType == 'super_agent_qa') {
+              final operationId = expected['operation_id']?.toString();
+              final answer = operationId == null
+                  ? superAgentAnswer
+                  : superAgentAnswersByOperation[operationId] ??
+                      superAgentAnswer;
+              final toolCalls = operationId == null
+                  ? superAgentToolCalls
+                  : superAgentToolCallsByOperation[operationId] ??
+                      superAgentToolCalls;
+              final errors = operationId == null
+                  ? chatErrors
+                  : chatErrorsByOperation[operationId] ?? chatErrors;
               observations.add({
                 'case_id': caseId,
                 'task_id': taskId,
                 'observed': {
-                  'answer': superAgentAnswer,
-                  'tool_calls': superAgentToolCalls,
+                  'answer': answer,
+                  'tool_calls': toolCalls,
                   'trace_events': traceEvents,
                   'llm_calls': const [],
                   'case_elapsed_ms': elapsedMs,
                   'suite_elapsed_ms':
                       DateTime.now().difference(suiteStartedAt).inMilliseconds,
-                  if (chatErrors.isNotEmpty) 'errors': chatErrors,
+                  if (errors.isNotEmpty) 'errors': errors,
                 },
               });
             }
@@ -293,7 +335,7 @@ void main() {
         }
       }
     },
-    timeout: const Timeout(Duration(minutes: 120)),
+    timeout: const Timeout(Duration(minutes: 240)),
   );
 }
 
@@ -444,6 +486,27 @@ List<Map<String, dynamic>> _memoryEntries(Map<String, dynamic> memoryData) {
     }
   }
   return entries;
+}
+
+Map<String, dynamic> _cardObservationFromJson(Map<String, dynamic> card) {
+  if (card.isEmpty) {
+    return {
+      'card_type': null,
+      'title': null,
+      'status': null,
+      'fields': const <String, dynamic>{},
+    };
+  }
+  final configs = _list(card['ui_configs']).map(_map).toList();
+  final firstConfig = configs.isEmpty ? const <String, dynamic>{} : configs[0];
+  return {
+    'card_type': firstConfig['template_id'] ?? card['card_type'],
+    'title': card['title'],
+    'status': card['status'],
+    'time': card['time'] ?? card['timestamp'],
+    'location': card['address'] ?? card['location'],
+    'fields': _map(firstConfig['data']),
+  };
 }
 
 Future<_ChatObservation> _askSuperAgent({
