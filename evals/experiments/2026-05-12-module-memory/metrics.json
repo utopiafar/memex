@@ -1,7 +1,7 @@
 {
   "run_id": "2026-05-12-module-memory",
-  "started_at": "2026-05-12T09:24:33.360331Z",
-  "benchmark_elapsed_ms": 22,
+  "started_at": "2026-05-12T10:17:36.171896Z",
+  "benchmark_elapsed_ms": 47,
   "dataset_path": "evals/datasets/modules/memory",
   "adapter": "fixture",
   "llm_judge_enabled": false,
@@ -10,7 +10,7 @@
   "dataset_summary": {
     "case_count": 6,
     "persona_count": 4,
-    "input_count": 11,
+    "input_count": 227,
     "task_count": 6,
     "languages": [
       "zh-CN"
@@ -29,10 +29,11 @@
         "city": "深圳",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 1,
+        "input_count": 37,
         "task_count": 1,
         "sample_inputs": [
-          "今天被客户催得有点烦，先让我安静会儿，这不是长期偏好。"
+          "早上先看一下昨天广告账户的消耗，今天预算别太激进。",
+          "午饭别订海鲜，最近过敏又有点反复。"
         ]
       },
       {
@@ -41,11 +42,11 @@
         "city": "杭州",
         "language": "zh-CN",
         "case_count": 2,
-        "input_count": 4,
+        "input_count": 76,
         "task_count": 2,
         "sample_inputs": [
-          "以后重要会议尽量提前一天提醒我，别临近了才说。",
-          "我今天上午想安静一会儿，这只是今天。"
+          "早上先过一遍版本风险，今天别被零碎需求打散。",
+          "以后评审材料希望结论先行，细节放后面。"
         ]
       },
       {
@@ -54,11 +55,11 @@
         "city": "上海",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 2,
+        "input_count": 38,
         "task_count": 1,
         "sample_inputs": [
-          "以后上午尽量留给深度分析，下午再排会。",
-          "对，上午别打断我这个习惯挺重要的。"
+          "早上先跑昨天的数据质量检查，看有没有埋点延迟。",
+          "以后异常分析先看样本量，再看比例变化。"
         ]
       },
       {
@@ -67,11 +68,11 @@
         "city": "北京",
         "language": "zh-CN",
         "case_count": 2,
-        "input_count": 4,
+        "input_count": 76,
         "task_count": 2,
         "sample_inputs": [
-          "以后订下午茶记得避开花生，我对花生过敏。",
-          "这周嗓子不舒服，课间少说话就行，不用记长期。"
+          "早上先看学生发来的论文摘要，今天课前只能粗读。",
+          "公开课提醒要提前两天准备讲义。"
         ]
       }
     ]

@@ -21,6 +21,9 @@ Future<void> main(List<String> args) async {
     'case_count': cases.length,
     'persona_count': cases.length,
     'operation_count': (cases.first['operations'] as List).length,
+    'record_operation_count': (cases.first['operations'] as List)
+        .where((operation) => operation is Map && operation['type'] == 'record')
+        .length,
     'families': ['full_chain_serial_replay'],
     'notes': [
       '执行器应以 maxConcurrency=1 串行处理后台任务。',
@@ -81,45 +84,11 @@ JsonMap _case() => {
         ],
         'expected_latest_memory': [
           '重要会议提前一天提醒',
-          '上午可以喝一杯咖啡',
+          '上午咖啡',
         ],
       },
       'operations': [
-        {
-          'id': 'op_record_001',
-          'type': 'record',
-          'time': '2026-05-01T09:00:00+08:00',
-          'content': '以后重要会议尽量提前一天提醒我，别临近了才说。',
-          'expected_title_contains': ['重要会议'],
-        },
-        {
-          'id': 'op_record_002',
-          'type': 'record',
-          'time': '2026-05-03T09:30:00+08:00',
-          'content': '我不喝咖啡，早上也不要。',
-          'expected_title_contains': ['咖啡'],
-        },
-        {
-          'id': 'op_record_003',
-          'type': 'record',
-          'time': '2026-05-05T21:00:00+08:00',
-          'content': '今天有点烦，主要是临时会太多，这只是今天，不要当成长期偏好。',
-          'expected_title_contains': ['今天'],
-        },
-        {
-          'id': 'op_record_004',
-          'type': 'record',
-          'time': '2026-05-08T15:00:00+08:00',
-          'content': '周五下午三点和 Jason 讨论会员召回预算，帮我记一下。',
-          'expected_title_contains': ['Jason', '预算'],
-        },
-        {
-          'id': 'op_record_005',
-          'type': 'record',
-          'time': '2026-05-12T09:00:00+08:00',
-          'content': '我之前说不喝咖啡，但最近上午可以喝一杯，下午还是别喝。',
-          'expected_title_contains': ['咖啡'],
-        },
+        ..._recordOperations(),
         {
           'id': 'op_wait_memory_001',
           'type': 'wait_memory',
@@ -139,9 +108,12 @@ JsonMap _case() => {
           'task_id': 'full_chain_serial_001_cost',
           'type': 'cost_trace',
           'expected': {
-            'max_total_tokens': 600000,
-            'max_latency_ms': 900000,
-            'max_tool_calls': 300,
+            'max_total_tokens': 2500000,
+            'max_tokens_per_input': 70000,
+            'max_latency_ms': 7200000,
+            'max_tool_calls': 2500,
+            'max_retry_rate': 0,
+            'max_failed_task_rate': 0,
             'require_all_tasks_completed': true,
             'must_include': ['Facts', 'Cards', 'Super Agent'],
           },
@@ -157,7 +129,7 @@ JsonMap _case() => {
               },
               {
                 'id': 'mem_coffee_latest',
-                'must_include': ['上午', '可以喝', '咖啡'],
+                'must_include': ['上午', '咖啡'],
               },
             ],
             'must_not_write': [
@@ -168,10 +140,11 @@ JsonMap _case() => {
             ],
             'conflicts': [
               {
-                'latest_should_include': ['上午', '可以喝', '咖啡'],
+                'latest_should_include': ['上午', '咖啡'],
                 'superseded_should_not_be_active': ['早上', '不要', '咖啡'],
               }
             ],
+            'evaluate_write_precision': false,
           },
         },
         {
@@ -188,3 +161,69 @@ JsonMap _case() => {
         },
       ],
     };
+
+List<JsonMap> _recordOperations() {
+  final records = [
+    (
+      '以后重要会议尽量提前一天提醒我，别临近了才说。',
+      ['重要会议'],
+    ),
+    ('我不喝咖啡，早上也不要。', ['咖啡']),
+    (
+      '今天有点烦，主要是临时会太多，这只是今天，不要当成长期偏好。',
+      ['今天'],
+    ),
+    ('周五下午三点和 Jason 讨论会员召回预算，帮我记一下。', ['Jason', '预算']),
+    ('我之前说不喝咖啡，但最近上午可以喝一杯，下午还是别喝。', ['咖啡']),
+    ('今天早上先看版本风险，导出功能的验收标准还要补齐。', ['版本风险']),
+    ('中午和 Alex 简单聊了下导出入口，先不要定最终方案。', ['Alex']),
+    ('晚上散步想到一个点：空状态应该给下一步动作，不只是文案。', ['空状态']),
+    ('明天下午四点和设计看灰度发布页，提醒我带截图。', ['灰度发布']),
+    ('这周杭州可能下雨，线下会议通勤多留二十分钟。', ['通勤']),
+    ('今天只是想喝奶茶，不是长期饮食偏好。', ['奶茶']),
+    ('需求复盘里记一下，客服最常问导出失败后的重试。', ['导出失败']),
+    ('周三下午通常适合需求评审，上午尽量别排会。', ['需求评审']),
+    ('如果会议涉及权限，提醒我找安全同事一起看。', ['权限']),
+    ('今晚九点以后不要提醒我看工作文档，除非是发布事故。', ['提醒']),
+    ('把老版本兼容风险放到发布清单里，owner 先写 Alex。', ['老版本兼容']),
+    ('今天有点困，下午会如果不重要就先跳过，这只是今天。', ['有点困']),
+    ('下周一上午十点和 QA 对回归用例。', ['QA', '回归用例']),
+    ('导出项目的决策记录要保留来源，不要只写结论。', ['决策记录']),
+    ('临时查一下竞品价格页的信息架构，明天再整理。', ['竞品']),
+    ('周末可能去看展，这个不用放工作日程。', ['看展']),
+    ('如果我问那个风险，通常指最近的发布风险。', ['发布风险']),
+    ('发布当天不要安排太多一对一，容易被打断。', ['发布当天']),
+    ('记一下，用户反馈里“找不到入口”归到可发现性问题。', ['可发现性']),
+    ('今天晚上想早点睡，不要写成长期作息。', ['早点睡']),
+    ('PRD 里验收标准要按用户路径写，不要按模块堆。', ['验收标准']),
+    ('下次重要评审前一天提醒我准备用户路径截图。', ['评审']),
+    ('如果 Alex 提到导出性能，先问清楚数据量级。', ['导出性能']),
+    ('这周五之前把灰度监控指标补齐。', ['灰度监控']),
+    ('晚上临时想查 Flutter 路由方案，不用进长期记忆。', ['Flutter']),
+    ('发布复盘模板保留背景、决策、风险、下一步。', ['发布复盘']),
+    ('如果没有记录，回答我时直接说不确定，别猜。', ['不确定']),
+    ('导出项目里 Alex 是主要 owner，这个可以长期记。', ['Alex', 'owner']),
+    ('明天早上九点半提醒我看异常指标。', ['异常指标']),
+    ('今天情绪一般，别写成长期状态。', ['情绪']),
+    ('月底复盘要把成本、延迟和工具调用次数列出来。', ['成本', '延迟']),
+  ];
+
+  return [
+    for (var i = 0; i < records.length; i++)
+      {
+        'id': 'op_record_${(i + 1).toString().padLeft(3, '0')}',
+        'type': 'record',
+        'time': _recordTime(i),
+        'content': records[i].$1,
+        'expected_title_contains': records[i].$2,
+      }
+  ];
+}
+
+String _recordTime(int index) {
+  final day = 1 + index ~/ 3;
+  final hour = [9, 15, 21][index % 3];
+  return '2026-05-${day.toString().padLeft(2, '0')}T'
+      '${hour.toString().padLeft(2, '0')}:'
+      '${(index * 5 % 60).toString().padLeft(2, '0')}:00+08:00';
+}

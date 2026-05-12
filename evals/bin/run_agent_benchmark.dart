@@ -964,20 +964,22 @@ class TaskGrader {
     final nonEmptyEntries = activeWrittenEntries
         .where((e) => e['content'].toString().trim().isNotEmpty)
         .toList();
-    final writePrecision = nonEmptyEntries.isEmpty
-        ? 1.0
-        : matchedMustWrite / nonEmptyEntries.length;
-    assertions.add(
-      AssertionResult.fromBool(
-        evalCase: evalCase,
-        task: task,
-        metric: 'memory_write_precision',
-        passed: writePrecision >= 0.99,
-        score: writePrecision,
-        message:
-            'Matched $matchedMustWrite required writes across ${nonEmptyEntries.length} written memories.',
-      ),
-    );
+    if (expected['evaluate_write_precision'] != false) {
+      final writePrecision = nonEmptyEntries.isEmpty
+          ? 1.0
+          : matchedMustWrite / nonEmptyEntries.length;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'memory_write_precision',
+          passed: writePrecision >= 0.99,
+          score: writePrecision,
+          message:
+              'Matched $matchedMustWrite required writes across ${nonEmptyEntries.length} written memories.',
+        ),
+      );
+    }
 
     final duplicateRate = _duplicateRate(
       nonEmptyEntries

@@ -1,7 +1,7 @@
 {
   "run_id": "2026-05-12-module-super-agent-qa",
-  "started_at": "2026-05-12T09:24:34.430875Z",
-  "benchmark_elapsed_ms": 24,
+  "started_at": "2026-05-12T10:17:36.232215Z",
+  "benchmark_elapsed_ms": 43,
   "dataset_path": "evals/datasets/modules/super_agent_qa",
   "adapter": "fixture",
   "llm_judge_enabled": false,
@@ -10,7 +10,7 @@
   "dataset_summary": {
     "case_count": 4,
     "persona_count": 4,
-    "input_count": 0,
+    "input_count": 144,
     "task_count": 4,
     "languages": [
       "zh-CN"
@@ -28,9 +28,12 @@
         "city": "深圳",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 0,
+        "input_count": 36,
         "task_count": 1,
-        "sample_inputs": []
+        "sample_inputs": [
+          "早上先看一下昨天广告账户的消耗，今天预算别太激进。",
+          "午饭别订海鲜，最近过敏又有点反复。"
+        ]
       },
       {
         "user_id": "module_u_002",
@@ -38,9 +41,12 @@
         "city": "杭州",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 0,
+        "input_count": 36,
         "task_count": 1,
-        "sample_inputs": []
+        "sample_inputs": [
+          "早上先过一遍版本风险，今天别被零碎需求打散。",
+          "以后评审材料希望结论先行，细节放后面。"
+        ]
       },
       {
         "user_id": "module_u_003",
@@ -48,9 +54,12 @@
         "city": "上海",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 0,
+        "input_count": 36,
         "task_count": 1,
-        "sample_inputs": []
+        "sample_inputs": [
+          "早上先跑昨天的数据质量检查，看有没有埋点延迟。",
+          "以后异常分析先看样本量，再看比例变化。"
+        ]
       },
       {
         "user_id": "module_u_004",
@@ -58,9 +67,12 @@
         "city": "北京",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 0,
+        "input_count": 36,
         "task_count": 1,
-        "sample_inputs": []
+        "sample_inputs": [
+          "早上先看学生发来的论文摘要，今天课前只能粗读。",
+          "公开课提醒要提前两天准备讲义。"
+        ]
       }
     ]
   },

@@ -8,7 +8,8 @@
   "case_file": "cases.jsonl",
   "case_count": 1,
   "persona_count": 1,
-  "operation_count": 7,
+  "operation_count": 38,
+  "record_operation_count": 36,
   "families": [
     "full_chain_serial_replay"
   ],

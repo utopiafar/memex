@@ -1,7 +1,7 @@
 {
   "run_id": "2026-05-12-module-router-tool-calling",
-  "started_at": "2026-05-12T09:24:33.784549Z",
-  "benchmark_elapsed_ms": 22,
+  "started_at": "2026-05-12T10:17:36.189809Z",
+  "benchmark_elapsed_ms": 50,
   "dataset_path": "evals/datasets/modules/router_tool_calling",
   "adapter": "fixture",
   "llm_judge_enabled": false,
@@ -10,7 +10,7 @@
   "dataset_summary": {
     "case_count": 4,
     "persona_count": 3,
-    "input_count": 2,
+    "input_count": 146,
     "task_count": 4,
     "languages": [
       "zh-CN"
@@ -28,9 +28,12 @@
         "city": "杭州",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 0,
+        "input_count": 36,
         "task_count": 1,
-        "sample_inputs": []
+        "sample_inputs": [
+          "早上先过一遍版本风险，今天别被零碎需求打散。",
+          "以后评审材料希望结论先行，细节放后面。"
+        ]
       },
       {
         "user_id": "module_u_003",
@@ -38,10 +41,11 @@
         "city": "上海",
         "language": "zh-CN",
         "case_count": 2,
-        "input_count": 1,
+        "input_count": 73,
         "task_count": 2,
         "sample_inputs": [
-          "把这次指标复盘整理到 Memex eval 项目笔记。"
+          "早上先跑昨天的数据质量检查，看有没有埋点延迟。",
+          "以后异常分析先看样本量，再看比例变化。"
         ]
       },
       {
@@ -50,10 +54,11 @@
         "city": "北京",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 1,
+        "input_count": 37,
         "task_count": 1,
         "sample_inputs": [
-          "以后排公开课提醒我提前两天准备讲义。"
+          "早上先看学生发来的论文摘要，今天课前只能粗读。",
+          "公开课提醒要提前两天准备讲义。"
         ]
       }
     ]

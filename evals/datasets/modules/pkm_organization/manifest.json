@@ -9,7 +9,9 @@
   "case_file": "cases.jsonl",
   "case_count": 4,
   "persona_count": 4,
-  "input_count": 5,
+  "input_count": 149,
+  "min_input_count_per_case": 37,
+  "max_input_count_per_case": 38,
   "task_count": 4,
   "families": [
     "pkm_organization"
@@ -17,6 +19,7 @@
   "notes": [
     "所有 persona、输入、oracle 均为中文。",
     "fixture_observed 只用于验证 grader 和指标口径，不代表真实链路产物。",
-    "标准答案只来自 ground_truth_world，不从 Memex 输出反推。"
+    "标准答案只来自 ground_truth_world，不从 Memex 输出反推。",
+    "每个 case 都注入同一 persona 的 36 条跨周期 journey context，用于模拟真实用户长期输入背景。"
   ]
 }

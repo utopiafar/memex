@@ -1,7 +1,7 @@
 {
   "run_id": "2026-05-12-module-card-extraction",
-  "started_at": "2026-05-12T09:24:33.086842Z",
-  "benchmark_elapsed_ms": 27,
+  "started_at": "2026-05-12T10:17:35.940973Z",
+  "benchmark_elapsed_ms": 75,
   "dataset_path": "evals/datasets/modules/card_extraction",
   "adapter": "fixture",
   "llm_judge_enabled": false,
@@ -10,7 +10,7 @@
   "dataset_summary": {
     "case_count": 4,
     "persona_count": 3,
-    "input_count": 5,
+    "input_count": 149,
     "task_count": 4,
     "languages": [
       "zh-CN"
@@ -28,11 +28,11 @@
         "city": "深圳",
         "language": "zh-CN",
         "case_count": 2,
-        "input_count": 3,
+        "input_count": 75,
         "task_count": 2,
         "sample_inputs": [
-          "下周三晚上七点提醒我去望京和 Jason 讨论投流预算。",
-          "Jason 那个预算会先记周四三点。"
+          "早上先看一下昨天广告账户的消耗，今天预算别太激进。",
+          "午饭别订海鲜，最近过敏又有点反复。"
         ]
       },
       {
@@ -41,10 +41,11 @@
         "city": "杭州",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 1,
+        "input_count": 37,
         "task_count": 1,
         "sample_inputs": [
-          "今天有点焦虑，不过重点记一下：灰度发布风险是支付回调和老版本兼容。"
+          "早上先过一遍版本风险，今天别被零碎需求打散。",
+          "以后评审材料希望结论先行，细节放后面。"
         ]
       },
       {
@@ -53,10 +54,11 @@
         "city": "北京",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 1,
+        "input_count": 37,
         "task_count": 1,
         "sample_inputs": [
-          "周五晚上九点前把小林的开题报告反馈写完，别忘了。"
+          "早上先看学生发来的论文摘要，今天课前只能粗读。",
+          "公开课提醒要提前两天准备讲义。"
         ]
       }
     ]

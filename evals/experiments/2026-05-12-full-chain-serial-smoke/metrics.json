@@ -1,9 +1,9 @@
 {
   "run_id": "2026-05-12-full-chain-serial-smoke",
-  "started_at": "2026-05-12T08:29:14.231808Z",
-  "benchmark_elapsed_ms": 36,
-  "replay_elapsed_ms": 405808,
-  "replay_case_elapsed_total_ms": 405730,
+  "started_at": "2026-05-12T11:31:36.440220Z",
+  "benchmark_elapsed_ms": 44,
+  "replay_elapsed_ms": 2446244,
+  "replay_case_elapsed_total_ms": 2446146,
   "dataset_path": "evals/datasets/full_chain_serial_smoke",
   "adapter": "replay_file",
   "llm_judge_enabled": false,
@@ -12,7 +12,7 @@
   "dataset_summary": {
     "case_count": 1,
     "persona_count": 1,
-    "input_count": 5,
+    "input_count": 36,
     "task_count": 3,
     "languages": [
       "zh-CN"
@@ -32,7 +32,7 @@
         "city": "杭州",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 5,
+        "input_count": 36,
         "task_count": 3,
         "sample_inputs": [
           "以后重要会议尽量提前一天提醒我，别临近了才说。",
@@ -42,21 +42,21 @@
     ]
   },
   "assertions": {
-    "passed": 15,
-    "total": 15,
+    "passed": 17,
+    "total": 17,
     "pass_rate": 1.0,
-    "avg_score": 0.9926733333333333
+    "avg_score": 0.9684085623015872
   },
   "by_family": {
     "cost_trace": {
-      "passed": 5,
-      "total": 5,
+      "passed": 8,
+      "total": 8,
       "pass_rate": 1.0,
-      "avg_score": 0.97802
+      "avg_score": 0.9494536996825396
     },
     "memory_write": {
-      "passed": 5,
-      "total": 5,
+      "passed": 4,
+      "total": 4,
       "pass_rate": 1.0,
       "avg_score": 1.0
     },
@@ -72,7 +72,13 @@
       "passed": 1,
       "total": 1,
       "pass_rate": 1.0,
-      "avg_score": 0.95604
+      "avg_score": 0.8731308
+    },
+    "cost_per_input": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 0.8741376984126984
     },
     "latency_budget": {
       "passed": 1,
@@ -88,6 +94,18 @@
       "passed": 1,
       "total": 1,
       "pass_rate": 1.0
+    },
+    "retry_rate": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "failed_task_rate": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
     },
     "cost_answer_must_include": {
       "passed": 1,
@@ -105,12 +123,6 @@
       "passed": 1,
       "total": 1,
       "pass_rate": 1.0
-    },
-    "memory_write_precision": {
-      "passed": 1,
-      "total": 1,
-      "pass_rate": 1.0,
-      "avg_score": 1.0
     },
     "memory_conflict_handling": {
       "passed": 1,
@@ -145,11 +157,11 @@
     }
   },
   "cost_trace": {
-    "llm_call_count": 18,
-    "tool_call_count": 69,
-    "avg_latency_ms": 13739.130434782608,
-    "p95_latency_ms": 98000.0,
-    "avg_total_tokens": 1465.3333333333333,
-    "total_tokens": 26376
+    "llm_call_count": 186,
+    "tool_call_count": 348,
+    "avg_latency_ms": 15885.844748858448,
+    "p95_latency_ms": 76000.0,
+    "avg_total_tokens": 1705.231182795699,
+    "total_tokens": 317173
   }
 }

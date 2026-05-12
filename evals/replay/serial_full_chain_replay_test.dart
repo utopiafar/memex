@@ -293,7 +293,7 @@ void main() {
         }
       }
     },
-    timeout: const Timeout(Duration(minutes: 45)),
+    timeout: const Timeout(Duration(minutes: 120)),
   );
 }
 
@@ -367,7 +367,7 @@ Future<_TaskWaitResult> _waitForTasksToSettle({
   var nextLogAt = DateTime.now().add(const Duration(seconds: 10));
   var lastTasks = <dynamic>[];
   while (DateTime.now().isBefore(deadline)) {
-    final tasks = await LocalTaskExecutor.instance.getTasks(limit: 200);
+    final tasks = await LocalTaskExecutor.instance.getTasks(limit: 2000);
     lastTasks = tasks;
     final active = tasks
         .where(

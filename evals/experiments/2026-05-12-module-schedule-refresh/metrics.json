@@ -1,7 +1,7 @@
 {
   "run_id": "2026-05-12-module-schedule-refresh",
-  "started_at": "2026-05-12T09:24:33.999161Z",
-  "benchmark_elapsed_ms": 23,
+  "started_at": "2026-05-12T10:17:36.223420Z",
+  "benchmark_elapsed_ms": 47,
   "dataset_path": "evals/datasets/modules/schedule_refresh",
   "adapter": "fixture",
   "llm_judge_enabled": false,
@@ -10,7 +10,7 @@
   "dataset_summary": {
     "case_count": 6,
     "persona_count": 4,
-    "input_count": 4,
+    "input_count": 220,
     "task_count": 6,
     "languages": [
       "zh-CN"
@@ -28,9 +28,12 @@
         "city": "深圳",
         "language": "zh-CN",
         "case_count": 2,
-        "input_count": 0,
+        "input_count": 72,
         "task_count": 2,
-        "sample_inputs": []
+        "sample_inputs": [
+          "早上先看一下昨天广告账户的消耗，今天预算别太激进。",
+          "午饭别订海鲜，最近过敏又有点反复。"
+        ]
       },
       {
         "user_id": "module_u_002",
@@ -38,10 +41,11 @@
         "city": "杭州",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 1,
+        "input_count": 37,
         "task_count": 1,
         "sample_inputs": [
-          "明天和 Alex 的需求评审取消了。"
+          "早上先过一遍版本风险，今天别被零碎需求打散。",
+          "以后评审材料希望结论先行，细节放后面。"
         ]
       },
       {
@@ -50,10 +54,11 @@
         "city": "上海",
         "language": "zh-CN",
         "case_count": 1,
-        "input_count": 1,
+        "input_count": 37,
         "task_count": 1,
         "sample_inputs": [
-          "今天复盘里记一下：异常值主要来自埋点延迟。"
+          "早上先跑昨天的数据质量检查，看有没有埋点延迟。",
+          "以后异常分析先看样本量，再看比例变化。"
         ]
       },
       {
@@ -62,11 +67,11 @@
         "city": "北京",
         "language": "zh-CN",
         "case_count": 2,
-        "input_count": 2,
+        "input_count": 74,
         "task_count": 2,
         "sample_inputs": [
-          "周五公开课地点从二教改到三教，提醒里也同步一下。",
-          "本学期每周三晚上八点线上答疑，提前一天提醒。"
+          "早上先看学生发来的论文摘要，今天课前只能粗读。",
+          "公开课提醒要提前两天准备讲义。"
         ]
       }
     ]
