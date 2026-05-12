@@ -2080,7 +2080,7 @@ class ReportRenderer {
     _writeExperimentDetails(buffer, result, assertions);
     _writeDatasetAudit(buffer, result.datasetAudit);
     _writeDatasetAppendix(buffer, result);
-    return buffer.toString();
+    return '${buffer.toString().trimRight()}\n';
   }
 
   static void _writeExperimentQuestion(

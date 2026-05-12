@@ -1,0 +1,79 @@
+{
+  "run_id": "2026-05-12-module-router-tool-calling",
+  "started_at": "2026-05-12T08:54:07.697701Z",
+  "benchmark_elapsed_ms": 73,
+  "dataset_path": "evals/datasets/modules/router_tool_calling",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 1,
+  "task_count": 1,
+  "dataset_summary": {
+    "case_count": 1,
+    "persona_count": 1,
+    "input_count": 0,
+    "task_count": 1,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "tool_calling": 1
+    },
+    "tasks_by_type": {
+      "tool_calling": 1
+    },
+    "personas": [
+      {
+        "user_id": "module_u_003",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 0,
+        "task_count": 1,
+        "sample_inputs": []
+      }
+    ]
+  },
+  "assertions": {
+    "passed": 4,
+    "total": 4,
+    "pass_rate": 1.0
+  },
+  "by_family": {
+    "tool_calling": {
+      "passed": 4,
+      "total": 4,
+      "pass_rate": 1.0
+    }
+  },
+  "by_metric": {
+    "tool_selection_accuracy": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "tool_args_accuracy": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "prohibited_tool_absence": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "router_label_accuracy": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 0,
+    "tool_call_count": 0,
+    "avg_latency_ms": 0.0,
+    "p95_latency_ms": 0.0,
+    "avg_total_tokens": 0.0,
+    "total_tokens": 0
+  }
+}

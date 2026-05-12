@@ -1,0 +1,84 @@
+{
+  "run_id": "2026-05-12-module-pkm-organization",
+  "started_at": "2026-05-12T08:54:07.756238Z",
+  "benchmark_elapsed_ms": 63,
+  "dataset_path": "evals/datasets/modules/pkm_organization",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 1,
+  "task_count": 1,
+  "dataset_summary": {
+    "case_count": 1,
+    "persona_count": 1,
+    "input_count": 1,
+    "task_count": 1,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "pkm_organization": 1
+    },
+    "tasks_by_type": {
+      "pkm_organization": 1
+    },
+    "personas": [
+      {
+        "user_id": "module_u_003",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 1,
+        "task_count": 1,
+        "sample_inputs": [
+          "Memex eval 周报重点写风险、owner 和回滚预案。"
+        ]
+      }
+    ]
+  },
+  "assertions": {
+    "passed": 4,
+    "total": 4,
+    "pass_rate": 1.0,
+    "avg_score": 1.0
+  },
+  "by_family": {
+    "pkm_organization": {
+      "passed": 4,
+      "total": 4,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "by_metric": {
+    "pkm_path_accuracy": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "pkm_content_preservation": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "pkm_source_grounding": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "pkm_prohibited_content_absence": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 0,
+    "tool_call_count": 0,
+    "avg_latency_ms": 0.0,
+    "p95_latency_ms": 0.0,
+    "avg_total_tokens": 0.0,
+    "total_tokens": 0
+  }
+}

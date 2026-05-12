@@ -1,0 +1,98 @@
+{
+  "run_id": "2026-05-12-module-memory",
+  "started_at": "2026-05-12T08:54:07.693114Z",
+  "benchmark_elapsed_ms": 67,
+  "dataset_path": "evals/datasets/modules/memory",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 2,
+  "task_count": 2,
+  "dataset_summary": {
+    "case_count": 2,
+    "persona_count": 1,
+    "input_count": 4,
+    "task_count": 2,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "memory_conflict": 1,
+      "memory_write": 1
+    },
+    "tasks_by_type": {
+      "memory_write": 2
+    },
+    "personas": [
+      {
+        "user_id": "module_u_002",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 2,
+        "input_count": 4,
+        "task_count": 2,
+        "sample_inputs": [
+          "以后重要会议尽量提前一天提醒我，别临近了才说。",
+          "我今天上午想安静一会儿，这只是今天。"
+        ]
+      }
+    ]
+  },
+  "assertions": {
+    "passed": 10,
+    "total": 10,
+    "pass_rate": 1.0,
+    "avg_score": 1.0
+  },
+  "by_family": {
+    "memory_write": {
+      "passed": 10,
+      "total": 10,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "by_metric": {
+    "memory_must_write_recall": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_source_grounding": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "memory_must_not_write_precision": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "memory_write_precision": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_duplicate_rate": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_conflict_handling": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 0,
+    "tool_call_count": 0,
+    "avg_latency_ms": 0.0,
+    "p95_latency_ms": 0.0,
+    "avg_total_tokens": 0.0,
+    "total_tokens": 0
+  }
+}

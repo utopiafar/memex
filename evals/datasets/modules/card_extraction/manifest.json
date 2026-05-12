@@ -1,0 +1,22 @@
+{
+  "dataset_id": "memex_module_card_extraction_smoke",
+  "version": 2,
+  "title": "Card 抽取",
+  "description": "验证自然输入到 card 的结构化抽取，包括类型、时间、人物、地点、标题和幻觉字段。",
+  "created_at": "2026-05-12",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "case_count": 1,
+  "persona_count": 1,
+  "input_count": 1,
+  "task_count": 1,
+  "families": [
+    "card_extraction"
+  ],
+  "notes": [
+    "所有 persona、输入、oracle 均为中文。",
+    "fixture_observed 只用于验证 grader 和指标口径，不代表真实链路产物。",
+    "标准答案只来自 ground_truth_world，不从 Memex 输出反推。"
+  ]
+}

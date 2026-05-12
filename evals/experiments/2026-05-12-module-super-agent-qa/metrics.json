@@ -1,0 +1,133 @@
+{
+  "run_id": "2026-05-12-module-super-agent-qa",
+  "started_at": "2026-05-12T08:54:07.709869Z",
+  "benchmark_elapsed_ms": 84,
+  "dataset_path": "evals/datasets/modules/super_agent_qa",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 1,
+  "task_count": 1,
+  "dataset_summary": {
+    "case_count": 1,
+    "persona_count": 1,
+    "input_count": 0,
+    "task_count": 1,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "super_agent_qa": 1
+    },
+    "tasks_by_type": {
+      "super_agent_qa": 1
+    },
+    "personas": [
+      {
+        "user_id": "module_u_002",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 0,
+        "task_count": 1,
+        "sample_inputs": []
+      }
+    ]
+  },
+  "assertions": {
+    "passed": 13,
+    "total": 13,
+    "pass_rate": 1.0,
+    "avg_score": 1.0
+  },
+  "by_family": {
+    "super_agent_qa": {
+      "passed": 13,
+      "total": 13,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "by_metric": {
+    "retrieval_hit_at_1": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_3": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_5": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_mrr": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_recall_at_5": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "answer_must_include": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unsupported_claim_absence": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "unnecessary_uncertainty_absence": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "answer_source_citation": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "tool_selection_accuracy": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "tool_args_accuracy": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "prohibited_tool_absence": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "super_agent_read_only_compliance": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 0,
+    "tool_call_count": 0,
+    "avg_latency_ms": 0.0,
+    "p95_latency_ms": 0.0,
+    "avg_total_tokens": 0.0,
+    "total_tokens": 0
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "dataset_id": "memex_module_super_agent_qa_smoke",
+  "version": 2,
+  "title": "Super Agent 问答",
+  "description": "验证 Super Agent 是否基于记忆和来源回答，并遵守只读/写入边界。",
+  "created_at": "2026-05-12",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "case_count": 1,
+  "persona_count": 1,
+  "input_count": 0,
+  "task_count": 1,
+  "families": [
+    "super_agent_qa"
+  ],
+  "notes": [
+    "所有 persona、输入、oracle 均为中文。",
+    "fixture_observed 只用于验证 grader 和指标口径，不代表真实链路产物。",
+    "标准答案只来自 ground_truth_world，不从 Memex 输出反推。"
+  ]
+}

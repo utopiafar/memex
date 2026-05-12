@@ -1,0 +1,88 @@
+{
+  "run_id": "2026-05-12-module-cost-trace",
+  "started_at": "2026-05-12T08:54:07.779391Z",
+  "benchmark_elapsed_ms": 53,
+  "dataset_path": "evals/datasets/modules/cost_trace",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 1,
+  "task_count": 1,
+  "dataset_summary": {
+    "case_count": 1,
+    "persona_count": 1,
+    "input_count": 0,
+    "task_count": 1,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "cost_trace": 1
+    },
+    "tasks_by_type": {
+      "cost_trace": 1
+    },
+    "personas": [
+      {
+        "user_id": "module_u_001",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 0,
+        "task_count": 1,
+        "sample_inputs": []
+      }
+    ]
+  },
+  "assertions": {
+    "passed": 5,
+    "total": 5,
+    "pass_rate": 1.0,
+    "avg_score": 0.8958333333333333
+  },
+  "by_family": {
+    "cost_trace": {
+      "passed": 5,
+      "total": 5,
+      "pass_rate": 1.0,
+      "avg_score": 0.8958333333333333
+    }
+  },
+  "by_metric": {
+    "total_token_budget": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 0.7916666666666666
+    },
+    "latency_budget": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "tool_call_budget": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "task_completion_status": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "cost_answer_must_include": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 1,
+    "tool_call_count": 1,
+    "avg_latency_ms": 5366.666666666667,
+    "p95_latency_ms": 8000.0,
+    "avg_total_tokens": 2500.0,
+    "total_tokens": 2500
+  }
+}

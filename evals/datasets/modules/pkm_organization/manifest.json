@@ -1,0 +1,22 @@
+{
+  "dataset_id": "memex_module_pkm_organization_smoke",
+  "version": 2,
+  "title": "PKM 整理",
+  "description": "验证知识条目是否落到正确路径、保留关键信息并引用来源。",
+  "created_at": "2026-05-12",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "case_count": 1,
+  "persona_count": 1,
+  "input_count": 1,
+  "task_count": 1,
+  "families": [
+    "pkm_organization"
+  ],
+  "notes": [
+    "所有 persona、输入、oracle 均为中文。",
+    "fixture_observed 只用于验证 grader 和指标口径，不代表真实链路产物。",
+    "标准答案只来自 ground_truth_world，不从 Memex 输出反推。"
+  ]
+}

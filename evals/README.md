@@ -16,6 +16,7 @@ evals/
       report.md             # 实验报告，给人读
       metrics.json          # 指标快照，给工具复核
   datasets/                 # 可复现数据集
+    modules/<module>/       # 分模块小实验数据集
   bin/                      # Harness、数据生成、报告生成脚本
   replay/                   # 接入真实 Memex 链路的 replay 测试
   prompts/                  # LLM judge / 数据审计 prompt
@@ -29,10 +30,12 @@ evals/
 
 当前保留两类实验线：
 
-- 模块基线：`module_smoke` 用于验证 Card、Memory、Retrieval、Router/Tool、Schedule、PKM、Super Agent 和成本 Trace 的 grader、指标和报告口径。
+- 模块基线：`datasets/modules/<module>` 下每个模块一个小实验，用于分别验证 Card、Memory、Retrieval、Router/Tool、Schedule、PKM、Super Agent 和成本 Trace 的 grader、指标和报告口径。
 - 串行全链路：`full_chain_serial_smoke` 用于验证真实单用户操作脚本，从 `submitInput`、后台 task、memory 写入到 Super Agent 问答是否闭环。
 
 中等规模数据集仍可通过 `generate_medium_dataset.dart` / `generate_full_chain_replay_dataset.dart` 扩展，但默认先跑小样本，避免把模型 TPS、任务并发和真实质量问题混在一起。
+
+指标体系与扩充方向见 `METRICS.md`。新增模块实验时，优先补一个独立小数据集和独立报告，再考虑汇总到中等规模回归集。
 
 ## Harness 原则
 

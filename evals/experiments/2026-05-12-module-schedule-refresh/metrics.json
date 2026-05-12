@@ -1,0 +1,94 @@
+{
+  "run_id": "2026-05-12-module-schedule-refresh",
+  "started_at": "2026-05-12T08:54:07.756230Z",
+  "benchmark_elapsed_ms": 58,
+  "dataset_path": "evals/datasets/modules/schedule_refresh",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 2,
+  "task_count": 2,
+  "dataset_summary": {
+    "case_count": 2,
+    "persona_count": 1,
+    "input_count": 0,
+    "task_count": 2,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "schedule_refresh": 2
+    },
+    "tasks_by_type": {
+      "schedule_refresh": 2
+    },
+    "personas": [
+      {
+        "user_id": "module_u_001",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 2,
+        "input_count": 0,
+        "task_count": 2,
+        "sample_inputs": []
+      }
+    ]
+  },
+  "assertions": {
+    "passed": 11,
+    "total": 11,
+    "pass_rate": 1.0
+  },
+  "by_family": {
+    "schedule_refresh": {
+      "passed": 11,
+      "total": 11,
+      "pass_rate": 1.0
+    }
+  },
+  "by_metric": {
+    "schedule_refresh_action_accuracy": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "schedule_refresh_unnecessary_absence": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "schedule_refresh_missed_absence": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "tool_selection_accuracy": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "tool_args_accuracy": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "router_label_accuracy": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "prohibited_tool_absence": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 0,
+    "tool_call_count": 0,
+    "avg_latency_ms": 0.0,
+    "p95_latency_ms": 0.0,
+    "avg_total_tokens": 0.0,
+    "total_tokens": 0
+  }
+}
