@@ -136,7 +136,8 @@ Options:
   --adapter NAME       Observation adapter: fixture or replay_file. Default: fixture
   --out PATH           Output directory. Default: evals/runs/<run-id>
   --run-id ID          Stable run id for output metadata.
-  --use-llm-judge      Enable JSON judge for eligible tasks.
+  --use-llm-judge      Enable JSON judge for eligible retrieval / Super Agent QA tasks
+                       unless expected.llm_judge is false.
   --llm-provider NAME  Judge provider: anthropic or openai_chat. Env fallback: EVAL_LLM_PROVIDER.
   --llm-base-url URL   Judge base URL. Env fallback: EVAL_LLM_BASE_URL.
   --llm-api-key KEY    Judge API key. Env fallback: EVAL_LLM_API_KEY.
@@ -647,9 +648,9 @@ class TaskGrader {
         break;
       case 'retrieval_qa':
         assertions.addAll(_gradeRetrievalQa(evalCase, task, observed));
-        if (judge != null && task.expected['llm_judge'] == true) {
+        if (_shouldUseLlmJudge(task, judge)) {
           assertions.add(
-            await _gradeWithLlmJudge(evalCase, task, observed, judge),
+            await _gradeWithLlmJudge(evalCase, task, observed, judge!),
           );
         }
         break;
@@ -664,6 +665,11 @@ class TaskGrader {
         break;
       case 'super_agent_qa':
         assertions.addAll(_gradeSuperAgentQa(evalCase, task, observed));
+        if (_shouldUseLlmJudge(task, judge)) {
+          assertions.add(
+            await _gradeWithLlmJudge(evalCase, task, observed, judge!),
+          );
+        }
         break;
       case 'cost_trace':
         assertions.addAll(_gradeCostTrace(evalCase, task, observed));
@@ -1206,17 +1212,19 @@ class TaskGrader {
     }
 
     final citedSources = _sourceIds(observed['cited_sources']);
-    if (citedSources.isNotEmpty && expectedSources.isNotEmpty) {
+    if (expectedSources.isNotEmpty) {
       final citedAll = expectedSources.every(citedSources.contains);
+      final citedCount = expectedSources.where(citedSources.contains).length;
       assertions.add(
         AssertionResult.fromBool(
           evalCase: evalCase,
           task: task,
           metric: 'answer_source_citation',
           passed: citedAll,
-          score: expectedSources.where(citedSources.contains).length /
-              expectedSources.length,
-          message: 'Cited sources: ${citedSources.join(', ')}.',
+          score: citedCount / expectedSources.length,
+          message: citedSources.isEmpty
+              ? 'No cited sources found; expected ${expectedSources.join(', ')}.'
+              : 'Cited sources: ${citedSources.join(', ')}.',
         ),
       );
     }
@@ -1276,6 +1284,13 @@ class TaskGrader {
         message: 'LLM judge failed: ${_redact(e.toString())}',
       );
     }
+  }
+
+  static bool _shouldUseLlmJudge(EvalTask task, JsonJudge? judge) {
+    if (judge == null) return false;
+    if (task.expected['llm_judge'] == false) return false;
+    if (task.expected['llm_judge'] == true) return true;
+    return task.type == 'retrieval_qa' || task.type == 'super_agent_qa';
   }
 
   static List<AssertionResult> _gradeToolCalling(
@@ -1958,17 +1973,22 @@ abstract class BaseJsonJudge implements JsonJudge {
       'query': task.raw['query'],
       'expected': task.expected,
       'answer': observed['answer'],
+      'retrieved_sources': observed['retrieved_sources'],
+      'cited_sources': observed['cited_sources'],
       'source_snippets': observed['source_snippets'],
     };
   }
 
   JsonMap buildDatasetAuditPayload(List<EvalCase> cases, int sampleLimit) {
-    final sampleCases =
-        cases.take(sampleLimit).map(_caseForDatasetAudit).toList();
+    final sampledCases = _selectAuditCases(cases, sampleLimit);
+    final sampleCases = sampledCases.map(_caseForDatasetAudit).toList();
     return {
       'audit_language_requirement': 'zh-CN',
+      'sample_strategy': 'family_round_robin',
       'case_count': cases.length,
       'sample_case_count': sampleCases.length,
+      'sampled_case_ids': sampledCases.map((c) => c.caseId).toList(),
+      'sampled_families': sampledCases.map((c) => c.family).toSet().toList(),
       'dataset_summary': DatasetSummary.fromCases(cases).toJson(),
       'sample_cases': sampleCases,
     };
@@ -2335,6 +2355,8 @@ class MetricsAggregator {
 
     final llmCalls =
         traceEvents.where((e) => e['event_type'] == 'llm_call').toList();
+    final llmJudgeAssertionCount =
+        byMetric['llm_grounded_answer_score']?.total ?? 0;
     final latencies = traceEvents
         .map((e) => (e['latency_ms'] as num?)?.toDouble())
         .whereType<double>()
@@ -2368,7 +2390,17 @@ class MetricsAggregator {
         'replay_case_elapsed_total_ms': replayCaseElapsedTotalMs.round(),
       'dataset_path': config.datasetPath,
       'adapter': config.adapter,
+      'evidence_level': _evidenceLevel(
+        adapter: config.adapter,
+        datasetAudit: datasetAudit,
+      ),
+      'observation_contract':
+          config.adapter == 'fixture' ? 'fixture_observed' : 'replay_observed',
       'llm_judge_enabled': config.useLlmJudge,
+      'llm_judge_policy': config.useLlmJudge
+          ? 'retrieval_and_super_agent_qa_unless_expected_llm_judge_false'
+          : 'disabled',
+      'llm_judge_assertion_count': llmJudgeAssertionCount,
       if (config.useLlmJudge) ...{
         'llm_judge_provider': _normalizeProvider(
           config.llmProvider ?? 'anthropic',
@@ -2492,6 +2524,11 @@ class ReportRenderer {
     buffer.writeln('| Eval task | ${summary.taskCount} |');
     buffer.writeln('| 断言 | ${assertions['total']} |');
     buffer.writeln('| LLM 调用 | ${cost['llm_call_count']} |');
+    if ((result.metrics['llm_judge_assertion_count'] as num? ?? 0) > 0) {
+      buffer.writeln(
+        '| LLM Judge 断言 | ${result.metrics['llm_judge_assertion_count']} |',
+      );
+    }
     buffer.writeln('| Tool 调用 | ${cost['tool_call_count']} |');
     buffer.writeln('| 实际 token | ${cost['total_tokens'] ?? 0} |');
     if (result.metrics['replay_elapsed_ms'] != null) {
@@ -2620,6 +2657,9 @@ class ReportRenderer {
     buffer.writeln('- 运行 ID：`${result.runId}`');
     buffer.writeln('- 数据集：`${result.datasetPath}`');
     buffer.writeln('- 观察适配器：`${result.adapter}`');
+    buffer.writeln(
+      '- 证据等级：${_evidenceLevelDescription(result.metrics['evidence_level']?.toString())}',
+    );
     buffer.writeln('- 本地完整日志：`evals/runs/${result.runId}/debug_log.json`');
     buffer.writeln('- 本地 Trace：`evals/runs/${result.runId}/trace.ndjson`');
     buffer.writeln('- 本地断言明细：`evals/runs/${result.runId}/outputs.jsonl`');
@@ -2642,6 +2682,11 @@ class ReportRenderer {
         '- LLM Judge：`${result.metrics['llm_judge_provider']}` / '
         '`${result.metrics['llm_judge_model'] ?? '(未指定)'}` / '
         'max_tokens=${result.metrics['llm_judge_max_tokens']}',
+      );
+      buffer
+          .writeln('- LLM Judge 任务策略：`${result.metrics['llm_judge_policy']}`');
+      buffer.writeln(
+        '- LLM Judge 断言数：${result.metrics['llm_judge_assertion_count']}',
       );
     }
     buffer.writeln();
@@ -2677,15 +2722,18 @@ class ReportRenderer {
     final passRate = (assertions['pass_rate'] as num?)?.toDouble() ?? 0;
     final failed = ((assertions['total'] as num?)?.toInt() ?? 0) -
         ((assertions['passed'] as num?)?.toInt() ?? 0);
-    final verdict = passRate >= 0.98
-        ? '整体通过，适合作为当前基线。'
-        : passRate >= 0.9
-            ? '基本可用，但存在需要跟踪的失败项。'
-            : '未达到稳定基线标准，需要优先分析失败项。';
+    final evidenceLevel = result.metrics['evidence_level']?.toString();
+    final verdict = _runVerdict(
+      passRate: passRate,
+      evidenceLevel: evidenceLevel,
+    );
 
     buffer.writeln('## 结论');
     buffer.writeln();
     buffer.writeln('- $verdict');
+    buffer.writeln(
+      '- 证据等级：${_evidenceLevelDescription(evidenceLevel)}。',
+    );
     buffer.writeln(
       '- 本次覆盖 ${result.caseCount} 个 case、${result.taskCount} 个 eval task，'
       '断言通过率 ${_pct(passRate)}。',
@@ -2695,6 +2743,11 @@ class ReportRenderer {
       'LLM 调用次数：${cost['llm_call_count'] ?? 0}；'
       '工具调用次数：${cost['tool_call_count'] ?? 0}。',
     );
+    if ((result.metrics['llm_judge_assertion_count'] as num? ?? 0) > 0) {
+      buffer.writeln(
+        '- LLM Judge 断言数：${result.metrics['llm_judge_assertion_count']}。',
+      );
+    }
     final audit = result.datasetAudit;
     final auditScore = (audit?['overall_score'] as num?)?.toDouble();
     if (auditScore != null) {
@@ -3385,6 +3438,30 @@ JsonMap _summarizeObservation(JsonMap observed) {
   };
 }
 
+List<EvalCase> _selectAuditCases(List<EvalCase> cases, int sampleLimit) {
+  if (sampleLimit <= 0 || cases.length <= sampleLimit) return cases;
+
+  final byFamily = <String, List<EvalCase>>{};
+  for (final evalCase in cases) {
+    byFamily.putIfAbsent(evalCase.family, () => []).add(evalCase);
+  }
+
+  final selected = <EvalCase>[];
+  var offset = 0;
+  while (selected.length < sampleLimit) {
+    var addedInRound = false;
+    for (final familyCases in byFamily.values) {
+      if (offset >= familyCases.length) continue;
+      selected.add(familyCases[offset]);
+      addedInRound = true;
+      if (selected.length >= sampleLimit) break;
+    }
+    if (!addedInRound) break;
+    offset += 1;
+  }
+  return selected;
+}
+
 JsonMap _caseForDatasetAudit(EvalCase evalCase) {
   final inputStream = _list(evalCase.raw['input_stream']);
   final operationInputs = _list(evalCase.raw['operations'])
@@ -3709,6 +3786,54 @@ String _taskIssueSummary(Object? rawTasks) {
 String _formatCountMap(Map<String, int> counts) {
   if (counts.isEmpty) return '-';
   return counts.entries.map((e) => '${e.key}=${e.value}').join('，');
+}
+
+String _evidenceLevel({
+  required String adapter,
+  JsonMap? datasetAudit,
+}) {
+  if (adapter == 'replay_file') return 'real_replay';
+  final auditScore = (datasetAudit?['overall_score'] as num?)?.toDouble();
+  if (auditScore == null) return 'fixture_grader_smoke';
+  if (auditScore >= 0.8) return 'audited_synthetic_fixture';
+  return 'fixture_smoke_needs_dataset_work';
+}
+
+String _evidenceLevelDescription(String? level) {
+  switch (level) {
+    case 'real_replay':
+      return '真实 replay，观察来自 Memex 链路产物，可用于判断 Agent 行为';
+    case 'audited_synthetic_fixture':
+      return '已审计合成 fixture，可作为小规模回归基线，但仍不等同真实 replay';
+    case 'fixture_smoke_needs_dataset_work':
+      return 'fixture/grader smoke，断言可验证口径，但数据质量不足以证明 Agent 泛化能力';
+    case 'fixture_grader_smoke':
+      return 'fixture/grader smoke，主要验证 grader、报告和指标聚合能否工作';
+    default:
+      return '未声明';
+  }
+}
+
+String _runVerdict({
+  required double passRate,
+  String? evidenceLevel,
+}) {
+  if (passRate < 0.9) {
+    return '未达到稳定基线标准，需要优先分析失败项。';
+  }
+  if (passRate < 0.98) {
+    return '基本可用，但存在需要跟踪的失败项。';
+  }
+  switch (evidenceLevel) {
+    case 'real_replay':
+      return '真实链路整体通过，适合作为当前 replay 基线。';
+    case 'audited_synthetic_fixture':
+      return '合成 fixture 整体通过，适合作为小规模回归基线。';
+    case 'fixture_smoke_needs_dataset_work':
+      return '断言全绿，但只能说明 grader/fixture 口径跑通；数据集需要先补多样性再升级为强 benchmark。';
+    default:
+      return '断言全绿，适合作为 grader smoke；如需证明 Agent 能力，应接真实 replay 或补数据审计。';
+  }
 }
 
 String _escapeTable(String value) {

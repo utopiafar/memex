@@ -9,6 +9,16 @@ Memex 的评估应该按用户旅程组织，而不是只按内部模块组织�
 - 模块小实验：小样本、快跑、定位具体能力回归。
 - 全链路旅程实验：串行模拟单用户多天/多周操作，看状态是否能跨输入、跨任务、跨查询稳定流转。
 
+评估结论必须同时声明证据等级：
+
+- `fixture_grader_smoke` 只能说明 grader、schema、报告和指标聚合可用。
+- `audited_synthetic_fixture` 可以作为小规模合成回归基线，但需要抽样 replay 校准。
+- `real_replay` 才能用于判断真实 Agent 行为、任务收敛和成本。
+
+LLM judge 只用于语义质量，例如 groundedness、completeness、unsupported claims 和数据自然度；结构合法性、source id、tool call、时间、任务状态、token/latency 仍然必须规则判。
+
+数据审计抽样必须覆盖场景 family，不能只取文件前 N 条；否则 challenge set 容易只审到一个类别，低估或误判整体数据质量。
+
 ## 用户旅程指标总表
 
 | 用户旅程 | 对应模块实验 | 真实数据扩充方向 | 核心指标 |
@@ -22,6 +32,8 @@ Memex 的评估应该按用户旅程组织，而不是只按内部模块组织�
 | 工具调用与路由 | Router / Tool | 搜索记忆、读卡片、写 PKM、更新记忆、请求日程刷新、禁止写入的只读场景 | router label accuracy、tool selection accuracy、tool args accuracy、prohibited tool absence、tool-call minimality、trace completeness |
 | 成本与稳定性 | Cost / Trace | 长输入、多轮输入、低价值闲聊、工具失败重试、模型慢响应、任务队列积压 | total token budget、p95 latency、tool call budget、task completion status、retry rate、failed task rate、queue idle time |
 | 单用户多天使用 | Full-chain replay | 1 个 persona 连续几十到上百条输入，覆盖工作/生活/临时情绪/咨询/纠正/追问 | journey pass rate、state consistency、memory carryover、retrieval after write、answer after conflict、cost per input、end-to-end latency |
+
+`production_like_retrieval_v3` 是当前 Retrieval QA 扩充样板：24 个用户、150 条输入、94 个任务，覆盖多来源答案、旧记录/新记录、相似实体干扰、隐私/安全边界和证据不足拒答。v3 证明 retrieval fixture 可以规模化到更丰富的报告指标，但也暴露出 input naturalness 会随扩量下降；后续扩展 Memory、PKM、Super Agent 时，应沿用“按职业场景单独设计 source 结构和噪声”的方式，而不是批量模板替换。
 
 ## 场景扩充建议
 

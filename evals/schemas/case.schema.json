@@ -2,41 +2,90 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Memex Agent Eval Case",
   "type": "object",
-  "required": ["case_id", "family", "persona", "ground_truth_world", "input_stream", "eval_tasks"],
+  "required": ["case_id", "family", "persona", "ground_truth_world", "eval_tasks"],
+  "anyOf": [
+    {"required": ["input_stream"]},
+    {"required": ["operations"]}
+  ],
   "properties": {
-    "case_id": {"type": "string"},
-    "family": {"type": "string"},
+    "case_id": {"type": "string", "minLength": 1},
+    "family": {"type": "string", "minLength": 1},
     "language": {"type": "string"},
     "locale": {"type": "string"},
     "persona": {"type": "object"},
     "ground_truth_world": {"type": "object"},
     "input_stream": {
       "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["id", "time", "channel", "content"],
-        "properties": {
-          "id": {"type": "string"},
-          "time": {"type": "string"},
-          "channel": {"type": "string"},
-          "content": {"type": "string"}
-        }
-      }
+      "items": {"$ref": "#/$defs/input"}
+    },
+    "operations": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/operation"}
     },
     "eval_tasks": {
       "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["task_id", "type", "expected"],
-        "properties": {
-          "task_id": {"type": "string"},
-          "type": {
-            "enum": ["card_extraction", "memory_write", "retrieval_qa", "tool_calling", "cost_trace"]
-          },
-          "expected": {"type": "object"},
-          "fixture_observed": {"type": "object"}
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/eval_task"}
+    },
+    "fixture_observed": {"type": "object"}
+  },
+  "$defs": {
+    "input": {
+      "type": "object",
+      "required": ["id", "time", "channel", "content"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "time": {"type": "string", "minLength": 1},
+        "channel": {"type": "string", "minLength": 1},
+        "content": {"type": "string"},
+        "metadata": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "operation": {
+      "type": "object",
+      "required": ["id", "type"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "type": {
+          "enum": ["record", "wait_memory", "ask_super_agent"]
+        },
+        "time": {"type": "string"},
+        "channel": {"type": "string"},
+        "content": {"type": "string"},
+        "query": {"type": "string"},
+        "quick_query": {"type": "boolean"},
+        "timeout_seconds": {"type": "integer"},
+        "must_include_any": {
+          "type": "array",
+          "items": {"type": "string"}
         }
-      }
+      },
+      "additionalProperties": true
+    },
+    "eval_task": {
+      "type": "object",
+      "required": ["task_id", "type", "expected"],
+      "properties": {
+        "task_id": {"type": "string", "minLength": 1},
+        "type": {
+          "enum": [
+            "card_extraction",
+            "memory_write",
+            "retrieval_qa",
+            "tool_calling",
+            "schedule_refresh",
+            "pkm_organization",
+            "super_agent_qa",
+            "cost_trace"
+          ]
+        },
+        "query": {"type": "string"},
+        "expected": {"type": "object"},
+        "fixture_observed": {"type": "object"}
+      },
+      "additionalProperties": true
     }
-  }
+  },
+  "additionalProperties": true
 }

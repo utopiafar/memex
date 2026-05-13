@@ -64,6 +64,7 @@ Future<void> main(List<String> args) async {
       '该数据集是 challenge set，不追求全绿，fixture 中保留少量种子失败用于验证失败报告和 error analysis。',
       '同一个 hard_u_xx 会跨 7 类边界场景出现；每类场景带 $_inputsPerHardCase 条上下文输入，因此每个 hard persona 约 ${_inputsPerHardCase * _hardCategoriesPerPersona} 条输入。',
       '所有 oracle 来自 ground_truth_world 和 expected constraints。',
+      '上下文输入刻意加入职业化口吻、碎碎念、无关背景和轻度冗余，避免挑战集只靠固定句式触发规则。',
       '后续可把 fixture_observed 替换为真实 replay 或模块 adapter 产物。',
     ],
   };
@@ -234,11 +235,22 @@ List<JsonMap> _retrievalGroundingCases() => [
                   'answer': '5月14日你和 Jason 在线下会议室聊过投流预算。',
                   'retrieved_sources': const <String>[],
                   'cited_sources': const <String>[],
+                  'source_snippets': const <JsonMap>[],
                 }
               : {
                   'answer': '记录显示你在5月8日和 Jason 讨论过投流预算。',
                   'retrieved_sources': ['event_budget_$i', 'note_budget_$i'],
                   'cited_sources': ['event_budget_$i', 'note_budget_$i'],
+                  'source_snippets': [
+                    {
+                      'source_id': 'event_budget_$i',
+                      'snippet': '2026年5月8日 15:00，和 Jason 通过腾讯会议讨论投流预算。',
+                    },
+                    {
+                      'source_id': 'note_budget_$i',
+                      'snippet': 'Jason 讨论投流预算，重点看 CPA 和 ROAS。',
+                    },
+                  ],
                   'applied_filters': {'person': 'Jason', 'topic': '投流预算'},
                 },
           seededFailure: _seededFailure(i),
@@ -275,6 +287,12 @@ List<JsonMap> _superAgentBoundaryCases() => [
             ],
             'retrieved_sources': ['mem_diet_$i'],
             'cited_sources': ['mem_diet_$i'],
+            'source_snippets': [
+              {
+                'source_id': 'mem_diet_$i',
+                'snippet': '用户饮食偏好：不要海鲜、少糖。',
+              },
+            ],
           },
           seededFailure: _seededFailure(i),
         ),
@@ -333,7 +351,7 @@ List<JsonMap> _pkmOrganizationCases() => [
               {
                 'path_contains': ['Projects', 'Memex eval'],
                 'content_contains': ['hit@k', 'MRR', '失败模式', '下一步'],
-                'source_ids': ['input_pkm_$i'],
+                'source_ids': ['input_hard_pkm_organization_${_two(i)}'],
               }
             ],
             'prohibited_content': ['今天心情一般'],
@@ -350,8 +368,9 @@ List<JsonMap> _pkmOrganizationCases() => [
                 'content': _seededFailure(i)
                     ? '整理了一些评估想法。今天心情一般。'
                     : '本周关注 hit@k、MRR、失败模式和下一步。',
-                'source_ids':
-                    _seededFailure(i) ? const <String>[] : ['input_pkm_$i'],
+                'source_ids': _seededFailure(i)
+                    ? const <String>[]
+                    : ['input_hard_pkm_organization_${_two(i)}'],
               }
             ],
           },
@@ -467,6 +486,18 @@ JsonMap _groundTruthFor(String category, int index) {
       ],
     };
   }
+  if (category == 'super_agent_boundary') {
+    return {
+      ...base,
+      'memories': [
+        {
+          'id': 'mem_diet_$index',
+          'content': '用户饮食偏好：不要海鲜、少糖。',
+          'source_ids': ['input_hard_super_agent_boundary_${_two(index)}'],
+        }
+      ],
+    };
+  }
   return base;
 }
 
@@ -510,22 +541,88 @@ String _hardContextContent({
   final topic = _cycle(_hardNoiseTopics, index + offset);
   final person = _people[(index + offset) % _people.length];
   final place = _places[(index + offset) % _places.length];
+  final workTexture = _occupationTexture(occupation, index + offset);
+  final scenarioTexture = _categoryTexture(category, index + offset);
   final templates = [
-    '今天在$city处理$topic，有点碎，但这只是背景，不要影响 $category 的判断。',
-    '作为$occupation，我临时问一下$topic 的写法，先不用写成长记忆。',
-    '$person 提到$topic 时要看原始来源，不要因为相似词就强行关联。',
-    '如果这条只是随手记录，就不要触发日程刷新，也不要写长期偏好。',
+    '刚在$city路上想起$topic，先碎碎念一句：$scenarioTexture',
+    '作为$occupation，我临时问一下$topic 的写法，$workTexture',
+    '$person 提到$topic 时要看原始来源，不要因为相似词就强行关联；这条可能只是背景。',
+    '如果这条只是随手记录，就别自动触发后续动作。嗯，我现在只是怕忘。',
     '晚上可能去$place，但还没确定，后面问起来没有记录就说不确定。',
     '关于$topic，我更关心来源和时间，不要补没有出现过的地点。',
     '这周重复提到$topic 时，应该合并证据，不要生成很多近似条目。',
-    '今天情绪一般，和$topic卡住有关，这不是长期状态。',
-    '如果输入里有“不要修改”，Super Agent 只能只读回答。',
+    '今天情绪一般，和$topic卡住有关，先别急着给我贴长期标签。',
+    '如果我只是说“帮我看一下”，那就只读回答；别顺手改资料。',
     '把$topic 放到项目笔记时，别混进生活杂记，也别写入今天心情。',
     '日程相关内容只有明确时间和行动时才刷新，普通想法先跳过。',
     '$person 的反馈如果没有 source id，回答时要明确不确定。',
     '临时改期要覆盖旧时间，不能同时保留两个活跃日程。',
+    '这句可能没啥用：刚才咖啡洒了一点，脑子短路，但$topic 这块明天还要看。',
+    '语音转文字可能有错别字，$topic 相关内容最好结合前后文判断。',
+    '$workTexture 另外，如果没有证据，少写一点也比编得完整好。',
+    '$scenarioTexture 顺便把无关的心情、天气、路况都当噪声处理。',
   ];
   return templates[(offset - 1) % templates.length];
+}
+
+String _occupationTexture(String occupation, int seed) {
+  final options = switch (occupation) {
+    '数据分析师' => [
+        'SQL 口径、dashboard 截图和临时判断别混在一起。',
+        '如果涉及指标，先写口径，再写结论。',
+      ],
+    '跨境电商运营' => [
+        '广告组、listing、物流和退款原因要拆开看。',
+        '投流复盘先看异常，再看整体趋势。',
+      ],
+    '老师' => [
+        '备课灵感和学生反馈不是同一种来源。',
+        '课堂安排要保留日期，别只写“下次”。',
+      ],
+    _ => [
+        '项目事实、个人偏好和临时状态要分开。',
+        '结论可以短，但来源别丢。',
+      ],
+  };
+  return options[seed.abs() % options.length];
+}
+
+String _categoryTexture(String category, int seed) {
+  final options = switch (category) {
+    'memory_transient' => [
+        '今天这个状态大概只是被会打断了，不代表长期习惯。',
+        '我只是当下有点烦，长期偏好还是要看反复出现的记录。',
+      ],
+    'memory_conflict' => [
+        '旧说法和新说法撞上时，应该以最近明确更新为准。',
+        '如果我说“改一下”，旧规则别继续当现行规则用。',
+      ],
+    'card_ambiguous_time' => [
+        '我说“不是这周三”的时候，多半是在纠正旧日程。',
+        '时间、地点、人物都要从句子里取，别自己补天气和价格。',
+      ],
+    'retrieval_grounding' => [
+        '问历史记录时宁可慢一点，也别把没有来源的细节讲得很确定。',
+        '同名人物和相似项目要用时间和来源再确认一次。',
+      ],
+    'super_agent_boundary' => [
+        '只读查询就是只读，不要因为回答顺手写 memory。',
+        '如果我说不要修改，工具调用也要克制一点。',
+      ],
+    'schedule_router' => [
+        '只是心情或想法不用刷新日程，有明确时间再动。',
+        '新增会议和普通随手记要区分，不然提醒会爆炸。',
+      ],
+    'pkm_organization' => [
+        '项目复盘归项目，生活杂感不要混进去。',
+        '整理笔记时保留来源，别把今天心情写进周报。',
+      ],
+    _ => [
+        '这条只是背景，不要过度推断。',
+        '先按来源和时间判断，不要凭感觉扩写。',
+      ],
+  };
+  return options[seed.abs() % options.length];
 }
 
 JsonMap _taskTrace(String type) => {

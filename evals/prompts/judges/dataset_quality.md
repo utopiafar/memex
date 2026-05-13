@@ -8,6 +8,16 @@
 - `ground_truth_world`、`input_stream`、`eval_tasks.expected` 是否一致。
 - expected source、时间、人物、地点、约束是否能从隐藏真相或输入中推出。
 - 是否有明显自嗨、过度简单、模板化、重复、文化不自然或 oracle 泄漏问题。
+- 输入是否有足够多样的文风和信息密度：可以包含碎碎念、心情、弱相关背景、
+  冗余信息、语音口吻和无意义闲聊；不要因为输入不工整而扣分，但要惩罚
+  只替换人名/项目名的模板化数据。
+- 不同职业 persona 是否真的体现领域差异，而不是共享同一套句式。
+- `coverage_notes` 必须区分“所有 case 都满足”和“抽样中观察到”。除非
+  `dataset_summary` 或所有 `sample_cases` 都能支持，不要写“每个 case 均...”这类
+  绝对表述；如果只是常见模式，请写“多数 case”或“部分 case”。
+- 涉及 task 数量、拒答比例、family 覆盖、输入数量时，优先引用
+  `dataset_summary` 里的统计；不要从少量样本模式推断全量数据。若没有可靠计数，
+  只能说“抽样中观察到”。
 
 返回严格 JSON，不要 Markdown：
 

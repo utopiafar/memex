@@ -1,0 +1,162 @@
+{
+  "run_id": "2026-05-13-eval-system-review",
+  "experiment_type": "meta_review",
+  "benchmark_run": false,
+  "include_in_benchmark_rollup": false,
+  "case_count": 0,
+  "task_count": 0,
+  "assertions": {
+    "passed": 0,
+    "total": 0,
+    "pass_rate": 0
+  },
+  "reviewed_experiments": [
+    {
+      "run_id": "2026-05-11-fixture-v1-medium",
+      "adapter": "fixture",
+      "evidence_level": "fixture_grader_smoke",
+      "assertion_pass_rate": 0.9921011058451816,
+      "dataset_audit_score": null,
+      "interpretation": "Broad grader smoke; memory transient write failures are useful diagnostics."
+    },
+    {
+      "run_id": "2026-05-11-full-chain-medium-llm",
+      "adapter": "replay_file",
+      "evidence_level": "real_replay",
+      "assertion_pass_rate": 0.5,
+      "dataset_audit_score": null,
+      "interpretation": "Most diagnostic real-chain run; exposed task non-convergence, loopDetection, null cards, and cost overruns."
+    },
+    {
+      "run_id": "2026-05-13-hard-case-challenge",
+      "adapter": "fixture",
+      "evidence_level": "fixture_smoke_needs_dataset_work",
+      "assertion_pass_rate": 0.8611111111111112,
+      "dataset_audit_score": 0.6,
+      "interpretation": "Failure-preserving challenge set; useful for error analysis, not a strong benchmark."
+    },
+    {
+      "run_id": "2026-05-13-memory-lifecycle",
+      "adapter": "fixture",
+      "evidence_level": "audited_synthetic_fixture",
+      "assertion_pass_rate": 1.0,
+      "dataset_audit_score": 0.9,
+      "interpretation": "Best current synthetic baseline for memory lifecycle behavior."
+    },
+    {
+      "run_id": "2026-05-13-retrieval-source-grounding",
+      "adapter": "fixture",
+      "evidence_level": "fixture_smoke_needs_dataset_work",
+      "assertion_pass_rate": 1.0,
+      "dataset_audit_score": 0.65,
+      "interpretation": "Metric coverage is good, but data is too templated to prove retrieval generalization."
+    },
+    {
+      "run_id": "2026-05-13-full-chain-journey-medium",
+      "adapter": "fixture",
+      "evidence_level": "fixture_smoke_needs_dataset_work",
+      "assertion_pass_rate": 1.0,
+      "dataset_audit_score": 0.7,
+      "interpretation": "Journey direction is right; persona and input diversity need redesign before it becomes a strong benchmark."
+    },
+    {
+      "run_id": "2026-05-13-retrieval-source-grounding-llm-sample",
+      "adapter": "fixture",
+      "evidence_level": "fixture_smoke_needs_dataset_work",
+      "assertion_pass_rate": 1.0,
+      "dataset_audit_score": 0.6,
+      "llm_judge_assertion_count": 24,
+      "interpretation": "Grounding and citation assertions pass, but data audit shows template-heavy retrieval data."
+    },
+    {
+      "run_id": "2026-05-13-memory-lifecycle-llm-judge",
+      "adapter": "fixture",
+      "evidence_level": "audited_synthetic_fixture",
+      "assertion_pass_rate": 1.0,
+      "dataset_audit_score": 0.9,
+      "llm_judge_assertion_count": 12,
+      "interpretation": "Best current synthetic baseline for memory lifecycle, including Super Agent grounded QA."
+    },
+    {
+      "run_id": "2026-05-13-hard-case-challenge-llm-judge",
+      "adapter": "fixture",
+      "evidence_level": "fixture_smoke_needs_dataset_work",
+      "assertion_pass_rate": 0.8552631578947368,
+      "dataset_audit_score": 0.78,
+      "llm_judge_assertion_count": 32,
+      "interpretation": "Failure-preserving challenge set with stratified audit; useful for error analysis and data redesign priorities."
+    },
+    {
+      "run_id": "2026-05-13-production-like-retrieval-llm-judge",
+      "adapter": "fixture",
+      "evidence_level": "audited_synthetic_fixture",
+      "assertion_pass_rate": 1.0,
+      "dataset_audit_score": 0.95,
+      "llm_judge_assertion_count": 16,
+      "interpretation": "Best current retrieval slice for showing production-like inputs; small curated baseline, not a replacement for real replay."
+    },
+    {
+      "run_id": "2026-05-13-production-like-retrieval-v2-llm-judge",
+      "adapter": "fixture",
+      "evidence_level": "audited_synthetic_fixture",
+      "assertion_pass_rate": 1.0,
+      "dataset_audit_score": 0.9,
+      "llm_judge_assertion_count": 47,
+      "interpretation": "Expanded production-like retrieval slice with 12 users, 78 inputs, and 47 tasks; useful for harness engineering and data-construction discussion, still retrieval-only fixture."
+    },
+    {
+      "run_id": "2026-05-13-production-like-retrieval-v3-llm-judge",
+      "adapter": "fixture",
+      "evidence_level": "audited_synthetic_fixture",
+      "assertion_pass_rate": 1.0,
+      "dataset_audit_score": 0.9,
+      "llm_judge_assertion_count": 94,
+      "interpretation": "Scaled production-like retrieval slice with 24 users, 150 inputs, and 94 tasks; richer metrics, but input naturalness dipped to 0.85 so the next step should be replay or raw-document realism."
+    },
+    {
+      "run_id": "2026-05-13-retrieval-source-grounding-diversity-audit",
+      "adapter": "fixture",
+      "evidence_level": "fixture_smoke_needs_dataset_work",
+      "assertion_pass_rate": 1.0,
+      "dataset_audit_score": 0.65,
+      "interpretation": "Style and domain texture improved, but large generated retrieval set remains structurally templated."
+    },
+    {
+      "run_id": "2026-05-13-hard-case-challenge-diversity-audit",
+      "adapter": "fixture",
+      "evidence_level": "fixture_smoke_needs_dataset_work",
+      "assertion_pass_rate": 0.8611111111111112,
+      "dataset_audit_score": 0.55,
+      "interpretation": "PKM source-id loop is fixed, but the challenge set remains too templated for benchmark claims."
+    }
+  ],
+  "fixes": {
+    "schema_updated_for_operations_and_new_task_types": true,
+    "citation_missing_now_fails_when_expected_sources_exist": true,
+    "llm_judge_default_policy": "retrieval_and_super_agent_qa_unless_expected_llm_judge_false",
+    "judge_payload_includes_retrieved_and_cited_sources": true,
+    "dataset_audit_sample_strategy": "family_round_robin",
+    "dataset_quality_prompt_requires_style_and_domain_diversity": true,
+    "dataset_quality_prompt_avoids_absolute_coverage_claims": true,
+    "production_like_retrieval_dataset_added": true,
+    "production_like_retrieval_v2_dataset_added": true,
+    "production_like_retrieval_v3_dataset_added": true,
+    "harness_engineering_log_added": true,
+    "fixture_smoke_before_full_llm_run": true,
+    "v3_expected_and_observed_filter_sync_checked": true,
+    "hard_case_pkm_source_ids_fixed": true,
+    "hard_case_super_agent_oracle_ground_truth_added": true,
+    "source_snippets_added_for_retrieval_and_memory_fixtures": true,
+    "legacy_full_chain_replay_uses_input_time": true,
+    "reports_now_include_evidence_level": true
+  },
+  "recommended_next_steps": [
+    "Calibrate LLM judge on 20-50 real replay outputs with human review.",
+    "Expand production-like retrieval and journey data with per-scenario source structures instead of template substitution.",
+    "Extend production-like complexity from retrieval-only fixture to memory, PKM, Super Agent, and real replay.",
+    "Add a rule-based post-check for LLM audit summaries that use absolute coverage words such as every/all.",
+    "Use the full_chain_medium replay failure as the next real product debugging entry point.",
+    "Rebuild hard-case challenge families while preserving seed failures and source-grounded oracles.",
+    "Require every new benchmark report to state evidence level and what the run cannot prove."
+  ]
+}

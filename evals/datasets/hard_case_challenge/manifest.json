@@ -27,6 +27,7 @@
     "该数据集是 challenge set，不追求全绿，fixture 中保留少量种子失败用于验证失败报告和 error analysis。",
     "同一个 hard_u_xx 会跨 7 类边界场景出现；每类场景带 14 条上下文输入，因此每个 hard persona 约 98 条输入。",
     "所有 oracle 来自 ground_truth_world 和 expected constraints。",
+    "上下文输入刻意加入职业化口吻、碎碎念、无关背景和轻度冗余，避免挑战集只靠固定句式触发规则。",
     "后续可把 fixture_observed 替换为真实 replay 或模块 adapter 产物。"
   ]
 }

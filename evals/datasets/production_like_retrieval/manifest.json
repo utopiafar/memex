@@ -1,0 +1,25 @@
+{
+  "dataset_id": "memex_production_like_retrieval",
+  "version": 1,
+  "description": "生产贴近 Retrieval QA 小样本：手工策划不同职业、不同来源结构、不同问法和噪声密度。",
+  "created_at": "2026-05-13",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "persona_count": 5,
+  "case_count": 5,
+  "input_count": 23,
+  "task_count": 16,
+  "families": [
+    "production_retrieval_product",
+    "production_retrieval_clinic",
+    "production_retrieval_legal",
+    "production_retrieval_teacher",
+    "production_retrieval_indie_dev"
+  ],
+  "notes": [
+    "这个数据集刻意不追求整齐等长：不同 case 的输入、来源和任务数量可以不同。",
+    "输入包含口语、弱相关背景、职业术语、生活噪声和不完整表达。",
+    "用于校准“更像生产环境”的 retrieval/source grounding 评估口径，不替代大规模回归集。"
+  ]
+}

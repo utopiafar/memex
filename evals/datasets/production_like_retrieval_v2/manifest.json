@@ -1,0 +1,42 @@
+{
+  "dataset_id": "memex_production_like_retrieval_v2",
+  "version": 2,
+  "description": "生产贴近 Retrieval QA 扩展样本：更多用户、行业、噪声形态、修正记录和多来源任务。",
+  "created_at": "2026-05-13",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "persona_count": 12,
+  "case_count": 12,
+  "input_count": 78,
+  "task_count": 47,
+  "families": [
+    "production_retrieval_v2_growth_product",
+    "production_retrieval_v2_chronic_care",
+    "production_retrieval_v2_finance_fpna",
+    "production_retrieval_v2_ops_warehouse",
+    "production_retrieval_v2_ux_research",
+    "production_retrieval_v2_investigative_editor",
+    "production_retrieval_v2_restaurant_owner",
+    "production_retrieval_v2_construction_architect",
+    "production_retrieval_v2_game_design",
+    "production_retrieval_v2_technical_recruiting",
+    "production_retrieval_v2_family_caregiver",
+    "production_retrieval_v2_sre_incident"
+  ],
+  "complexity_dimensions": [
+    "multi_source_answer",
+    "latest_update_vs_old_record",
+    "domain_specific_persona",
+    "weakly_related_noise",
+    "voice_transcript_chatter",
+    "screenshot_or_email_like_input",
+    "abstention_for_unknown_fact",
+    "source_citation_required"
+  ],
+  "notes": [
+    "v2 不是把 v1 简单扩行，而是让每个职业场景有不同来源结构、输入渠道、噪声密度和任务数量。",
+    "包含旧记录与最新修正、正式记录与口头碎片、专业术语与生活噪声，模拟真实个人工作流里的混杂信息。",
+    "仍是 fixture adapter，用于验证 harness、指标和 LLM judge；不能替代真实 Memex replay。"
+  ]
+}

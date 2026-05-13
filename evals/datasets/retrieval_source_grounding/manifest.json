@@ -18,6 +18,7 @@
   "notes": [
     "每个 persona 有 100 条中文历史输入，构成隐藏世界中的 card、memory、note、PKM 来源。",
     "每个 persona 有 12 个 retrieval_qa 任务，覆盖人物、时间、项目、类型、多来源组合和证据不足拒答。",
-    "fixture_observed 是理想检索结果，用于验证 hit@k、MRR、citation、grounded answer 和 abstention 口径。"
+    "fixture_observed 是理想检索结果，用于验证 hit@k、MRR、citation、grounded answer 和 abstention 口径。",
+    "输入刻意混合正式记录、语音碎碎念、冗余背景、职业化表达和弱相关闲聊，避免只做模板替换。"
   ]
 }

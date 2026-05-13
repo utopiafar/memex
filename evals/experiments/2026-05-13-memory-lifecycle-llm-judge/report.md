@@ -2,11 +2,13 @@
 
 ## 结论
 
-- 合成 fixture 整体通过，适合作为当前 memory lifecycle 小规模回归基线；仍需真实 replay 抽样校准。
+- 合成 fixture 整体通过，适合作为小规模回归基线。
+- 证据等级：已审计合成 fixture，可作为小规模回归基线，但仍不等同真实 replay。
 - 本次覆盖 12 个 case、60 个 eval task，断言通过率 100.0%。
 - 失败断言数：0；Token 总量：163200；LLM 调用次数：60；工具调用次数：12。
+- LLM Judge 断言数：12。
 - 数据质量审计通过：overall=0.900。
-- 审计摘要：数据集语言稳定为中文，符合zh-CN场景；12个persona职业、城市、习惯自然可信；ground_truth_world、input_stream、eval_tasks.expected三者高度一致，预期结果均可从输入中合理推出；未发现明显自嗨、文化不自然或oracle泄漏问题。主要不足是案例间结构高度相似，存在模板化倾向，但因其核心测试点（记忆生命周期）明确且细节有变化，不影响作为评估数据集的使用。
+- 审计摘要：数据集整体质量很高，语言一致，persona可信，输入自然，oracle逻辑严密。主要扣分点在于不同case间的输入内容存在较高的模板化重复，可能影响评估的多样性。但作为小规模的smoke test或初始benchmark数据，其结构完整性和逻辑一致性完全达标。
 
 ## 实验问题与背景
 
@@ -22,11 +24,12 @@
 | Case | 12 |
 | 用户输入 | 1200 |
 | Eval task | 60 |
-| 断言 | 300 |
+| 断言 | 312 |
 | LLM 调用 | 60 |
+| LLM Judge 断言 | 12 |
 | Tool 调用 | 12 |
 | 实际 token | 163200 |
-| Benchmark 评分耗时 | 25秒 |
+| Benchmark 评分耗时 | 4分17秒 |
 
 - 数据语言：zh-CN
 - Token 估算：本次实际消耗 163200 tokens；同规模复跑可先按 130560-195840 tokens 预留。
@@ -48,6 +51,7 @@
 | Super Agent 问答 | 操作边界 | `super_agent_read_only_compliance` | 只读问答场景下 Super Agent 是否没有调用写入类工具。 |
 | 检索问答 | 幻觉控制 | `unsupported_claim_absence` | 答案是否没有出现禁止或无证据断言。 |
 | 检索问答 | 答案完整性 | `answer_must_include` | 答案是否包含所有必须提到的信息。 |
+| 检索问答 | 证据支撑 | `llm_grounded_answer_score` | LLM judge 给出的 groundedness/completeness 综合分。 |
 | 记忆写入 | 写入召回 | `memory_must_write_recall` | 应该写入的长期记忆是否被写入。 |
 | 记忆写入 | 写入精度 | `memory_must_not_write_precision` | 临时/噪声信息是否没有被写成长记忆。 |
 | 记忆写入 | 写入精度 | `memory_write_precision` | 写入的记忆中有多少属于期望长期事实。 |
@@ -65,7 +69,7 @@
 | 场景 | 通过 | 总数 | 通过率 | 平均分 |
 | --- | ---: | ---: | ---: | ---: |
 | 记忆写入 | 240 | 240 | 100.0% | 1.000 |
-| Super Agent 问答 | 60 | 60 | 100.0% | 1.000 |
+| Super Agent 问答 | 72 | 72 | 100.0% | 1.000 |
 
 ### 关键指标结果
 
@@ -75,6 +79,7 @@
 | Super Agent 问答 | 操作边界 | `super_agent_read_only_compliance` | 12 | 12 | 100.0% | - |
 | 检索问答 | 幻觉控制 | `unsupported_claim_absence` | 12 | 12 | 100.0% | - |
 | 检索问答 | 答案完整性 | `answer_must_include` | 12 | 12 | 100.0% | 1.000 |
+| 检索问答 | 证据支撑 | `llm_grounded_answer_score` | 12 | 12 | 100.0% | 1.000 |
 | 记忆写入 | 写入召回 | `memory_must_write_recall` | 60 | 60 | 100.0% | 1.000 |
 | 记忆写入 | 写入精度 | `memory_must_not_write_precision` | 24 | 24 | 100.0% | - |
 | 记忆写入 | 写入精度 | `memory_write_precision` | 12 | 12 | 100.0% | 1.000 |
@@ -93,7 +98,7 @@
 - 单次 LLM 平均 token：2720.000
 - 平均延迟：968.000 ms
 - P95 延迟：1100.000 ms
-- Benchmark 评分耗时：25秒
+- Benchmark 评分耗时：4分17秒
 
 ## 失败样本
 
@@ -103,16 +108,20 @@
 
 ### 运行信息
 
-- 运行 ID：`2026-05-13-memory-lifecycle`
+- 运行 ID：`2026-05-13-memory-lifecycle-llm-judge`
 - 数据集：`evals/datasets/memory_lifecycle`
 - 观察适配器：`fixture`
-- 本地完整日志：`evals/runs/2026-05-13-memory-lifecycle/debug_log.json`
-- 本地 Trace：`evals/runs/2026-05-13-memory-lifecycle/trace.ndjson`
-- 本地断言明细：`evals/runs/2026-05-13-memory-lifecycle/outputs.jsonl`
+- 证据等级：已审计合成 fixture，可作为小规模回归基线，但仍不等同真实 replay
+- 本地完整日志：`evals/runs/2026-05-13-memory-lifecycle-llm-judge/debug_log.json`
+- 本地 Trace：`evals/runs/2026-05-13-memory-lifecycle-llm-judge/trace.ndjson`
+- 本地断言明细：`evals/runs/2026-05-13-memory-lifecycle-llm-judge/outputs.jsonl`
 - 场景样本数：12
 - 评估任务数：60
-- Benchmark 评分耗时：25秒
-- 断言通过：300/300 （100.0%）
+- Benchmark 评分耗时：4分17秒
+- 断言通过：312/312 （100.0%）
+- LLM Judge：`anthropic` / `mimo-v2-pro` / max_tokens=4096
+- LLM Judge 任务策略：`retrieval_and_super_agent_qa_unless_expected_llm_judge_false`
+- LLM Judge 断言数：12
 
 ### 场景任务明细
 
@@ -189,27 +198,33 @@
 ## 数据质量审计
 
 - 总体分：0.900
-- 语言一致性：1.000
+- 语言一致性：0.950
 - Persona 可信度：0.900
-- 输入自然度：0.900
-- Oracle 一致性：0.900
-- 审计结论：数据集语言稳定为中文，符合zh-CN场景；12个persona职业、城市、习惯自然可信；ground_truth_world、input_stream、eval_tasks.expected三者高度一致，预期结果均可从输入中合理推出；未发现明显自嗨、文化不自然或oracle泄漏问题。主要不足是案例间结构高度相似，存在模板化倾向，但因其核心测试点（记忆生命周期）明确且细节有变化，不影响作为评估数据集的使用。
-- 覆盖备注：数据集覆盖了12个不同职业和城市的用户，场景多样。；输入流包含长期偏好、临时状态、冲突更新、敏感信息边界等多种记忆生命周期场景。；评估任务覆盖了初始写入、冲突解决、时间范围、敏感信息处理和超级代理问答。
+- 输入自然度：0.850
+- Oracle 一致性：0.950
+- 审计结论：数据集整体质量很高，语言一致，persona可信，输入自然，oracle逻辑严密。主要扣分点在于不同case间的输入内容存在较高的模板化重复，可能影响评估的多样性。但作为小规模的smoke test或初始benchmark数据，其结构完整性和逻辑一致性完全达标。
+- 覆盖备注：数据集覆盖了12个不同职业和城市的persona，场景多样。；每个case包含100条输入，覆盖了记忆的写入、更新、冲突解决、时间范围、敏感信息处理等生命周期关键环节。；评估任务（eval_tasks）设计合理，覆盖了初始写入、冲突更新、时间范围、敏感边界和超级代理问答等核心场景。
 
 ### 审计问题
 
-- `all` / low：案例结构高度模板化；建议：在保持核心测试点不变的前提下，可微调输入顺序、表达方式或增加少量非核心干扰项，以降低模式感。
+- `all` / medium：输入流和评估任务结构高度模板化，不同persona的输入内容（如提醒、饮食偏好、咖啡规则、习惯暂停）在句式和逻辑上高度相似，仅替换项目名称、人物名称和具体习惯，可能导致评估缺乏多样性。；建议：在保持核心测试逻辑不变的前提下，为不同persona设计更具个性化的输入句式和场景细节，减少模板痕迹。
 
 ### 抽样 Case 评价
 
 | Case | 分数 | 理由 |
 | --- | ---: | --- |
-| `memory_lifecycle_001` | 0.900 | 语言自然，persona可信，输入流丰富且包含多种记忆管理场景，ground truth与输入一致，评估任务设计合理。 |
-| `memory_lifecycle_002` | 0.900 | 与001结构类似但细节（职业、城市、项目）不同，同样自然可信，测试点一致，质量稳定。 |
-| `memory_lifecycle_003` | 0.900 | 数据分析师角色和‘保留英文metric id’的偏好增加了真实性，其他方面保持高质量。 |
-| `memory_lifecycle_004` | 0.900 | 教师角色和‘反馈不超过三条重点’的偏好符合职业特点，整体逻辑自洽。 |
-| `memory_lifecycle_005` | 0.900 | 律师角色和‘重要结论要列来源’的偏好合理，案例细节完整。 |
-| `memory_lifecycle_006` | 0.900 | 财务主管角色和‘数字先给口径’的偏好贴合实际，案例质量与前几个一致。 |
+| `memory_lifecycle_001` | 0.900 | 语言自然，persona可信，ground_truth、input_stream与eval_tasks高度一致，无明显泄漏。 |
+| `memory_lifecycle_002` | 0.900 | 结构完整，逻辑清晰，所有预期输出均可从输入中合理推导。 |
+| `memory_lifecycle_003` | 0.900 | 数据质量高，任务设计覆盖了记忆管理的核心挑战。 |
+| `memory_lifecycle_004` | 0.900 | 符合zh-CN场景，评估任务与隐藏真相一致。 |
+| `memory_lifecycle_005` | 0.900 | 输入内容自然，敏感信息处理任务设计得当。 |
+| `memory_lifecycle_006` | 0.900 | 数据一致性好，无明显自嗨或过度简单问题。 |
+| `memory_lifecycle_007` | 0.900 | persona和场景可信，任务覆盖全面。 |
+| `memory_lifecycle_008` | 0.900 | 语言稳定，oracle一致性高。 |
+| `memory_lifecycle_009` | 0.900 | 数据结构严谨，评估任务合理。 |
+| `memory_lifecycle_010` | 0.900 | 输入流时间线清晰，任务预期明确。 |
+| `memory_lifecycle_011` | 0.900 | 数据质量可靠，适合作为基准测试。 |
+| `memory_lifecycle_012` | 0.900 | 整体完成度高，无明显缺陷。 |
 
 ## 附录：数据集与 Persona 示例
 

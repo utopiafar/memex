@@ -239,45 +239,61 @@ JsonMap _memoryTask({
 JsonMap _superAgentTask({
   required String caseId,
   required _MemoryPersona persona,
-}) =>
+}) {
+  final sourceSnippets = [
     {
-      'task_id': '${caseId}_super_agent_latest_memory',
-      'type': 'super_agent_qa',
-      'query': '我现在咖啡怎么喝？重要会议提醒偏好是什么？${persona.pauseHabit}这个月还继续吗？',
-      'expected': {
-        'must_include': ['上午', '咖啡', '重要会议', '提前一天', persona.pauseHabit, '暂停'],
-        'must_not_include': ['完全不喝咖啡', '每天都暂停'],
-        'read_only': true,
-        'prohibited_tool_calls': [
-          'update_memory',
-          'delete_memory',
-          'save_memory'
-        ],
-        'personalization_must_include': [persona.pauseHabit],
-      },
-      'fixture_observed': {
-        'answer':
-            '最新记录是上午可以喝一杯咖啡，下午不喝。重要会议需要提前一天提醒；${persona.pauseHabit}在 2026-05 暂停，6 月起恢复观察。',
-        'retrieved_sources': [
-          '${caseId}_mem_coffee_latest',
-          '${caseId}_mem_reminder',
-          '${caseId}_mem_pause',
-        ],
-        'cited_sources': [
-          '${caseId}_mem_coffee_latest',
-          '${caseId}_mem_reminder',
-          '${caseId}_mem_pause',
-        ],
-        'tool_calls': [
-          {
-            'name': 'search_memory',
-            'args': {'query': '咖啡 重要会议 ${persona.pauseHabit}'},
-          }
-        ],
-        'trace_events': [_toolTrace('search_memory')],
-        'llm_calls': [_llmCall('memex_agent', 2600, 520)],
-      },
-    };
+      'source_id': '${caseId}_mem_coffee_latest',
+      'snippet': '用户最新咖啡偏好是上午可以喝一杯，下午不喝。',
+    },
+    {
+      'source_id': '${caseId}_mem_reminder',
+      'snippet': '用户希望重要会议提前一天提醒。',
+    },
+    {
+      'source_id': '${caseId}_mem_pause',
+      'snippet': '${persona.pauseHabit}在 2026-05 暂停，2026-06 起恢复观察。',
+    },
+  ];
+  return {
+    'task_id': '${caseId}_super_agent_latest_memory',
+    'type': 'super_agent_qa',
+    'query': '我现在咖啡怎么喝？重要会议提醒偏好是什么？${persona.pauseHabit}这个月还继续吗？',
+    'expected': {
+      'must_include': ['上午', '咖啡', '重要会议', '提前一天', persona.pauseHabit, '暂停'],
+      'must_not_include': ['完全不喝咖啡', '每天都暂停'],
+      'read_only': true,
+      'prohibited_tool_calls': [
+        'update_memory',
+        'delete_memory',
+        'save_memory'
+      ],
+      'personalization_must_include': [persona.pauseHabit],
+    },
+    'fixture_observed': {
+      'answer':
+          '最新记录是上午可以喝一杯咖啡，下午不喝。重要会议需要提前一天提醒；${persona.pauseHabit}在 2026-05 暂停，6 月起恢复观察。',
+      'retrieved_sources': [
+        '${caseId}_mem_coffee_latest',
+        '${caseId}_mem_reminder',
+        '${caseId}_mem_pause',
+      ],
+      'cited_sources': [
+        '${caseId}_mem_coffee_latest',
+        '${caseId}_mem_reminder',
+        '${caseId}_mem_pause',
+      ],
+      'source_snippets': sourceSnippets,
+      'tool_calls': [
+        {
+          'name': 'search_memory',
+          'args': {'query': '咖啡 重要会议 ${persona.pauseHabit}'},
+        }
+      ],
+      'trace_events': [_toolTrace('search_memory')],
+      'llm_calls': [_llmCall('memex_agent', 2600, 520)],
+    },
+  };
+}
 
 List<JsonMap> _memoryEntries(String caseId, _MemoryPersona persona) => [
       {

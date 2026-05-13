@@ -22,24 +22,65 @@ evals/
   prompts/                  # LLM judge / 数据审计 prompt
   schemas/                  # 数据集 schema
   runs/                     # 本地运行产物，git 忽略
+  HARNESS_ENGINEERING.md    # 每轮实验的工程复盘、避坑和后续原则
 ```
 
 `experiments/` 是对外最重要的目录。每个实验目录应当像一页实验日志，而不是脚本输出垃圾桶。原始 trace、临时 outputs、API key、本地缓存都不进 git。
 
 每次本地运行会在 `evals/runs/<run-id>/` 里留下完整排查材料：`outputs.jsonl` 记录每个 task 的断言结果，`trace.ndjson` 记录 LLM/tool/task trace，`debug_log.json` 汇总配置、指标、task 结果和 trace。这个目录默认被 git 忽略，只用于本地复盘。
 
-当前保留四条主要实验线：
+当前保留五条主要实验线：
 
 - 中等规模全链路 Journey：`datasets/full_chain_journey_medium`，按单用户串行旅程组织，覆盖多周中文输入、card、memory、Super Agent 和成本 trace。
 - Hard Case Challenge：`datasets/hard_case_challenge`，专门保留边界和种子失败，用来验证失败报告、error analysis 和指标敏感度。
 - Retrieval / Source Grounding：`datasets/retrieval_source_grounding`，覆盖跨 card、memory、note、PKM 的 hybrid retrieval、source citation、filter 和证据不足拒答。
+- Production-like Retrieval：`datasets/production_like_retrieval`、`datasets/production_like_retrieval_v2` 和 `datasets/production_like_retrieval_v3`，用手工策划的异质职业场景验证检索、引用和拒答，重点解决合成数据文风单调、结构过齐的问题。v3 扩到 24 个用户、150 条输入、94 个任务。
 - Memory Lifecycle：`datasets/memory_lifecycle`，覆盖 must-write、must-not-write、冲突更新、临时状态、过期范围、source grounding 和 Super Agent 最新记忆问答。
 
 历史模块基线仍保留在 `datasets/modules/<module>`，用于分别验证 Card、Memory、Retrieval、Router/Tool、Schedule、PKM、Super Agent 和成本 Trace 的 grader、指标和报告口径。`full_chain_serial_smoke` 继续用于验证真实单用户操作脚本，从 `submitInput`、后台 task、memory 写入到 Super Agent 问答是否闭环。
 
 中等规模数据集仍可通过 `generate_medium_dataset.dart` / `generate_full_chain_replay_dataset.dart` 扩展，但默认先跑小样本，避免把模型 TPS、任务并发和真实质量问题混在一起。
 
-指标体系与扩充方向见 `METRICS.md`。新增模块实验时，优先补一个独立小数据集和独立报告，再考虑汇总到中等规模回归集。
+指标体系与扩充方向见 `METRICS.md`。每轮实验过程、发现的问题和下轮避坑记录在 `HARNESS_ENGINEERING.md`。新增模块实验时，优先补一个独立小数据集和独立报告，再考虑汇总到中等规模回归集。
+
+## 如何读这些实验
+
+不要把所有 100% 通过都读成“Agent 能力已经可靠”。本目录刻意区分三种证据等级：
+
+- `fixture_grader_smoke`：观察结果来自 `fixture_observed`，主要验证 grader、指标聚合和报告结构。它能证明“测试口径能跑通”，不能证明真实 Agent 能做到。
+- `audited_synthetic_fixture`：仍是合成 fixture，但经过数据质量审计且 overall >= 0.8。适合做小规模回归基线，仍要用 replay 抽样校准。
+- `real_replay`：观察结果来自真实 Memex 链路，例如 submitInput、LocalTaskExecutor、card/memory/trace/Super Agent 输出。它才是判断 Agent 行为和成本收敛的主要证据。
+
+因此报告里的“断言通过率”和“数据质量审计”要一起读：如果 fixture 断言全绿但审计低于 0.8，结论应是 grader smoke 通过，而不是强 benchmark 通过。
+
+数据质量审计的抽样按 `family_round_robin` 分层：同一数据集有多个场景 family 时，会轮流抽取各 family 的 case，避免只审到 JSONL 排在前面的单一类别。
+
+## AI Agent 运行约定
+
+面向 Codex 一类 AI coding agent 时，优先让它读本文件、`METRICS.md` 和目标实验的 `report.md` / `metrics.json`，再决定是否复跑。常用入口：
+
+```bash
+dart evals/bin/run_agent_benchmark.dart \
+  --dataset evals/datasets/modules/card_extraction \
+  --out evals/runs/<run-id>
+
+MEMEX_EVAL_ENABLE_LLM=1 \
+flutter test evals/replay/serial_full_chain_replay_test.dart
+```
+
+如果启用 LLM judge，使用环境变量传 key 和模型信息：
+
+```bash
+EVAL_LLM_PROVIDER=openai_chat \
+EVAL_LLM_BASE_URL=https://api.openai.com/v1 \
+EVAL_LLM_API_KEY=... \
+EVAL_LLM_MODEL=gpt-5.4 \
+dart evals/bin/run_agent_benchmark.dart \
+  --dataset evals/datasets/retrieval_source_grounding \
+  --use-llm-judge
+```
+
+`--use-llm-judge` 会默认审查 `retrieval_qa` 和 `super_agent_qa` 的语义质量；如果某个 task 只想走规则断言，在 `expected` 里写 `"llm_judge": false`。
 
 ## Harness 原则
 
@@ -49,6 +90,7 @@ evals/
 - 先确定性，后 LLM judge：schema、时间、source、tool、router、token、latency 用规则判；语义质量才交给 LLM。
 - 中文优先：当前 persona、用户输入、报告和 judge prompt 默认使用 `zh-CN`，贴近主要用户场景。
 - 留失败样本：失败不是噪音。报告里要保留主要失败模式，尤其是任务未收敛、错误写长记忆、检索漏召回、过度 tool call。
+- 数据不要写成整齐模板：允许碎碎念、语音口吻、心情、冗余背景、无意义闲聊和弱相关信息；不同职业 persona 要有领域差异，不能只替换人名、城市和项目名。
 
 ## 实验报告格式
 
@@ -76,3 +118,4 @@ evals/
 - 如果用外部模型，key 只能通过环境变量或本地忽略文件传入。
 - 如果某次实验不是全绿，也要如实写进结论；评估发现真实失败，比粉饰通过更有价值。
 - 全链路 replay 默认按单用户串行执行：一个 persona、一个操作、一轮 idle，再进入下一步；不把多用户并发压测混入 Agent 质量评估。
+- 讲项目时先讲实验设计和证据等级，再讲分数。分数只是结论的一部分，trace、失败模式和数据审计决定这个分数能不能被相信。

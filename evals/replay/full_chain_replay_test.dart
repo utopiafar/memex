@@ -113,9 +113,11 @@ void main() {
           final rawInput = inputStream[inputIndex];
           final input = Map<String, dynamic>.from(rawInput as Map);
           final inputId = input['id']?.toString() ?? 'input_${input.hashCode}';
+          final inputTime = DateTime.tryParse(input['time']?.toString() ?? '');
           final response = await router.submitInput(
             text: input['content']?.toString(),
             textHash: inputId,
+            createdAt: inputTime,
           );
           submittedFactIdsByInput[inputId] = response['fact_id'] as String;
           stdout.writeln(
