@@ -16,6 +16,7 @@ import 'package:memex/ui/core/cards/card_action_notification.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/ui/timeline/view_models/timeline_viewmodel.dart';
 import 'package:memex/ui/timeline/widgets/timeline_card_detail_screen.dart';
+import 'package:memex/ui/timeline/widgets/timeline_date_scrubber.dart';
 import 'package:memex/ui/settings/widgets/personal_center_screen.dart';
 import 'package:memex/ui/insight/view_models/insight_viewmodel.dart';
 import 'package:memex/ui/insight/widgets/insight_screen.dart';
@@ -1029,60 +1030,67 @@ class TimelineScreenState extends State<TimelineScreen> {
         await vm.refresh();
         widget.onRefreshAction?.call();
       },
-      child: ListView.builder(
-        controller: _scrollController,
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-        cacheExtent: 400,
-        itemCount: entries.length + (vm.hasMore ? 1 : 0),
-        itemBuilder: (context, index) {
-          if (index >= entries.length) {
-            return const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CircularProgressIndicator()),
-            );
-          }
-
-          final entry = entries[index];
-          final card = entry.card;
-          final cardIndex = entry.cardIndex;
-          return _TimelineEntryItem(
-            card: card,
-            isDemoTarget: cardIndex == 0,
-            attachments: vm.attachments[card.id] ?? const [],
-            onTap: () async {
-              // If this is a custom agent system_task card, open chat dialog.
-              if (_isCustomAgentSystemTask(card)) {
-                _openCustomAgentChat(card);
-                return;
-              }
-              // Clarification Ask cards are self-contained; no detail page.
-              if (_isClarificationAskCard(card)) return;
-              final result = await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TimelineCardDetailScreen(cardId: card.id),
-                ),
+      child: TimelineDateScrubber(
+        cards: vm.cards,
+        scrollController: _scrollController,
+        hasMore: vm.hasMore,
+        onLoadMore: vm.loadMore,
+        localeName: UserStorage.l10n.localeName,
+        child: ListView.builder(
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+          cacheExtent: 400,
+          itemCount: entries.length + (vm.hasMore ? 1 : 0),
+          itemBuilder: (context, index) {
+            if (index >= entries.length) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator()),
               );
-              if (!mounted) return;
+            }
 
-              // Advance demo AFTER returning from detail screen so the
-              // knowledgeTab spotlight measures the correct position.
-              if (cardIndex == 0) {
-                DemoService.instance.tryAdvance(DemoStep.tapCard);
-              }
+            final entry = entries[index];
+            final card = entry.card;
+            final cardIndex = entry.cardIndex;
+            return _TimelineEntryItem(
+              card: card,
+              isDemoTarget: cardIndex == 0,
+              attachments: vm.attachments[card.id] ?? const [],
+              onTap: () async {
+                // If this is a custom agent system_task card, open chat dialog.
+                if (_isCustomAgentSystemTask(card)) {
+                  _openCustomAgentChat(card);
+                  return;
+                }
+                // Clarification Ask cards are self-contained; no detail page.
+                if (_isClarificationAskCard(card)) return;
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TimelineCardDetailScreen(cardId: card.id),
+                  ),
+                );
+                if (!mounted) return;
 
-              if (result == true) {
-                vm.loadCards(refresh: true);
-              } else if (result is Map &&
-                  result['action'] == 'filter_tag' &&
-                  result['tag'] != null) {
-                vm.setActiveFilter(result['tag'] as String);
-                vm.loadCards(refresh: true);
-              }
-            },
-          );
-        },
+                // Advance demo AFTER returning from detail screen so the
+                // knowledgeTab spotlight measures the correct position.
+                if (cardIndex == 0) {
+                  DemoService.instance.tryAdvance(DemoStep.tapCard);
+                }
+
+                if (result == true) {
+                  vm.loadCards(refresh: true);
+                } else if (result is Map &&
+                    result['action'] == 'filter_tag' &&
+                    result['tag'] != null) {
+                  vm.setActiveFilter(result['tag'] as String);
+                  vm.loadCards(refresh: true);
+                }
+              },
+            );
+          },
+        ),
       ),
     );
   }
