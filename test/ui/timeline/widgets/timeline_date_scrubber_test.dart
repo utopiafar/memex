@@ -221,6 +221,70 @@ void main() {
       expect(slowOffset, greaterThan(0));
     });
 
+    testWidgets('shows year rail while dragging across multiple years', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      final cards = _cardsWithDates(
+        900,
+        (index) => DateTime(2026, 12, 31).subtract(Duration(days: index * 7)),
+      );
+
+      await _pumpScrubber(tester, controller: controller, cards: cards);
+      await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
+
+      final gestureArea = tester.getRect(
+        find.byKey(timelineDateScrubberGestureKey),
+      );
+      final gesture = await tester.startGesture(
+        gestureArea.topCenter + const Offset(0, 24),
+      );
+      await gesture.moveBy(const Offset(0, 240));
+      await tester.pump();
+
+      expect(find.byKey(timelineDateScrubberYearRailKey), findsOneWidget);
+      _expectInsideHorizontalViewport(
+        tester.getRect(find.byKey(timelineDateScrubberYearRailKey)),
+        390,
+      );
+
+      final activeYearText = tester.widget<Text>(
+        find.byKey(timelineDateScrubberActiveYearKey),
+      );
+      expect(activeYearText.style?.fontWeight, FontWeight.w800);
+      expect(activeYearText.style?.fontSize, 18);
+
+      await gesture.up();
+      await tester.pump();
+
+      expect(find.byKey(timelineDateScrubberYearRailKey), findsNothing);
+    });
+
+    testWidgets('does not show year rail for a single-year timeline', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      final cards = _cardsWithDates(300, (_) => DateTime(2026, 12, 31));
+
+      await _pumpScrubber(tester, controller: controller, cards: cards);
+      await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
+
+      final gestureArea = tester.getRect(
+        find.byKey(timelineDateScrubberGestureKey),
+      );
+      final gesture = await tester.startGesture(
+        gestureArea.topCenter + const Offset(0, 24),
+      );
+      await gesture.moveBy(const Offset(0, 240));
+      await tester.pump();
+
+      expect(find.byKey(timelineDateScrubberYearRailKey), findsNothing);
+
+      await gesture.up();
+    });
+
     testWidgets('handles a very large card set across a huge date range', (
       tester,
     ) async {
@@ -513,13 +577,16 @@ void main() {
       final gestureArea = tester.getRect(
         find.byKey(timelineDateScrubberGestureKey),
       );
-      await tester.dragFrom(
+      final gesture = await tester.startGesture(
         gestureArea.topCenter + const Offset(0, 24),
-        const Offset(0, 200),
       );
+      await gesture.moveBy(const Offset(0, 200));
       await tester.pump();
 
+      expect(find.byKey(timelineDateScrubberYearRailKey), findsNothing);
       expect(controller.offset, greaterThan(0));
+
+      await gesture.up();
     });
   });
 }

@@ -22,6 +22,12 @@ const timelineDateScrubberHandleKey = ValueKey<String>(
 const timelineDateScrubberBubbleKey = ValueKey<String>(
   'timeline_date_scrubber_bubble',
 );
+const timelineDateScrubberYearRailKey = ValueKey<String>(
+  'timeline_date_scrubber_year_rail',
+);
+const timelineDateScrubberActiveYearKey = ValueKey<String>(
+  'timeline_date_scrubber_active_year',
+);
 
 class TimelineDateScrubber extends StatefulWidget {
   const TimelineDateScrubber({
@@ -55,6 +61,9 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   static const double _handleHeight = 52;
   static const double _bubbleWidth = 98;
   static const double _bubbleHeight = 58;
+  static const double _yearRailWidth = 64;
+  static const double _yearRailRowHeight = 26;
+  static const int _maxYearRailRows = 7;
   static const Duration _hideDelay = Duration(milliseconds: 900);
 
   Timer? _hideTimer;
@@ -64,6 +73,7 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   bool _loadMoreInFlight = false;
   double _fraction = 0;
   double _dragFraction = 0;
+  List<int> _timelineYears = const [];
 
   bool get _hasEnoughCards => widget.enabled && widget.cards.length > 1;
 
@@ -80,6 +90,7 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   @override
   void initState() {
     super.initState();
+    _syncTimelineYears();
     widget.scrollController.addListener(_syncFractionFromScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _syncFractionFromScroll();
@@ -97,6 +108,7 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
       });
     }
     if (oldWidget.cards != widget.cards) {
+      _syncTimelineYears();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _syncFractionFromScroll();
       });
@@ -206,7 +218,7 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
 
   void _endDrag() {
     if (!_isDragging) return;
-    _isDragging = false;
+    setState(() => _isDragging = false);
     _scheduleHide();
   }
 
@@ -316,6 +328,28 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     }
   }
 
+  void _syncTimelineYears() {
+    final years = <int>{};
+    for (final card in widget.cards) {
+      years.add(card.timestamp.year);
+    }
+    final sortedYears = years.toList()..sort((a, b) => b.compareTo(a));
+    _timelineYears = sortedYears;
+  }
+
+  List<int> _visibleYearsForRail({
+    required int activeYear,
+    required int maxRows,
+  }) {
+    if (_timelineYears.length <= maxRows) return _timelineYears;
+    final activeIndex = _timelineYears.indexOf(activeYear);
+    if (activeIndex == -1) return _timelineYears.take(maxRows).toList();
+
+    final maxStart = _timelineYears.length - maxRows;
+    final start = (activeIndex - maxRows ~/ 2).clamp(0, maxStart);
+    return _timelineYears.sublist(start, start + maxRows);
+  }
+
   @override
   Widget build(BuildContext context) {
     return NotificationListener<ScrollMetricsNotification>(
@@ -415,6 +449,30 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
       visualGestureWidth + 8,
       math.max(0.0, width - bubbleWidth - 8),
     );
+    final yearRailRight =
+        showBubble ? bubbleRight + bubbleWidth + 8 : visualGestureWidth + 8;
+    final maxYearRows = math.min(
+      _maxYearRailRows,
+      math.max(2, ((trackHeight - 12) / _yearRailRowHeight).floor()),
+    );
+    final activeYear = _cardForFraction(_fraction)?.timestamp.year;
+    final showYearRail = _isDragging &&
+        activeYear != null &&
+        _timelineYears.length > 1 &&
+        maxYearRows >= 2 &&
+        width - yearRailRight >= _yearRailWidth + 8 &&
+        trackHeight >= _yearRailRowHeight * 2;
+    final visibleYears = showYearRail
+        ? _visibleYearsForRail(activeYear: activeYear, maxRows: maxYearRows)
+        : const <int>[];
+    final yearRailHeight = visibleYears.length * _yearRailRowHeight + 12;
+    final yearRailTop = _clampIntoTrack(
+      value: centerY - yearRailHeight / 2,
+      top: top,
+      bottom: bottom,
+      height: height,
+      extent: yearRailHeight,
+    );
 
     return AnimatedSlide(
       offset: _isVisible ? Offset.zero : const Offset(0.18, 0),
@@ -507,6 +565,40 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
                     ),
                   ),
                 ),
+              if (showYearRail)
+                Positioned(
+                  key: timelineDateScrubberYearRailKey,
+                  top: yearRailTop,
+                  right: yearRailRight,
+                  width: _yearRailWidth,
+                  height: yearRailHeight,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF202124).withValues(alpha: 0.88),
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.22),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final year in visibleYears)
+                            _YearRailLabel(
+                              year: year,
+                              active: year == activeYear,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               Positioned(
                 top: handleTop,
                 right: 0,
@@ -566,4 +658,38 @@ class _ScrubberDateLabel {
 
   final String year;
   final String day;
+}
+
+class _YearRailLabel extends StatelessWidget {
+  const _YearRailLabel({required this.year, required this.active});
+
+  final int year;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _TimelineDateScrubberState._yearRailRowHeight,
+      child: Center(
+        child: AnimatedScale(
+          scale: active ? 1 : 0.88,
+          duration: const Duration(milliseconds: 90),
+          curve: Curves.easeOutCubic,
+          child: Text(
+            '$year',
+            key: active ? timelineDateScrubberActiveYearKey : null,
+            maxLines: 1,
+            softWrap: false,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: active ? 1 : 0.62),
+              fontSize: active ? 18 : 13,
+              height: 1,
+              fontWeight: active ? FontWeight.w800 : FontWeight.w500,
+              letterSpacing: 0,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
