@@ -338,14 +338,17 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
                     return Stack(
                       children: [
                         IgnorePointer(
-                          child: _buildScrubberVisuals(constraints.maxHeight),
+                          child: _buildScrubberVisuals(
+                            width: constraints.maxWidth,
+                            height: constraints.maxHeight,
+                          ),
                         ),
                         Positioned(
                           key: timelineDateScrubberGestureKey,
                           top: 0,
                           right: 0,
                           bottom: 0,
-                          width: _gestureWidth,
+                          width: math.min(_gestureWidth, constraints.maxWidth),
                           child: IgnorePointer(
                             ignoring: !_isVisible && !_isDragging,
                             child: GestureDetector(
@@ -378,7 +381,10 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     );
   }
 
-  Widget _buildScrubberVisuals(double height) {
+  Widget _buildScrubberVisuals({
+    required double width,
+    required double height,
+  }) {
     final top = _trackTop(height);
     final bottom = _trackBottom(height);
     final trackHeight = _trackHeight(height);
@@ -398,6 +404,17 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
       extent: _bubbleHeight,
     );
     final label = _dateLabelForFraction(_fraction);
+    final visualGestureWidth = math.min(_gestureWidth, width);
+    final visualHandleWidth = math.min(_handleWidth, visualGestureWidth);
+    final bubbleWidth = math.min(
+      _bubbleWidth,
+      math.max(0.0, width - visualGestureWidth - 16),
+    );
+    final showBubble = bubbleWidth >= 48;
+    final bubbleRight = math.min(
+      visualGestureWidth + 8,
+      math.max(0.0, width - bubbleWidth - 8),
+    );
 
     return AnimatedSlide(
       offset: _isVisible ? Offset.zero : const Offset(0.18, 0),
@@ -425,83 +442,86 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
                   ),
                 ),
               ),
-              Positioned(
-                key: timelineDateScrubberBubbleKey,
-                top: bubbleTop,
-                right: _gestureWidth + 8,
-                width: _bubbleWidth,
-                height: _bubbleHeight,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF202124).withValues(alpha: 0.94),
-                    borderRadius: BorderRadius.circular(_bubbleHeight / 2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.24),
-                        blurRadius: 18,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: _bubbleWidth - 24,
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              label.year,
-                              maxLines: 1,
-                              softWrap: false,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                                height: 1,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        SizedBox(
-                          width: _bubbleWidth - 20,
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Text(
-                              label.day,
-                              maxLines: 1,
-                              softWrap: false,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                height: 1.05,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0,
-                              ),
-                            ),
-                          ),
+              if (showBubble)
+                Positioned(
+                  key: timelineDateScrubberBubbleKey,
+                  top: bubbleTop,
+                  right: bubbleRight,
+                  width: bubbleWidth,
+                  height: _bubbleHeight,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF202124).withValues(alpha: 0.94),
+                      borderRadius: BorderRadius.circular(_bubbleHeight / 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.24),
+                          blurRadius: 18,
+                          offset: const Offset(0, 6),
                         ),
                       ],
                     ),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: math.max(0.0, bubbleWidth - 24),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                label.year,
+                                maxLines: 1,
+                                softWrap: false,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  height: 1,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: 0,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          SizedBox(
+                            width: math.max(0.0, bubbleWidth - 20),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                label.day,
+                                maxLines: 1,
+                                softWrap: false,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 15,
+                                  height: 1.05,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ),
               Positioned(
                 top: handleTop,
                 right: 0,
-                width: _gestureWidth,
+                width: visualGestureWidth,
                 height: _handleHeight,
                 child: Center(
                   child: Container(
                     key: timelineDateScrubberHandleKey,
-                    width: _handleWidth,
+                    width: visualHandleWidth,
                     height: _handleHeight,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(_handleWidth / 2),
+                      borderRadius: BorderRadius.circular(
+                        visualHandleWidth / 2,
+                      ),
                       border: Border.all(
                         color: const Color(0xFFE5E7EB),
                         width: 0.5,

@@ -301,6 +301,7 @@ void main() {
         },
       );
       await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
 
       final gestureArea = tester.getRect(
         find.byKey(timelineDateScrubberGestureKey),
@@ -330,6 +331,7 @@ void main() {
         },
       );
       await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
 
       final gestureArea = tester.getRect(
         find.byKey(timelineDateScrubberGestureKey),
@@ -411,6 +413,114 @@ void main() {
       expect(tester.takeException(), isNull);
       expect(find.byKey(timelineDateScrubberOverlayKey), findsOneWidget);
     });
+
+    testWidgets('keeps bubble and handle inside a narrow phone viewport', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      const width = 160.0;
+
+      await _pumpScrubber(
+        tester,
+        controller: controller,
+        cards: _cards(60),
+        width: width,
+        height: 568,
+      );
+      await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
+
+      _expectInsideHorizontalViewport(
+        tester.getRect(find.byKey(timelineDateScrubberBubbleKey)),
+        width,
+      );
+      _expectInsideHorizontalViewport(
+        tester.getRect(find.byKey(timelineDateScrubberHandleKey)),
+        width,
+      );
+    });
+
+    testWidgets('keeps scrubbing usable in compact landscape', (tester) async {
+      final controller = ScrollController();
+
+      await _pumpScrubber(
+        tester,
+        controller: controller,
+        cards: _cards(120),
+        width: 844,
+        height: 390,
+      );
+      await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
+
+      final gestureArea = tester.getRect(
+        find.byKey(timelineDateScrubberGestureKey),
+      );
+      await tester.dragFrom(
+        gestureArea.topCenter + const Offset(0, 24),
+        Offset(0, gestureArea.height - 72),
+      );
+      await tester.pump();
+
+      expect(controller.offset, greaterThan(0));
+      expect(find.byKey(timelineDateScrubberBubbleKey), findsOneWidget);
+    });
+
+    testWidgets('keeps scrubbing usable on a tablet viewport', (tester) async {
+      final controller = ScrollController();
+
+      await _pumpScrubber(
+        tester,
+        controller: controller,
+        cards: _cards(240),
+        width: 1024,
+        height: 1366,
+      );
+      await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
+
+      final gestureArea = tester.getRect(
+        find.byKey(timelineDateScrubberGestureKey),
+      );
+      await tester.tapAt(gestureArea.centerRight - const Offset(8, 0));
+      await tester.pump();
+
+      expect(controller.offset, greaterThan(0));
+      _expectInsideHorizontalViewport(
+        tester.getRect(find.byKey(timelineDateScrubberBubbleKey)),
+        1024,
+      );
+    });
+
+    testWidgets('hides the bubble but keeps the handle on ultra narrow panes', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+
+      await _pumpScrubber(
+        tester,
+        controller: controller,
+        cards: _cards(60),
+        width: 96,
+        height: 480,
+      );
+      await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
+
+      expect(find.byKey(timelineDateScrubberBubbleKey), findsNothing);
+      expect(find.byKey(timelineDateScrubberHandleKey), findsOneWidget);
+
+      final gestureArea = tester.getRect(
+        find.byKey(timelineDateScrubberGestureKey),
+      );
+      await tester.dragFrom(
+        gestureArea.topCenter + const Offset(0, 24),
+        const Offset(0, 200),
+      );
+      await tester.pump();
+
+      expect(controller.offset, greaterThan(0));
+    });
   });
 }
 
@@ -464,10 +574,19 @@ Future<void> _revealScrubber(WidgetTester tester) async {
   await tester.pump();
 }
 
+Future<void> _settleScrubberEntrance(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 180));
+}
+
 double _overlayOpacity(WidgetTester tester) {
   return tester
       .widget<AnimatedOpacity>(find.byKey(timelineDateScrubberOverlayKey))
       .opacity;
+}
+
+void _expectInsideHorizontalViewport(Rect rect, double width) {
+  expect(rect.left, greaterThanOrEqualTo(0));
+  expect(rect.right, lessThanOrEqualTo(width));
 }
 
 List<TimelineCardModel> _cards(int count) {
