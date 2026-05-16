@@ -188,6 +188,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get all => '全部';
 
   @override
+  String get schedule => '日程';
+
+  @override
   String loadStatsFailed(Object error) {
     return '加载统计数据失败: $error';
   }
@@ -199,16 +202,89 @@ class AppLocalizationsZh extends AppLocalizations {
   String get daily => '每日';
 
   @override
+  String get modelStatsByAgent => '分模型统计';
+
+  @override
   String get detail => '详情';
 
   @override
   String get date => '日期';
 
   @override
+  String get agent => 'Agent';
+
+  @override
   String get noData => '暂无数据';
 
   @override
   String get totalCalls => '总调用次数';
+
+  @override
+  String get calls => '调用';
+
+  @override
+  String callsCount(Object count) {
+    return '$count 次调用';
+  }
+
+  @override
+  String get selectDateRange => '选择日期范围';
+
+  @override
+  String get totalTokens => '总 Token';
+
+  @override
+  String get cacheRate => '缓存命中率';
+
+  @override
+  String get promptTokens => 'Prompt Token';
+
+  @override
+  String get completionTokens => 'Completion Token';
+
+  @override
+  String get cachedTokens => 'Cached Token';
+
+  @override
+  String get thoughtTokens => 'Thought Token';
+
+  @override
+  String get prompt => 'Prompt';
+
+  @override
+  String get completion => 'Completion';
+
+  @override
+  String get cached => 'Cached';
+
+  @override
+  String get thought => 'Thought';
+
+  @override
+  String get model => '模型';
+
+  @override
+  String get scene => '场景';
+
+  @override
+  String get sceneId => '场景 ID';
+
+  @override
+  String get tokenUsage => 'Token 用量';
+
+  @override
+  String get handler => '处理器';
+
+  @override
+  String get modelBreakdown => '模型拆分';
+
+  @override
+  String get callDetails => '调用详情';
+
+  @override
+  String recordDetailsTitle(Object scene) {
+    return '记录详情: $scene';
+  }
 
   @override
   String saveLlmConfigFailed(Object error) {
@@ -915,6 +991,80 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noKnowledgeInsight => '暂无知识洞察';
 
   @override
+  String insightProcessingBacklogMessage(Object count) {
+    return '还有 $count 个后台任务正在处理，洞察可能会在完成后更新。';
+  }
+
+  @override
+  String get insightUnavailableMessage => '这个洞察仍在生成中，或已被更新。请刷新洞察后稍后再试。';
+
+  @override
+  String get scheduleAggregation => '日程聚合';
+
+  @override
+  String get noScheduleAggregation => '暂无日程聚合';
+
+  @override
+  String get scheduleAggregationEmptyHint => '点击更新，从真实时间卡片里整理日程和待办。';
+
+  @override
+  String get scheduleAggregationDirtyReason => '有新的日程相关内容，点击更新后重新整理。';
+
+  @override
+  String get scheduleAggregationLoadFailed => '加载日程数据失败';
+
+  @override
+  String get scheduleAggregationRefreshFailed => '刷新日程数据失败';
+
+  @override
+  String get scheduleTaskUpdateFailed => '更新待办失败';
+
+  @override
+  String get scheduleFeatured => '重点';
+
+  @override
+  String get scheduleThisWeek => '本周';
+
+  @override
+  String get scheduleDone => '已完成';
+
+  @override
+  String get scheduleTbd => '待定';
+
+  @override
+  String get scheduleWeekOverview => '本周概览';
+
+  @override
+  String get scheduleImportant => '重要';
+
+  @override
+  String get scheduleBriefingTitle => '日程简报';
+
+  @override
+  String get scheduleBriefingNeedsUpdate => '待更新';
+
+  @override
+  String get scheduleBriefingOpen => '查看';
+
+  @override
+  String get scheduleBriefingNoData => '暂无日程简报';
+
+  @override
+  String scheduleBriefingUpdated(Object time) {
+    return '$time 更新';
+  }
+
+  @override
+  String scheduleBriefingDoneCount(Object count) {
+    return '完成 $count';
+  }
+
+  @override
+  String scheduleBriefingConflictCount(Object count) {
+    return '冲突 $count';
+  }
+
+  @override
   String get updating => '更新中...';
 
   @override
@@ -1152,6 +1302,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get relatedRecords => '相关记录';
 
   @override
+  String get reply => '回复';
+
+  @override
   String get replySent => '回复已发送';
 
   @override
@@ -1275,6 +1428,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get defaultLabel => '默认';
+
+  @override
+  String get setAsDefault => '设为默认';
 
   @override
   String get missingApiKey => '缺少 API Key';
@@ -1445,10 +1601,10 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get discardChangesTitle => '放弃未保存的修改？';
+  String get discardChangesTitle => '离开此页面？';
 
   @override
-  String get discardChangesMessage => '您有未保存的修改。确定要放弃修改并离开吗？';
+  String get discardChangesMessage => '如果您做了更改，请先保存后再离开。';
 
   @override
   String get discardButton => '放弃';
@@ -1568,6 +1724,88 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get invalidBackupFile => '无效的备份文件，请选择 .memex 文件。';
+
+  @override
+  String get automaticBackup => '自动备份';
+
+  @override
+  String get autoBackupDescription => '开启后，Memex 会在启动或回到前台时检查，每天最多创建一次本地时间点快照。';
+
+  @override
+  String get backupSensitiveSettingsHint => '备份包含设置和模型服务商密钥，请只保存到你信任的位置。';
+
+  @override
+  String get backupLocation => '位置';
+
+  @override
+  String get autoBackupStatus => '状态';
+
+  @override
+  String get noAutoBackupYet => '还没有自动备份';
+
+  @override
+  String lastBackupAt(Object time) {
+    return '上次备份：$time';
+  }
+
+  @override
+  String get createSnapshotNow => '立即备份';
+
+  @override
+  String get backupLocationMenu => '位置';
+
+  @override
+  String get defaultBackupLocation => '默认备份文件夹';
+
+  @override
+  String get defaultBackupLocationAndroidDesc => '使用 Memex 的应用专属外部目录，不需要存储权限。';
+
+  @override
+  String get chooseBackupLocation => '选择备份文件夹';
+
+  @override
+  String get chooseBackupLocationAndroidDesc =>
+      '使用 Android 系统选择器选择文件夹，并授予 Memex 持久访问权限。';
+
+  @override
+  String get storedBackups => '已保存备份';
+
+  @override
+  String get noStoredBackups => '创建第一个自动快照后会显示在这里。';
+
+  @override
+  String get refresh => '刷新';
+
+  @override
+  String get restoreThisBackup => '恢复此备份';
+
+  @override
+  String get creatingSafetySnapshot => '正在创建安全快照...';
+
+  @override
+  String autoBackupCreated(Object fileName) {
+    return '快照已创建：$fileName';
+  }
+
+  @override
+  String backupLocationFailed(Object error) {
+    return '无法更新备份位置：$error';
+  }
+
+  @override
+  String get backupImportCreatedAt => '创建时间';
+
+  @override
+  String get backupImportSourceVersion => '来源版本';
+
+  @override
+  String get backupImportFlavor => '构建渠道';
+
+  @override
+  String get backupLegacyFormat => '旧版备份（无 manifest）';
+
+  @override
+  String get restoreInProgress => '正在恢复备份...';
 
   @override
   String get dataStorage => '数据存储';
@@ -2036,6 +2274,18 @@ class AppLocalizationsZh extends AppLocalizations {
   String get switchCompanion => '切换角色';
 
   @override
+  String get personaChatInputHint => '输入消息...';
+
+  @override
+  String get personaChatEmptyHint => '发出第一条消息，让这段陪伴开始';
+
+  @override
+  String get today => '今天';
+
+  @override
+  String get yesterday => '昨天';
+
+  @override
   String get showInsightTextTitle => '显示 Memex 洞察评论';
 
   @override
@@ -2071,8 +2321,358 @@ class AppLocalizationsZh extends AppLocalizations {
   String get untitledCard => '未命名卡片';
 
   @override
+  String get locationContextTitle => '位置上下文';
+
+  @override
+  String get locationContextDescription => '为 Agent 对话提供当前城市与街区上下文';
+
+  @override
+  String get locationContextAttachTitle => '为对话附加当前位置';
+
+  @override
+  String get locationContextAttachDesc =>
+      '使用设备 GPS 和逆地理编码，为 Agent 提供城市、区县和街区上下文。';
+
+  @override
+  String get reverseGeocodingProvider => '逆地理编码服务商';
+
+  @override
+  String get amapProviderName => '高德地图';
+
+  @override
+  String get amapApiKey => '高德地图 API Key';
+
+  @override
+  String get amapGcj02Note => '高德地图使用 GCJ-02 坐标；设备 GPS 会先转换后再逆地理编码。';
+
+  @override
+  String get contextGranularity => '上下文粒度';
+
+  @override
+  String get granularityCity => '城市';
+
+  @override
+  String get granularityDistrict => '区县';
+
+  @override
+  String get granularityNeighborhood => '街区';
+
+  @override
+  String get granularityStreet => '街道';
+
+  @override
+  String get granularityFullAddress => '完整地址候选';
+
+  @override
+  String get locationFreshness => '位置新鲜度';
+
+  @override
+  String minutesShort(int minutes) {
+    return '$minutes 分钟';
+  }
+
+  @override
+  String get oneHour => '1 小时';
+
+  @override
+  String get testCurrentLocation => '测试当前位置';
+
+  @override
+  String get locationUnavailable => '位置不可用';
+
+  @override
+  String locationTestFailed(String error) {
+    return '失败：$error';
+  }
+
+  @override
+  String get locationDebugGps => 'GPS';
+
+  @override
+  String get locationDebugReverseGeocode => '逆地理编码';
+
+  @override
+  String get locationDebugProvider => '服务商';
+
+  @override
+  String get locationDebugAgentContext => 'Agent 上下文';
+
+  @override
+  String get locationDebugSource => '来源';
+
+  @override
+  String get locationDebugAddressSummary => '地址摘要';
+
+  @override
+  String get locationDebugFullAddress => '完整地址';
+
+  @override
+  String get locationDebugCoordinates => '坐标';
+
+  @override
+  String get locationDebugAccuracy => '精度';
+
+  @override
+  String get locationDebugReason => '原因';
+
+  @override
+  String get locationDebugOk => '成功';
+
+  @override
+  String get locationDebugUnavailable => '不可用';
+
+  @override
+  String get locationDebugInjected => '已注入';
+
+  @override
+  String get locationDebugNotInjected => '未注入';
+
+  @override
   String get settingsSearchPlaceholder => '搜索设置项...';
 
   @override
   String get settingsSearchEmpty => '未找到匹配的设置项';
+
+  @override
+  String get importCharacterCard => '导入角色卡';
+
+  @override
+  String get firstMessageLabel => '首条消息';
+
+  @override
+  String get firstMessageHint => '角色首次对话时发送的问候语（可选）';
+
+  @override
+  String get systemPromptOverrideLabel => '系统提示词覆盖';
+
+  @override
+  String get systemPromptOverrideHint => '覆盖默认系统提示词（高级，可选）';
+
+  @override
+  String get postHistoryInstructionsLabel => '历史后指令';
+
+  @override
+  String get postHistoryInstructionsHint => '在对话历史之后、回复之前注入的指令（可选）';
+
+  @override
+  String get mesExampleLabel => '对话示例';
+
+  @override
+  String get mesExampleHint => '角色对话风格示例（可选）';
+
+  @override
+  String get worldBookTitle => '世界书';
+
+  @override
+  String get worldBookSubtitle => '触发关键词时注入的背景知识';
+
+  @override
+  String get characterMemoryTitle => '角色记忆';
+
+  @override
+  String get characterMemorySubtitle => '角色与用户之间的关系动态和互动记忆';
+
+  @override
+  String get addTooltip => '添加';
+
+  @override
+  String get constantBadge => '常驻';
+
+  @override
+  String worldEntryFallbackName(Object index) {
+    return '条目 $index';
+  }
+
+  @override
+  String keywordsPrefix(Object keys) {
+    return '关键词: $keys';
+  }
+
+  @override
+  String memoryFallbackName(Object index) {
+    return '记忆 $index';
+  }
+
+  @override
+  String get addWorldEntry => '添加世界书条目';
+
+  @override
+  String get editWorldEntry => '编辑世界书条目';
+
+  @override
+  String get commentTitleLabel => '备注/标题';
+
+  @override
+  String get entryDescriptionHint => '条目说明（可选）';
+
+  @override
+  String get triggerKeywordsLabel => '触发关键词';
+
+  @override
+  String get triggerKeywordsHint => '逗号分隔，如: 魔法, 咒语';
+
+  @override
+  String get contentLabel => '内容';
+
+  @override
+  String get worldEntryContentHint => '当关键词触发时注入的背景知识';
+
+  @override
+  String get enabledCheckbox => '启用';
+
+  @override
+  String get addMemory => '添加记忆';
+
+  @override
+  String get editMemory => '编辑记忆';
+
+  @override
+  String get memoryLabelField => '标签';
+
+  @override
+  String get memoryLabelHint => '记忆的唯一标识，如: 称呼偏好';
+
+  @override
+  String get memoryContentHint => '记忆内容';
+
+  @override
+  String get salienceLabel => '重要性: ';
+
+  @override
+  String get labelCannotBeEmpty => '标签不能为空';
+
+  @override
+  String importSuccess(Object name) {
+    return '$name 导入成功';
+  }
+
+  @override
+  String importFailed(Object error) {
+    return '导入失败: $error';
+  }
+
+  @override
+  String get supportedFormats => '支持的格式';
+
+  @override
+  String get tavernImportDescription =>
+      '• SillyTavern V2 角色卡 (.json)\n• 内嵌角色卡的 PNG 图片 (.png)\n\n导入后会自动映射角色设定、世界书等字段到 Memex 角色格式。';
+
+  @override
+  String get pickCharacterFile => '选择角色卡文件';
+
+  @override
+  String get repickFile => '重新选择文件';
+
+  @override
+  String get personaSettingSection => '角色设定';
+
+  @override
+  String get systemPromptSection => '系统提示词';
+
+  @override
+  String worldEntriesCount(Object count) {
+    return '世界书: $count 条';
+  }
+
+  @override
+  String fileLabel(Object filename) {
+    return '文件: $filename';
+  }
+
+  @override
+  String conflictWarning(Object names) {
+    return '已存在同名角色: $names。继续导入将创建新角色，不会覆盖已有角色。';
+  }
+
+  @override
+  String get setPrimaryCompanionTitle => '设为主要陪伴角色';
+
+  @override
+  String get setPrimaryCompanionSubtitle => '导入后自动设为你的主要陪伴角色';
+
+  @override
+  String get confirmImport => '确认导入';
+
+  @override
+  String get chatBackground => '聊天背景';
+
+  @override
+  String get chooseChatBackgroundImage => '选择聊天背景图';
+
+  @override
+  String get earlyUpdateSettingsTitle => 'Early 体验版更新';
+
+  @override
+  String get earlyUpdateSettingsDesc =>
+      '从 GitHub 预发布版本中检测匹配当前 Early 渠道的 APK，下载后交给 Android 系统安装器安装。';
+
+  @override
+  String get earlyUpdateUnsupported => 'Early 更新仅支持 Android Early 包。';
+
+  @override
+  String get earlyUpdateAutoCheckTitle => '自动检测更新';
+
+  @override
+  String get earlyUpdateAutoCheckDesc => '启动时检测，每 12 小时最多一次。';
+
+  @override
+  String get earlyUpdateWifiOnlyTitle => '仅在 Wi-Fi 下载';
+
+  @override
+  String get earlyUpdateWifiOnlyDesc => '使用移动数据时跳过更新下载。';
+
+  @override
+  String get earlyUpdateAutoInstallTitle => '自动下载并安装';
+
+  @override
+  String get earlyUpdateAutoInstallDesc => '发现新版本后自动下载，并打开 Android 系统安装器。';
+
+  @override
+  String get earlyUpdateCheckNow => '立即检查';
+
+  @override
+  String get earlyUpdateChecking => '正在检查 GitHub 预发布版本...';
+
+  @override
+  String get earlyUpdateSkippedMobile => '已跳过：当前开启了仅 Wi-Fi 下载。';
+
+  @override
+  String get earlyUpdateNoUpdate => '当前已经是最新 Early 版本。';
+
+  @override
+  String earlyUpdateFound(Object version, Object build) {
+    return '发现 Early 版本 $version+$build。';
+  }
+
+  @override
+  String get earlyUpdateDownloadAndInstall => '下载并安装';
+
+  @override
+  String earlyUpdateDownloadingPercent(Object percent) {
+    return '正在下载更新：$percent%';
+  }
+
+  @override
+  String get earlyUpdateInstallStarted => '已打开 Android 系统安装器。';
+
+  @override
+  String get earlyUpdateInstallPermissionRequired =>
+      '请允许 Memex 安装未知来源应用，然后再次点击下载并安装。';
+
+  @override
+  String earlyUpdateLastChecked(Object time) {
+    return '上次检查：$time';
+  }
+
+  @override
+  String earlyUpdateCheckFailed(Object error) {
+    return '检查更新失败：$error';
+  }
+
+  @override
+  String get earlyUpdateDialogTitle => '发现 Early 更新';
+
+  @override
+  String get earlyUpdateReleaseNotes => '更新说明';
 }

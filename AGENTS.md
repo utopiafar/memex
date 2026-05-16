@@ -9,8 +9,12 @@ Memex is a local-first, AI-powered personal life recording app built with Flutte
 ```bash
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs   # after changing Drift tables or *.g.dart sources
-flutter run --flavor global   # overseas (default if omitted)
-flutter run --flavor cn       # China domestic
+flutter run --flavor globalDev   # Android local Dev overseas, isolated package/data
+flutter run --flavor cnDev       # Android local Dev China, isolated package/data
+flutter run --flavor globalEarly # Android Early overseas, isolated package/data
+flutter run --flavor cnEarly     # Android Early China, isolated package/data
+flutter run --flavor global      # Stable overseas; avoid for local dev
+flutter run --flavor cn          # Stable China domestic; avoid for local dev
 flutter analyze
 flutter test
 cd ios && pod install && cd ..
@@ -92,6 +96,7 @@ result.when(
 - `ListenableBuilder(listenable: Listenable.merge([vm, vm.load]))` for reactive rebuilds
 - `ToastHelper.showSuccess/showError/showInfo` for feedback
 - `showGeneralDialog` with `AgentChatDialog` for AI chat overlays
+- Any interaction UI change must include a widget test covering the behavior.
 
 ### Timeline Screen boundaries
 
@@ -128,4 +133,3 @@ Two approaches — pick the right one based on string length:
 - **Multi-line text** (long descriptions, agent prompts, onboarding copy): defined directly in `AppLocalizationsExt` (`lib/l10n/app_localizations_ext.dart`) as Dart code — better readability than JSON for multi-line content.
 
 Access all strings via `UserStorage.l10n` (static, initialized in `main()`).
-
