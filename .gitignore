@@ -89,6 +89,9 @@ coverage/
 # Agent eval local outputs and secrets
 evals/runs/
 evals/.env
+evals/experiments/**/debug_log.json
+evals/experiments/**/outputs.jsonl
+evals/experiments/**/trace.ndjson
 
 # Android signing
 android/key-*.properties

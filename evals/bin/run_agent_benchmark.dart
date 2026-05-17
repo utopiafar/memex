@@ -202,7 +202,8 @@ Options:
       replayObservationsPath: values['replay-observations'] ??
           Platform.environment['EVAL_REPLAY_OBSERVATIONS'],
       caseLimit: _parseInt(
-          values['case-limit'] ?? Platform.environment['EVAL_CASE_LIMIT']),
+        values['case-limit'] ?? Platform.environment['EVAL_CASE_LIMIT'],
+      ),
     );
   }
 }
@@ -870,8 +871,9 @@ class TaskGrader {
         ..._strings(card['participants']),
         ..._map(card['fields']).values,
       ].whereType<Object>().join('\n');
-      final hits =
-          expectedEntities.where((entity) => _contains(entityText, entity));
+      final hits = expectedEntities.where(
+        (entity) => _contains(entityText, entity),
+      );
       final recall = hits.length / expectedEntities.length;
       assertions.add(
         AssertionResult.fromBool(
@@ -1054,8 +1056,9 @@ class TaskGrader {
       );
     }
 
-    final sensitiveMustNotWrite =
-        _list(expected['sensitive_must_not_write']).cast<JsonMap>();
+    final sensitiveMustNotWrite = _list(
+      expected['sensitive_must_not_write'],
+    ).cast<JsonMap>();
     for (final rule in sensitiveMustNotWrite) {
       final match = _findMemoryMatch(entries, _strings(rule['must_include']));
       assertions.add(
@@ -1231,8 +1234,9 @@ class TaskGrader {
 
     if (expected['require_grounded_answer'] == true) {
       final mustNotInclude = _strings(expected['must_not_include']);
-      final presentUnsupported =
-          mustNotInclude.where((needle) => _contains(answer, needle));
+      final presentUnsupported = mustNotInclude.where(
+        (needle) => _contains(answer, needle),
+      );
       final citedExpected = expectedSources.isEmpty ||
           expectedSources.every(citedSources.contains);
       assertions.add(
@@ -1451,9 +1455,7 @@ class TaskGrader {
     if (maxRefreshCalls != null) {
       final refreshCalls = _list(observed['tool_calls'])
           .map(_map)
-          .where(
-            (call) => _contains(call['name']?.toString() ?? '', 'refresh'),
-          )
+          .where((call) => _contains(call['name']?.toString() ?? '', 'refresh'))
           .length;
       final duplicateRate =
           refreshCalls <= 1 ? 0.0 : (refreshCalls - 1) / refreshCalls;
@@ -1586,8 +1588,9 @@ class TaskGrader {
       final allContent = entries
           .map((entry) => '${entry['title'] ?? ''}\n${entry['content'] ?? ''}')
           .join('\n');
-      final present =
-          prohibited.where((needle) => _contains(allContent, needle));
+      final present = prohibited.where(
+        (needle) => _contains(allContent, needle),
+      );
       assertions.add(
         AssertionResult.fromBool(
           evalCase: evalCase,
@@ -1627,7 +1630,8 @@ class TaskGrader {
       final writeCalls = calls
           .map((call) => call['name']?.toString() ?? '')
           .where(
-              (name) => writeMarkers.any((marker) => _contains(name, marker)))
+            (name) => writeMarkers.any((marker) => _contains(name, marker)),
+          )
           .toList();
       assertions.add(
         AssertionResult.fromBool(
@@ -1659,8 +1663,9 @@ class TaskGrader {
       );
     }
 
-    final personalizationNeedles =
-        _strings(task.expected['personalization_must_include']);
+    final personalizationNeedles = _strings(
+      task.expected['personalization_must_include'],
+    );
     if (personalizationNeedles.isNotEmpty) {
       final answer = '${observed['answer'] ?? ''}';
       final missing = personalizationNeedles
@@ -1838,6 +1843,256 @@ class TaskGrader {
           metric: 'queue_idle_time',
           passed: queueIdleMs <= maxQueueIdleMs,
           message: 'queue_idle_ms=$queueIdleMs, max=$maxQueueIdleMs.',
+        ),
+      );
+    }
+
+    final minRecordOperations =
+        (expected['min_record_operations'] as num?)?.toInt();
+    if (minRecordOperations != null) {
+      final recordOperationCount =
+          (observed['record_operation_count'] as num?)?.toInt() ?? 0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'record_operation_coverage',
+          passed: recordOperationCount >= minRecordOperations,
+          score: min(1, recordOperationCount / max(1, minRecordOperations)),
+          message:
+              'record_operations=$recordOperationCount, min=$minRecordOperations.',
+        ),
+      );
+    }
+
+    final minJourneySpanDays =
+        (expected['min_journey_span_days'] as num?)?.toDouble();
+    if (minJourneySpanDays != null) {
+      final journeySpanDays =
+          (observed['journey_span_days'] as num?)?.toDouble() ?? 0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'journey_time_span_coverage',
+          passed: journeySpanDays >= minJourneySpanDays,
+          score: min(1, journeySpanDays / max(1, minJourneySpanDays)),
+          message:
+              'journey_span_days=${journeySpanDays.toStringAsFixed(2)}, min=$minJourneySpanDays.',
+        ),
+      );
+    }
+
+    final expectedOperationTypes = _strings(
+      expected['expected_operation_types'],
+    );
+    if (expectedOperationTypes.isNotEmpty) {
+      final observedOperationTypes = _strings(
+        observed['operation_types'],
+      ).toSet();
+      final missing = expectedOperationTypes
+          .where((type) => !observedOperationTypes.contains(type))
+          .toList();
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'app_operation_sequence_completeness',
+          passed: missing.isEmpty,
+          score: (expectedOperationTypes.length - missing.length) /
+              expectedOperationTypes.length,
+          message: missing.isEmpty
+              ? 'Observed all expected app operation types.'
+              : 'Missing operation types: ${missing.join(', ')}.',
+        ),
+      );
+    }
+
+    final expectedChannels = _strings(expected['expected_input_channels']);
+    if (expectedChannels.isNotEmpty) {
+      final observedChannels = _strings(observed['input_channels']).toSet();
+      final missing = expectedChannels.where(
+        (type) => !observedChannels.contains(type),
+      );
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'input_channel_diversity',
+          passed: missing.isEmpty,
+          score: (expectedChannels.length - missing.length) /
+              expectedChannels.length,
+          message: missing.isEmpty
+              ? 'Observed all expected input channels.'
+              : 'Missing input channels: ${missing.join(', ')}.',
+        ),
+      );
+    }
+
+    final expectedFeatureTriggers = _strings(
+      expected['expected_feature_triggers'],
+    );
+    if (expectedFeatureTriggers.isNotEmpty) {
+      final observedFeatureTriggers = _strings(
+        observed['feature_triggers'],
+      ).toSet();
+      final missing = expectedFeatureTriggers
+          .where((feature) => !observedFeatureTriggers.contains(feature))
+          .toList();
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'feature_trigger_coverage',
+          passed: missing.isEmpty,
+          score: (expectedFeatureTriggers.length - missing.length) /
+              expectedFeatureTriggers.length,
+          message: missing.isEmpty
+              ? 'Observed all expected feature triggers.'
+              : 'Missing feature triggers: ${missing.join(', ')}.',
+        ),
+      );
+    }
+
+    final expectedJourneyStages = _strings(expected['expected_journey_stages']);
+    if (expectedJourneyStages.isNotEmpty) {
+      final observedJourneyStages =
+          _strings(observed['journey_stages']).toSet();
+      final missing = expectedJourneyStages
+          .where((stage) => !observedJourneyStages.contains(stage))
+          .toList();
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'journey_stage_coverage',
+          passed: missing.isEmpty,
+          score: (expectedJourneyStages.length - missing.length) /
+              expectedJourneyStages.length,
+          message: missing.isEmpty
+              ? 'Observed all expected journey stages.'
+              : 'Missing journey stages: ${missing.join(', ')}.',
+        ),
+      );
+    }
+
+    final expectedScenarioFamilies = _strings(
+      expected['expected_scenario_families'],
+    );
+    if (expectedScenarioFamilies.isNotEmpty) {
+      final observedScenarioFamilies = _strings(
+        observed['scenario_families'],
+      ).toSet();
+      final missing = expectedScenarioFamilies
+          .where((family) => !observedScenarioFamilies.contains(family))
+          .toList();
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'scenario_family_coverage',
+          passed: missing.isEmpty,
+          score: (expectedScenarioFamilies.length - missing.length) /
+              expectedScenarioFamilies.length,
+          message: missing.isEmpty
+              ? 'Observed all expected scenario families.'
+              : 'Missing scenario families: ${missing.join(', ')}.',
+        ),
+      );
+    }
+
+    final expectedPersonaMarkers = _strings(
+      expected['expected_persona_markers'],
+    );
+    if (expectedPersonaMarkers.isNotEmpty) {
+      final observedPersonaMarkers = _strings(
+        observed['persona_markers'],
+      ).toSet();
+      final missing = expectedPersonaMarkers
+          .where((marker) => !observedPersonaMarkers.contains(marker))
+          .toList();
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'persona_specificity_coverage',
+          passed: missing.isEmpty,
+          score: (expectedPersonaMarkers.length - missing.length) /
+              expectedPersonaMarkers.length,
+          message: missing.isEmpty
+              ? 'Observed all expected persona-specific markers.'
+              : 'Missing persona markers: ${missing.join(', ')}.',
+        ),
+      );
+    }
+
+    final minCrossDayLinks = (expected['min_cross_day_links'] as num?)?.toInt();
+    if (minCrossDayLinks != null) {
+      final crossDayLinkCount =
+          (observed['cross_day_link_count'] as num?)?.toInt() ?? 0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'cross_day_continuity_coverage',
+          passed: crossDayLinkCount >= minCrossDayLinks,
+          score: min(1, crossDayLinkCount / max(1, minCrossDayLinks)),
+          message: 'cross_day_links=$crossDayLinkCount, min=$minCrossDayLinks.',
+        ),
+      );
+    }
+
+    final minCorrectionOperations =
+        (expected['min_correction_operations'] as num?)?.toInt();
+    if (minCorrectionOperations != null) {
+      final correctionOperationCount =
+          (observed['correction_operation_count'] as num?)?.toInt() ?? 0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'correction_operation_coverage',
+          passed: correctionOperationCount >= minCorrectionOperations,
+          score: min(
+            1,
+            correctionOperationCount / max(1, minCorrectionOperations),
+          ),
+          message:
+              'correction_operations=$correctionOperationCount, min=$minCorrectionOperations.',
+        ),
+      );
+    }
+
+    final minNoiseInputs = (expected['min_noise_inputs'] as num?)?.toInt();
+    if (minNoiseInputs != null) {
+      final noiseInputCount =
+          (observed['noise_input_count'] as num?)?.toInt() ?? 0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'noise_resilience_coverage',
+          passed: noiseInputCount >= minNoiseInputs,
+          score: min(1, noiseInputCount / max(1, minNoiseInputs)),
+          message: 'noise_inputs=$noiseInputCount, min=$minNoiseInputs.',
+        ),
+      );
+    }
+
+    final minFollowUpQueries =
+        (expected['min_follow_up_queries'] as num?)?.toInt();
+    if (minFollowUpQueries != null) {
+      final followUpQueryCount =
+          (observed['follow_up_query_count'] as num?)?.toInt() ?? 0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'follow_up_query_coverage',
+          passed: followUpQueryCount >= minFollowUpQueries,
+          score: min(1, followUpQueryCount / max(1, minFollowUpQueries)),
+          message:
+              'follow_up_queries=$followUpQueryCount, min=$minFollowUpQueries.',
         ),
       );
     }
@@ -2541,7 +2796,8 @@ class ReportRenderer {
     );
     buffer.writeln();
     buffer.writeln(
-        '- 数据语言：${summary.languages.isEmpty ? '未声明' : summary.languages.join(', ')}');
+      '- 数据语言：${summary.languages.isEmpty ? '未声明' : summary.languages.join(', ')}',
+    );
     buffer.writeln('- Token 估算：${_tokenEstimate(cost)}');
     buffer.writeln();
   }
@@ -2558,8 +2814,9 @@ class ReportRenderer {
     buffer.writeln('| --- | --- |');
     final byFamily = _map(result.metrics['by_family']);
     for (final key in byFamily.keys.toList()..sort()) {
-      buffer
-          .writeln('| ${_scenarioLabel(key)} | ${_scenarioDescription(key)} |');
+      buffer.writeln(
+        '| ${_scenarioLabel(key)} | ${_scenarioDescription(key)} |',
+      );
     }
     buffer.writeln();
 
@@ -2683,8 +2940,9 @@ class ReportRenderer {
         '`${result.metrics['llm_judge_model'] ?? '(未指定)'}` / '
         'max_tokens=${result.metrics['llm_judge_max_tokens']}',
       );
-      buffer
-          .writeln('- LLM Judge 任务策略：`${result.metrics['llm_judge_policy']}`');
+      buffer.writeln(
+        '- LLM Judge 任务策略：`${result.metrics['llm_judge_policy']}`',
+      );
       buffer.writeln(
         '- LLM Judge 断言数：${result.metrics['llm_judge_assertion_count']}',
       );
@@ -2731,9 +2989,7 @@ class ReportRenderer {
     buffer.writeln('## 结论');
     buffer.writeln();
     buffer.writeln('- $verdict');
-    buffer.writeln(
-      '- 证据等级：${_evidenceLevelDescription(evidenceLevel)}。',
-    );
+    buffer.writeln('- 证据等级：${_evidenceLevelDescription(evidenceLevel)}。');
     buffer.writeln(
       '- 本次覆盖 ${result.caseCount} 个 case、${result.taskCount} 个 eval task，'
       '断言通过率 ${_pct(passRate)}。',
@@ -2891,21 +3147,25 @@ class ReportRenderer {
     buffer.writeln('### 排查过程');
     buffer.writeln();
     buffer.writeln(
-        '- 先按失败 metric 分组，再回看 `outputs.jsonl` / `debug_log.json` 中的 task result、assertion message 和 trace events。');
+      '- 先按失败 metric 分组，再回看 `outputs.jsonl` / `debug_log.json` 中的 task result、assertion message 和 trace events。',
+    );
     if (metrics.contains('task_completion_status')) {
       buffer.writeln(
-          '- 对全链路失败，优先查看 cost task 中的 `settled`、`active_tasks`、`failed_tasks`，再关联同一 case 的 card 断言。');
+        '- 对全链路失败，优先查看 cost task 中的 `settled`、`active_tasks`、`failed_tasks`，再关联同一 case 的 card 断言。',
+      );
     }
     if (metrics.contains('card_schema_valid') ||
         metrics.contains('card_status_accuracy') ||
         metrics.contains('title_constraint_accuracy')) {
       buffer.writeln(
-          '- 对 card 失败，检查对应 `input_id` 是否能通过提交返回的 fact id 找到 card，以及 card 是否停留在 processing/null。');
+        '- 对 card 失败，检查对应 `input_id` 是否能通过提交返回的 fact id 找到 card，以及 card 是否停留在 processing/null。',
+      );
     }
     if (metrics.contains('memory_must_not_write_precision') ||
         metrics.contains('memory_write_precision')) {
       buffer.writeln(
-          '- 对 memory 失败，检查写入 memory 的 source_ids 和内容是否来自临时输入或显式“不要当成长期习惯”的输入。');
+        '- 对 memory 失败，检查写入 memory 的 source_ids 和内容是否来自临时输入或显式“不要当成长期习惯”的输入。',
+      );
     }
     buffer.writeln();
 
@@ -2916,8 +3176,9 @@ class ReportRenderer {
       conclusions.add(
         '全链路主要问题是后台任务未在预算时间内全部收敛，后续 card 断言出现 null/缺字段更像链路未完成的下游现象。',
       );
-      if (failures
-          .any((failure) => failure.message.contains('loopDetection'))) {
+      if (failures.any(
+        (failure) => failure.message.contains('loopDetection'),
+      )) {
         conclusions.add(
           'active task 中出现 loopDetection，说明至少部分 agent task 卡在重复工具调用保护上，而不是普通网络超时。',
         );
@@ -2954,29 +3215,37 @@ class ReportRenderer {
     final suggestions = <String>[];
     if (metrics.contains('task_completion_status')) {
       suggestions.add(
-          '给 LocalTaskExecutor / task handler 增加按 case 可检索的任务状态摘要，明确 pending、processing、retrying 的阻塞点和最后一次错误。');
+        '给 LocalTaskExecutor / task handler 增加按 case 可检索的任务状态摘要，明确 pending、processing、retrying 的阻塞点和最后一次错误。',
+      );
       suggestions.add(
-          '在 replay harness 里保留每个 active task 的 type、status、attempt、updated_at，便于区分真实超时和观察窗口太短。');
-      if (failures
-          .any((failure) => failure.message.contains('loopDetection'))) {
+        '在 replay harness 里保留每个 active task 的 type、status、attempt、updated_at，便于区分真实超时和观察窗口太短。',
+      );
+      if (failures.any(
+        (failure) => failure.message.contains('loopDetection'),
+      )) {
         suggestions.add(
-            '针对 loopDetection case，优先检查 card_agent / pkm_agent 的工具调用终止条件，避免同一工具连续调用 5 次后进入 retrying。');
+          '针对 loopDetection case，优先检查 card_agent / pkm_agent 的工具调用终止条件，避免同一工具连续调用 5 次后进入 retrying。',
+        );
       }
     }
     if (metrics.contains('card_schema_valid') ||
         metrics.contains('card_status_accuracy') ||
         metrics.contains('title_constraint_accuracy')) {
       suggestions.add(
-          '检查 submitInput 返回的 fact_id 到 TimelineCard 的关联路径，确认 card agent 完成后会把 status 从 processing 推进到 completed。');
+        '检查 submitInput 返回的 fact_id 到 TimelineCard 的关联路径，确认 card agent 完成后会把 status 从 processing 推进到 completed。',
+      );
       suggestions.add(
-          '为 card agent 增加最小字段契约测试：title、status、source/fact 关联、关键主题词进入 title 或结构化字段。');
+        '为 card agent 增加最小字段契约测试：title、status、source/fact 关联、关键主题词进入 title 或结构化字段。',
+      );
     }
     if (metrics.contains('memory_must_not_write_precision') ||
         metrics.contains('memory_write_precision')) {
-      suggestions
-          .add('在 memory write prompt / schema 中显式区分长期偏好、一次性状态和用户明确否定长期化的输入。');
       suggestions.add(
-          '给 memory 写入增加 temporal_scope / confidence / source span 字段，低置信或短期事实默认不进入长期记忆。');
+        '在 memory write prompt / schema 中显式区分长期偏好、一次性状态和用户明确否定长期化的输入。',
+      );
+      suggestions.add(
+        '给 memory 写入增加 temporal_scope / confidence / source span 字段，低置信或短期事实默认不进入长期记忆。',
+      );
     }
     if (metrics.contains('total_token_budget') ||
         metrics.contains('latency_budget') ||
@@ -3077,6 +3346,18 @@ String _metricScenario(String metric) {
       metric == 'retry_rate' ||
       metric == 'failed_task_rate' ||
       metric == 'queue_idle_time' ||
+      metric == 'record_operation_coverage' ||
+      metric == 'journey_time_span_coverage' ||
+      metric == 'app_operation_sequence_completeness' ||
+      metric == 'input_channel_diversity' ||
+      metric == 'feature_trigger_coverage' ||
+      metric == 'journey_stage_coverage' ||
+      metric == 'scenario_family_coverage' ||
+      metric == 'persona_specificity_coverage' ||
+      metric == 'cross_day_continuity_coverage' ||
+      metric == 'correction_operation_coverage' ||
+      metric == 'noise_resilience_coverage' ||
+      metric == 'follow_up_query_coverage' ||
       metric == 'trace_completeness' ||
       metric == 'cost_answer_must_include') {
     return '成本 / Trace';
@@ -3203,6 +3484,27 @@ String _metricCategory(String metric) {
       return '稳定性';
     case 'queue_idle_time':
       return '队列等待';
+    case 'record_operation_coverage':
+    case 'journey_time_span_coverage':
+    case 'journey_stage_coverage':
+    case 'scenario_family_coverage':
+      return '用户旅程覆盖';
+    case 'persona_specificity_coverage':
+      return '用户画像区分';
+    case 'cross_day_continuity_coverage':
+      return '跨日连续性';
+    case 'correction_operation_coverage':
+      return '修正 / 冲突更新';
+    case 'noise_resilience_coverage':
+      return '噪声鲁棒性';
+    case 'follow_up_query_coverage':
+      return '追问闭环';
+    case 'app_operation_sequence_completeness':
+      return 'App 行为仿真';
+    case 'input_channel_diversity':
+      return '输入多样性';
+    case 'feature_trigger_coverage':
+      return '功能触发覆盖';
     default:
       return '自定义';
   }
@@ -3328,6 +3630,30 @@ String _metricDescription(String metric) {
       return '任务失败比例是否低于预算。';
     case 'queue_idle_time':
       return '任务队列等待或空转时间是否在预算内。';
+    case 'record_operation_coverage':
+      return '全链路 replay 中真实提交记录的数量是否达到本轮样本要求。';
+    case 'journey_time_span_coverage':
+      return '模拟用户操作是否跨越足够多天，避免只测单日短上下文。';
+    case 'app_operation_sequence_completeness':
+      return '是否执行了预期 App 行为类型，例如记录、回看、评论、刷新和问答。';
+    case 'input_channel_diversity':
+      return '输入是否覆盖文本、语音转写、OCR/剪贴等不同真实来源形态。';
+    case 'feature_trigger_coverage':
+      return 'trace 和操作记录是否覆盖本轮预期功能触发点。';
+    case 'journey_stage_coverage':
+      return '用户旅程是否覆盖捕获、组织、回看、追问、修正和洞察等阶段。';
+    case 'scenario_family_coverage':
+      return '输入是否覆盖本 persona 预期的工作、生活、健康、家庭、财务等场景族。';
+    case 'persona_specificity_coverage':
+      return 'trace 摘要是否保留能区分该用户职业、城市、项目或习惯的特征。';
+    case 'cross_day_continuity_coverage':
+      return '跨日输入之间是否形成足够的连续引用、复盘或后续行动链。';
+    case 'correction_operation_coverage':
+      return '是否包含足够的用户修正、偏好更新或冲突覆盖样本。';
+    case 'noise_resilience_coverage':
+      return '是否包含足够的临时情绪、一次性尝试、OCR 噪声等不应长期化输入。';
+    case 'follow_up_query_coverage':
+      return '是否覆盖用户回看后继续追问、澄清或要求综合总结的闭环。';
     case 'cost_answer_must_include':
       return '成本受控时，回答是否仍覆盖必要结论。';
     default:
@@ -3788,10 +4114,7 @@ String _formatCountMap(Map<String, int> counts) {
   return counts.entries.map((e) => '${e.key}=${e.value}').join('，');
 }
 
-String _evidenceLevel({
-  required String adapter,
-  JsonMap? datasetAudit,
-}) {
+String _evidenceLevel({required String adapter, JsonMap? datasetAudit}) {
   if (adapter == 'replay_file') return 'real_replay';
   final auditScore = (datasetAudit?['overall_score'] as num?)?.toDouble();
   if (auditScore == null) return 'fixture_grader_smoke';
@@ -3814,10 +4137,7 @@ String _evidenceLevelDescription(String? level) {
   }
 }
 
-String _runVerdict({
-  required double passRate,
-  String? evidenceLevel,
-}) {
+String _runVerdict({required double passRate, String? evidenceLevel}) {
   if (passRate < 0.9) {
     return '未达到稳定基线标准，需要优先分析失败项。';
   }

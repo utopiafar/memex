@@ -115,3 +115,127 @@ v2 已经把生产贴近 Retrieval QA 扩到 12 个用户、78 条输入、47 �
 - 不建议继续单纯扩大 retrieval fixture。更有价值的下一轮是 Memory Lifecycle v2 或 Retrieval replay。
 - 如果继续做 retrieval，应引入真实文档风格：邮件原文、表格行、会议纪要片段、截图 OCR 错行，而不是人工总结句。
 - 为 LLM audit 增加后处理校验：把 audit summary 里的“每个/所有/均”类表述与 metrics 计数做规则交叉检查。
+
+## 2026-05-16 Realistic Full-chain Smoke
+
+### 实验目标
+
+这轮从“更大 fixture”转向“更真实 App 行为”。目标是先用小样本跑通：跨天记录、timeline browse、post comment、schedule aggregation refresh、knowledge insight refresh、wait memory、Super Agent quick query、replay_file 评分和 LLM judge。
+
+### 数据与指标
+
+- 数据集：`evals/datasets/full_chain_realistic_smoke`
+- 生成器：`evals/bin/generate_realistic_full_chain_smoke_dataset.dart`
+- 完整数据：2 persona、13 record、24 operations。
+- 本轮实际运行：`MEMEX_EVAL_CASE_LIMIT=1`，首个 persona 6 record、12 operations。
+- 新增指标：
+  - `record_operation_coverage`
+  - `journey_time_span_coverage`
+  - `app_operation_sequence_completeness`
+  - `input_channel_diversity`
+  - `feature_trigger_coverage`
+
+### 运行结果
+
+- 真实 replay：7分47秒，60 个 task 全部 completed。
+- replay_file + LLM judge + dataset audit：24/24 断言通过，overall audit=0.900。
+- 成本：58 次 LLM 调用、177 次工具调用、59825 tokens。
+
+### 本轮发现与后续避免
+
+- 本地代理变量会破坏 `flutter_tester` 的 WebSocket 握手。运行 Flutter replay 前取消 `ws_proxy`、`wss_proxy`、`http_proxy`、`https_proxy`，或至少验证最小 Flutter test 能启动。
+- Super Agent replay observation 必须带 `source_snippets`。第一次评分中答案文本正确，但 LLM judge 因看不到 memory 证据只给 0.5；修复后把 memory entries 作为 source snippets，groundedness 通过。
+- Knowledge Insight 刷新在 PR 105 合入后可在真实 replay 中收敛，但本轮还没有专门断言 state 文件清理和下一次 refresh 的 fresh-run 语义。下一轮要把它变成明确指标。
+- 先跑小样本是必要的：单个 persona 已消耗约 60k tokens 和 8 分钟。扩量前要保留 case-limit、timeout、run dir 和详细日志。
+
+## 2026-05-16 Journey Scale v1/v2
+
+### 实验目标
+
+按“8 个用户、每个用户几百条输入”的要求补两轮大规模 fixture 旅程实验。目标是扩大数据形态和指标口径，而不是声称真实 Agent 已能完整处理 2k+ 输入 replay。
+
+### 数据与指标
+
+- 生成器：`evals/bin/generate_journey_scale_iteration_datasets.dart`
+- Round 1：`evals/datasets/full_chain_journey_scale_v1`，8 persona、1920 record、64 task。
+- Round 2：`evals/datasets/full_chain_journey_scale_v2`，8 persona、2560 record、80 task。
+- 新增用户旅程指标：
+  - `journey_stage_coverage`
+  - `scenario_family_coverage`
+  - `persona_specificity_coverage`
+  - `cross_day_continuity_coverage`
+  - `correction_operation_coverage`
+  - `noise_resilience_coverage`
+  - `follow_up_query_coverage`
+
+### 运行结果
+
+- Round 1：648/648 断言通过，报告在 `evals/experiments/2026-05-16-full-chain-journey-scale-v1/report.md`。
+- Round 2：824/824 断言通过，报告在 `evals/experiments/2026-05-16-full-chain-journey-scale-v2/report.md`。
+- 两轮证据等级都是 `fixture_grader_smoke`。它们验证 grader、指标聚合、数据规模和报告结构；真实能力判断仍要抽样接 `serial_full_chain_replay_test.dart` 或 replay_file。
+
+### 本轮发现与后续避免
+
+- 不再复用旧 `journey_medium` 的同质模板；8 个 persona 的职业、城市、项目、家庭/健康/财务/法律边界和偏好冲突都独立建模。
+- Fixture 指标要显式声明“观察数据耗时”和 token 都是 fixture observation 的规模估算，不是实际线上 API 消耗。
+- 下一轮真实化优先做小抽样 replay：例如每轮选 1-2 persona、每人 20-40 条输入，先验证真实 LocalTaskExecutor/task trace 是否能支撑这些 journey 指标。
+
+## 2026-05-17 8-user Real Replay v1/v2
+
+### 实验目标
+
+把 8 用户 journey 从 fixture 改成真实 full-chain replay。所有观察都来自 `serial_full_chain_replay_test.dart`：`submitInput`、LocalTaskExecutor、card/memory/PKM/schedule/knowledge insight task、Super Agent quick query，再通过 `replay_file` adapter 评分。
+
+### 数据与指标
+
+- 生成器：`evals/bin/generate_real_replay_journey_datasets.dart`
+- Round 1：`evals/datasets/full_chain_journey_real_replay_v1`，8 persona、64 record、112 operations、32 task。
+- Round 2：`evals/datasets/full_chain_journey_real_replay_v2`，8 persona、128 record、184 operations、48 task。
+- replay harness 增加真实 observation 字段：journey stage、scenario family、cross-day link、correction/noise counts、follow-up query count、persona markers。
+- replay harness 增加 per-case 熔断：某个操作在本轮等待预算内未收敛时停止该 case 的剩余操作，保留 active/retrying task 摘要并继续下一个用户，避免一个卡住的用户拖垮整轮实验。
+
+### 运行结果
+
+- Round 1：`evals/experiments/2026-05-17-full-chain-real-replay-v1/report.md`
+  - 8 用户真实 replay，用时 30分38秒。
+  - 153/291 断言通过，pass rate 52.6%。
+  - 217130 tokens，158 次 LLM 调用，612 次 tool 调用。
+  - 只有 `journey_real_replay_v1_01` 完整跑到 Super Agent；其余 7 个用户首条 record 后 task 未收敛并熔断。
+- Round 2：`evals/experiments/2026-05-17-full-chain-real-replay-v2/report.md`
+  - 8 用户真实 replay，用时 39分56秒。
+  - 182/355 断言通过，pass rate 51.3%。
+  - 329236 tokens，257 次 LLM 调用，1284 次 tool 调用。
+  - `journey_real_replay_v2_01` 跑完 16 条 record 和 timeline/comment/schedule，但卡在 knowledge insight refresh；其余 7 个用户首条 record 后 task 未收敛。
+
+### 本轮发现与后续避免
+
+- 多用户连续 replay 暴露出真实任务收敛问题：card_agent_task、pkm_agent_task、comment_agent_task、fts_index_update 和 knowledge_insight_task 会停在 processing/pending/retrying。
+- 部分 retrying 带 `AgentExceptionCode.loopDetection` 或 `Maximum turns reached (20)`，说明不是单纯超时，还存在 agent 工具调用终止条件问题。
+- 扩量前应先修 task 收敛和 loop detection，否则增加用户和输入只会放大同一失败。
+- 真实 replay 报告必须保留失败，不再用 fixture 通过率替代真实链路结论。
+
+## Real Replay 等待预算与状态观测
+
+真实 full-chain replay 不能再使用固定 180 秒作为所有后台操作的统一等待窗口。前两轮实测中，单条 record 的正常收敛多在 40-90 秒，knowledge insight 曾需要 106 秒；同时 LLM P95 延迟到 40-52 秒。由于 replay 为了稳定复现把 LocalTaskExecutor 并发降到 1，一个 record 会串行触发多类 LocalTaskExecutor task，固定 3 分钟会把慢但正常的 case 误判成未收敛。
+
+默认策略改成按预计 task 单元动态计算等待时间：
+
+- LLM real replay 默认每个 task 单元给 90 秒。
+- `record` 预计 10 个 task 单元，默认最多等 15 分钟。
+- `post_comment` 预计 3 个 task 单元，默认等 4 分半。
+- `refresh_schedule_aggregation` 预计 2 个 task 单元，默认等 3 分钟。
+- `refresh_knowledge_insights` 预计 10 个 task 单元，默认最多等 15 分钟。
+- 如需固定窗口，可继续用 `MEMEX_EVAL_TASK_TIMEOUT_SECONDS` 覆盖。
+- 如需调动态预算，可用 `MEMEX_EVAL_TASK_UNIT_TIMEOUT_SECONDS` 和 `MEMEX_EVAL_TASK_TIMEOUT_MAX_SECONDS`。
+
+长实验要定期检查实验状态，而不是只等最终报告。`serial_full_chain_replay_test.dart` 会按 `MEMEX_EVAL_STATUS_INTERVAL_SECONDS`，默认 30 秒，输出 active task 摘要，并写入当前 run 目录的 `status.json`。中途如果看到同一 task 长时间停在 `processing`，要区分两类情况：普通慢响应可以继续等；`retrying` 或带 `loopDetection` / `Maximum turns reached` 的 processing 则应按真实 agent 终止条件问题处理，不能简单归因于 timeout 太短。
+
+### 2026-05-17 v2 Dynamic-timeout Rerun
+
+- Run：`2026-05-17-full-chain-real-replay-v2-dynamic-timeout`
+- 等待策略：dynamic，`task_unit_timeout_seconds=90`，`max_operation_timeout_seconds=900`，`status_interval_seconds=30`。
+- Replay 结果：8 case 全部执行到 case 级终态，用时 3小时29分29秒；Flutter test 通过。
+- 评分结果：181/355 断言通过，pass rate 51.0%，证据等级 `real_replay`。
+- 成本：947245 tokens，710 次 LLM 调用，3942 次 tool 调用，P95 LLM 延迟 100000ms。
+- 对比 180 秒固定窗口：第一用户完整跑到 follow-up，第二用户从 1 条 record 推进到 4 条，部分 card 慢尾在 4-7 分钟后才返回；因此 180 秒确实偏小。
+- 但主结论没有变：多数失败不是单纯 timeout。多个用户在 15 分钟窗口内仍停在 `card_agent_task` / `pkm_agent_task` 的 `processing` / `retrying`，错误集中为 `AgentExceptionCode.loopDetection` / `Maximum turns reached`。后续应优先修 agent 工具循环和终止条件，再继续扩量。

@@ -32,10 +32,15 @@ evals/
 当前保留五条主要实验线：
 
 - 中等规模全链路 Journey：`datasets/full_chain_journey_medium`，按单用户串行旅程组织，覆盖多周中文输入、card、memory、Super Agent 和成本 trace。
+- 8 用户 Journey Scale：`datasets/full_chain_journey_scale_v1` 和 `datasets/full_chain_journey_scale_v2`，由 `generate_journey_scale_iteration_datasets.dart` 生成。v1 为 8 用户 × 240 record，v2 为 8 用户 × 320 record，并细化用户旅程阶段、场景族、跨日连续性、纠错、噪声和追问闭环指标。当前报告位于 `experiments/2026-05-16-full-chain-journey-scale-v1` 和 `experiments/2026-05-16-full-chain-journey-scale-v2`，证据等级仍是 fixture/grader smoke。
+- 8 用户 Real Replay：`datasets/full_chain_journey_real_replay_v1` 和 `datasets/full_chain_journey_real_replay_v2`，由 `generate_real_replay_journey_datasets.dart` 从 scale 数据集切出真实 replay 分片。v1 为 8 用户、64 record、112 operations、32 tasks；v2 为 8 用户、128 record、184 operations、48 tasks。报告位于 `experiments/2026-05-17-full-chain-real-replay-v1` 和 `experiments/2026-05-17-full-chain-real-replay-v2`，证据等级为 `real_replay`。
+- Real Replay 等待预算：LLM 模式下默认不再用固定 180 秒窗口，而是按操作预计 task 单元动态等待；`record` 和 `refresh_knowledge_insights` 默认最多 15 分钟。长实验会按 `MEMEX_EVAL_STATUS_INTERVAL_SECONDS` 定期输出状态，并把当前 active task 写到 run 目录的 `status.json`。可用 `MEMEX_EVAL_TASK_TIMEOUT_SECONDS` 固定覆盖，或用 `MEMEX_EVAL_TASK_UNIT_TIMEOUT_SECONDS` / `MEMEX_EVAL_TASK_TIMEOUT_MAX_SECONDS` 调动态预算。
+- Dynamic-timeout rerun：`experiments/2026-05-17-full-chain-real-replay-v2-dynamic-timeout` 使用 90 秒/task 单元、15 分钟/操作上限和 30 秒状态观测，8 用户真实 replay 用时 3小时29分29秒，181/355 断言通过。该轮证明 180 秒固定窗口偏小，但主要失败仍集中在 card/pkm agent 的 loopDetection 和重试不收敛。
 - Hard Case Challenge：`datasets/hard_case_challenge`，专门保留边界和种子失败，用来验证失败报告、error analysis 和指标敏感度。
 - Retrieval / Source Grounding：`datasets/retrieval_source_grounding`，覆盖跨 card、memory、note、PKM 的 hybrid retrieval、source citation、filter 和证据不足拒答。
 - Production-like Retrieval：`datasets/production_like_retrieval`、`datasets/production_like_retrieval_v2` 和 `datasets/production_like_retrieval_v3`，用手工策划的异质职业场景验证检索、引用和拒答，重点解决合成数据文风单调、结构过齐的问题。v3 扩到 24 个用户、150 条输入、94 个任务。
 - Memory Lifecycle：`datasets/memory_lifecycle`，覆盖 must-write、must-not-write、冲突更新、临时状态、过期范围、source grounding 和 Super Agent 最新记忆问答。
+- Realistic Full-chain Smoke：`datasets/full_chain_realistic_smoke`，小样本真实 replay 起点，覆盖跨天记录、timeline browse、comment、schedule aggregation、knowledge insight refresh、memory wait 和 Super Agent quick query。本数据集先用 `case-limit=1` 跑通真实链路，再扩到完整 2 case 和更多 persona。
 
 历史模块基线仍保留在 `datasets/modules/<module>`，用于分别验证 Card、Memory、Retrieval、Router/Tool、Schedule、PKM、Super Agent 和成本 Trace 的 grader、指标和报告口径。`full_chain_serial_smoke` 继续用于验证真实单用户操作脚本，从 `submitInput`、后台 task、memory 写入到 Super Agent 问答是否闭环。
 
@@ -64,8 +69,18 @@ dart evals/bin/run_agent_benchmark.dart \
   --dataset evals/datasets/modules/card_extraction \
   --out evals/runs/<run-id>
 
+dart evals/bin/generate_journey_scale_iteration_datasets.dart
+
 MEMEX_EVAL_ENABLE_LLM=1 \
 flutter test evals/replay/serial_full_chain_replay_test.dart
+```
+
+如果本地配置了 WebSocket/HTTP 代理，`flutter_tester` 可能在本地 WebSocket 握手时报 `Invalid WebSocket upgrade request`。真实 replay 可先取消代理环境变量：
+
+```bash
+env -u ws_proxy -u wss_proxy -u http_proxy -u https_proxy \
+  MEMEX_EVAL_ENABLE_LLM=1 \
+  flutter test --no-pub evals/replay/serial_full_chain_replay_test.dart
 ```
 
 如果启用 LLM judge，使用环境变量传 key 和模型信息：

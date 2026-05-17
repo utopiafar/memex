@@ -52,21 +52,26 @@ void main() {
       final pathProviderRoot = await Directory.systemTemp.createTemp(
         'memex_serial_full_chain_paths_',
       );
-      PathProviderPlatform.instance =
-          _FakePathProviderPlatform(pathProviderRoot.path);
+      PathProviderPlatform.instance = _FakePathProviderPlatform(
+        pathProviderRoot.path,
+      );
       WakelockPlusPlatformInterface.instance = _FakeWakelockPlusPlatform();
       SharedPreferences.setMockInitialValues({});
       LocalTaskExecutor.maxConcurrencyOverrideForTesting = 1;
 
       final router = MemexRouter();
-      final cases = await _loadCases(datasetPath);
+      final allCases = await _loadCases(datasetPath);
+      final caseLimit = _intFromEnv('MEMEX_EVAL_CASE_LIMIT');
+      final cases =
+          caseLimit == null ? allCases : allCases.take(caseLimit).toList();
       final observations = <Map<String, dynamic>>[];
       final summaries = <Map<String, dynamic>>[];
       final suiteStartedAt = DateTime.now();
 
       stdout.writeln(
         '[serial replay] start dataset=$datasetPath cases=${cases.length} '
-        'llm_enabled=$_llmEnabled task_timeout=${_formatDuration(_taskWaitTimeout)} '
+        'llm_enabled=$_llmEnabled task_wait_policy=$_taskWaitPolicyDescription '
+        'status_interval=${_formatDuration(_statusInterval)} '
         'max_concurrency=1',
       );
 
@@ -111,6 +116,7 @@ void main() {
           final superAgentToolCalls = <Map<String, dynamic>>[];
           final chatErrors = <String>[];
           var submittedRecords = 0;
+          var abortCase = false;
 
           for (final operation in operations) {
             final opId = operation['id']?.toString() ??
@@ -128,9 +134,11 @@ void main() {
               );
               final factId = response['fact_id'] as String;
               submittedFactIdsByOperation[opId] = factId;
+              final waitTimeout = _taskWaitTimeoutFor(type);
               final waitResult = await _waitForTasksToSettle(
                 minTasks: submittedRecords * 4,
-                timeout: _taskWaitTimeout,
+                timeout: waitTimeout,
+                runDir: runDir,
                 caseId: caseId,
                 operationId: opId,
                 startedAt: opStartedAt,
@@ -142,12 +150,133 @@ void main() {
               operationLogs.add({
                 'operation_id': opId,
                 'type': type,
+                'time': operation['time'],
+                'channel': operation['channel'] ?? 'text',
+                if (operation['journey_stage'] != null)
+                  'journey_stage': operation['journey_stage'],
+                if (operation['scenario_family'] != null)
+                  'scenario_family': operation['scenario_family'],
+                if (operation['is_correction'] == true) 'is_correction': true,
+                if (operation['is_noise'] == true) 'is_noise': true,
+                if (operation['cross_day_link'] == true) 'cross_day_link': true,
                 'fact_id': factId,
                 'tasks_settled': waitResult.settled,
                 'task_status_counts': lastTaskStatusCounts,
+                'task_wait_timeout_ms': waitTimeout.inMilliseconds,
                 'elapsed_ms':
                     DateTime.now().difference(opStartedAt).inMilliseconds,
               });
+              abortCase = !waitResult.settled;
+            } else if (type == 'fetch_timeline') {
+              final cards = (await router.fetchTimelineCards(
+                page: 1,
+                limit: (operation['limit'] as num?)?.toInt() ?? 20,
+                dateFrom: _parseOptionalDateTime(operation['date_from']),
+                dateTo: _parseOptionalDateTime(operation['date_to']),
+              ))
+                  .valueOrThrow;
+              operationLogs.add({
+                'operation_id': opId,
+                'type': type,
+                'time': operation['time'],
+                'card_count': cards.length,
+                'elapsed_ms':
+                    DateTime.now().difference(opStartedAt).inMilliseconds,
+              });
+            } else if (type == 'post_comment') {
+              final targetOperationId =
+                  operation['target_operation_id']?.toString();
+              final cardId = targetOperationId == null
+                  ? (submittedFactIdsByOperation.isEmpty
+                      ? null
+                      : submittedFactIdsByOperation.values.last)
+                  : submittedFactIdsByOperation[targetOperationId];
+              if (cardId == null) {
+                operationLogs.add({
+                  'operation_id': opId,
+                  'type': type,
+                  'time': operation['time'],
+                  'error': 'No target card id resolved.',
+                });
+              } else {
+                final response = await router.postComment(
+                  cardId,
+                  operation['content']?.toString() ?? '',
+                );
+                final waitTimeout = _taskWaitTimeoutFor(type);
+                final waitResult = await _waitForTasksToSettle(
+                  minTasks: lastTasks.length + 1,
+                  timeout: waitTimeout,
+                  runDir: runDir,
+                  caseId: caseId,
+                  operationId: opId,
+                  startedAt: opStartedAt,
+                );
+                lastTasks = waitResult.tasks;
+                lastTaskStatusCounts = _statusCounts(waitResult.tasks);
+                operationLogs.add({
+                  'operation_id': opId,
+                  'type': type,
+                  'time': operation['time'],
+                  'target_operation_id': targetOperationId,
+                  'card_id': cardId,
+                  'comment_id': response['comment_id'],
+                  'tasks_settled': waitResult.settled,
+                  'task_status_counts': lastTaskStatusCounts,
+                  'task_wait_timeout_ms': waitTimeout.inMilliseconds,
+                  'elapsed_ms':
+                      DateTime.now().difference(opStartedAt).inMilliseconds,
+                });
+                abortCase = !waitResult.settled;
+              }
+            } else if (type == 'refresh_schedule_aggregation') {
+              (await router.refreshScheduleAggregation()).valueOrThrow;
+              final waitTimeout = _taskWaitTimeoutFor(type);
+              final waitResult = await _waitForTasksToSettle(
+                minTasks: lastTasks.length + 1,
+                timeout: waitTimeout,
+                runDir: runDir,
+                caseId: caseId,
+                operationId: opId,
+                startedAt: opStartedAt,
+              );
+              lastTasks = waitResult.tasks;
+              lastTaskStatusCounts = _statusCounts(waitResult.tasks);
+              operationLogs.add({
+                'operation_id': opId,
+                'type': type,
+                'time': operation['time'],
+                'tasks_settled': waitResult.settled,
+                'task_status_counts': lastTaskStatusCounts,
+                'task_wait_timeout_ms': waitTimeout.inMilliseconds,
+                'elapsed_ms':
+                    DateTime.now().difference(opStartedAt).inMilliseconds,
+              });
+              abortCase = !waitResult.settled;
+            } else if (type == 'refresh_knowledge_insights') {
+              (await router.updateKnowledgeInsights()).valueOrThrow;
+              final waitTimeout = _taskWaitTimeoutFor(type);
+              final waitResult = await _waitForTasksToSettle(
+                minTasks: lastTasks.length + 1,
+                timeout: waitTimeout,
+                runDir: runDir,
+                caseId: caseId,
+                operationId: opId,
+                startedAt: opStartedAt,
+              );
+              lastTasks = waitResult.tasks;
+              lastTaskStatusCounts = _statusCounts(waitResult.tasks);
+              operationLogs.add({
+                'operation_id': opId,
+                'type': type,
+                'time': operation['time'],
+                'tasks_settled': waitResult.settled,
+                'task_status_counts': lastTaskStatusCounts,
+                'task_wait_timeout_ms': waitTimeout.inMilliseconds,
+                'elapsed_ms':
+                    DateTime.now().difference(opStartedAt).inMilliseconds,
+              });
+              abortCase = !waitResult.settled;
             } else if (type == 'wait_memory') {
               final timeoutSeconds =
                   (operation['timeout_seconds'] as num?)?.toInt() ?? 120;
@@ -159,6 +288,7 @@ void main() {
               operationLogs.add({
                 'operation_id': opId,
                 'type': type,
+                'time': operation['time'],
                 'matched': memoryWait.matched,
                 'elapsed_ms': memoryWait.elapsedMs,
                 'memory_entries': memoryWait.entries,
@@ -179,6 +309,7 @@ void main() {
               operationLogs.add({
                 'operation_id': opId,
                 'type': type,
+                'time': operation['time'],
                 'answer': chat.answer,
                 'tool_calls': chat.toolCalls,
                 'errors': chat.errors,
@@ -188,8 +319,16 @@ void main() {
               operationLogs.add({
                 'operation_id': opId,
                 'type': type,
+                'time': operation['time'],
                 'error': 'Unknown operation type.',
               });
+            }
+            if (abortCase) {
+              stdout.writeln(
+                '[serial replay] $caseId op=$opId type=$type did not settle; '
+                'stopping remaining operations for this case.',
+              );
+              break;
             }
           }
 
@@ -201,6 +340,14 @@ void main() {
             ...await _agentActivityTraceEvents(),
           ];
           final llmCalls = await _llmCallsForUser(userId);
+          final operationStats = _operationStats(operationLogs);
+          final personaMarkers = _personaMarkers(evalCase);
+          final featureTriggers = _featureTriggers(
+            operationLogs: operationLogs,
+            traceEvents: traceEvents,
+            memoryEntries: memoryEntries,
+            cardsByOperation: cardsByOperation,
+          );
           final activeTasks = lastTasks
               .where(
                 (task) =>
@@ -255,6 +402,11 @@ void main() {
                       DateTime.now().difference(suiteStartedAt).inMilliseconds,
                   'input_count': submittedRecords,
                   'task_count': lastTasks.length,
+                  'operation_logs': operationLogs,
+                  ...operationStats,
+                  'persona_markers': personaMarkers,
+                  'memory_entry_count': memoryEntries.length,
+                  'feature_triggers': featureTriggers,
                 },
               });
             } else if (taskType == 'memory_write') {
@@ -283,12 +435,18 @@ void main() {
               final errors = operationId == null
                   ? chatErrors
                   : chatErrorsByOperation[operationId] ?? chatErrors;
+              final sourceSnippets = _sourceSnippetsFromMemory(memoryEntries);
               observations.add({
                 'case_id': caseId,
                 'task_id': taskId,
                 'observed': {
                   'answer': answer,
                   'tool_calls': toolCalls,
+                  'retrieved_sources':
+                      sourceSnippets.map((s) => s['source_id']).toList(),
+                  'cited_sources':
+                      sourceSnippets.map((s) => s['source_id']).toList(),
+                  'source_snippets': sourceSnippets,
                   'trace_events': traceEvents,
                   'llm_calls': const [],
                   'case_elapsed_ms': elapsedMs,
@@ -341,12 +499,87 @@ void main() {
 
 bool get _llmEnabled => Platform.environment['MEMEX_EVAL_ENABLE_LLM'] == '1';
 
-Duration get _taskWaitTimeout {
-  final seconds = _intFromEnv('MEMEX_EVAL_TASK_TIMEOUT_SECONDS');
-  if (seconds != null && seconds > 0) {
-    return Duration(seconds: seconds);
+Duration _taskWaitTimeoutFor(String? operationType) {
+  final fixedSeconds = _intFromEnv('MEMEX_EVAL_TASK_TIMEOUT_SECONDS');
+  if (fixedSeconds != null && fixedSeconds > 0) {
+    return Duration(seconds: fixedSeconds);
   }
-  return Duration(seconds: _llmEnabled ? 180 : 45);
+  final unitSeconds = _taskUnitTimeoutSeconds;
+  final floorSeconds = _llmEnabled ? 180 : 45;
+  final maxSeconds = _taskMaxTimeoutSeconds < floorSeconds
+      ? floorSeconds
+      : _taskMaxTimeoutSeconds;
+  final computedSeconds = _expectedTaskUnits(operationType) * unitSeconds;
+  final seconds = computedSeconds < floorSeconds
+      ? floorSeconds
+      : computedSeconds > maxSeconds
+          ? maxSeconds
+          : computedSeconds;
+  return Duration(seconds: seconds);
+}
+
+String get _taskWaitPolicyDescription {
+  final fixedSeconds = _intFromEnv('MEMEX_EVAL_TASK_TIMEOUT_SECONDS');
+  if (fixedSeconds != null && fixedSeconds > 0) {
+    return 'fixed:${_formatDuration(Duration(seconds: fixedSeconds))}';
+  }
+  return 'dynamic:unit=${_formatDuration(Duration(seconds: _taskUnitTimeoutSeconds))},'
+      'max=${_formatDuration(Duration(seconds: _taskMaxTimeoutSeconds))}';
+}
+
+Map<String, dynamic> _taskWaitPolicySummary() {
+  final fixedSeconds = _intFromEnv('MEMEX_EVAL_TASK_TIMEOUT_SECONDS');
+  if (fixedSeconds != null && fixedSeconds > 0) {
+    return {
+      'mode': 'fixed',
+      'timeout_seconds': fixedSeconds,
+      'status_interval_seconds': _statusInterval.inSeconds,
+    };
+  }
+  return {
+    'mode': 'dynamic',
+    'task_unit_timeout_seconds': _taskUnitTimeoutSeconds,
+    'max_operation_timeout_seconds': _taskMaxTimeoutSeconds,
+    'status_interval_seconds': _statusInterval.inSeconds,
+    'expected_task_units': {
+      'record': _expectedTaskUnits('record'),
+      'post_comment': _expectedTaskUnits('post_comment'),
+      'refresh_schedule_aggregation':
+          _expectedTaskUnits('refresh_schedule_aggregation'),
+      'refresh_knowledge_insights':
+          _expectedTaskUnits('refresh_knowledge_insights'),
+    },
+  };
+}
+
+int get _taskUnitTimeoutSeconds =>
+    _intFromEnv('MEMEX_EVAL_TASK_UNIT_TIMEOUT_SECONDS') ??
+    (_llmEnabled ? 90 : 20);
+
+int get _taskMaxTimeoutSeconds =>
+    _intFromEnv('MEMEX_EVAL_TASK_TIMEOUT_MAX_SECONDS') ??
+    (_llmEnabled ? 900 : 180);
+
+Duration get _statusInterval {
+  final seconds = _intFromEnv('MEMEX_EVAL_STATUS_INTERVAL_SECONDS');
+  return Duration(seconds: seconds != null && seconds > 0 ? seconds : 30);
+}
+
+int _expectedTaskUnits(String? operationType) {
+  if (!_llmEnabled) {
+    return switch (operationType) {
+      'record' => 4,
+      'refresh_knowledge_insights' => 2,
+      _ => 1,
+    };
+  }
+  return switch (operationType) {
+    'record' => 10,
+    'post_comment' => 3,
+    'refresh_schedule_aggregation' => 2,
+    'refresh_knowledge_insights' => 10,
+    _ => 1,
+  };
 }
 
 Future<void> _configureOptionalLlm() async {
@@ -401,12 +634,13 @@ String _caseUserId(Map<String, dynamic> evalCase, int caseIndex) {
 Future<_TaskWaitResult> _waitForTasksToSettle({
   required int minTasks,
   required Duration timeout,
+  required Directory runDir,
   required String caseId,
   required String operationId,
   required DateTime startedAt,
 }) async {
   final deadline = DateTime.now().add(timeout);
-  var nextLogAt = DateTime.now().add(const Duration(seconds: 10));
+  var nextStatusAt = DateTime.now();
   var lastTasks = <dynamic>[];
   while (DateTime.now().isBefore(deadline)) {
     final tasks = await LocalTaskExecutor.instance.getTasks(limit: 2000);
@@ -417,13 +651,24 @@ Future<_TaskWaitResult> _waitForTasksToSettle({
         )
         .toList();
     final now = DateTime.now();
-    if (now.isAfter(nextLogAt)) {
+    if (!now.isBefore(nextStatusAt)) {
+      await _writeStatusSnapshot(
+        runDir: runDir,
+        caseId: caseId,
+        operationId: operationId,
+        minTasks: minTasks,
+        timeout: timeout,
+        startedAt: startedAt,
+        tasks: tasks,
+        activeTasks: active,
+      );
       stdout.writeln(
         '[serial replay] $caseId/$operationId waiting tasks=${tasks.length}/$minTasks '
         'active=${active.length} status=${_formatStatusCounts(_statusCounts(tasks))} '
-        'elapsed=${_formatDuration(now.difference(startedAt))}',
+        'elapsed=${_formatDuration(now.difference(startedAt))}/'
+        '${_formatDuration(timeout)} active_details=${_formatActiveTasks(active)}',
       );
-      nextLogAt = now.add(const Duration(seconds: 10));
+      nextStatusAt = now.add(_statusInterval);
     }
     if (tasks.length >= minTasks && active.isEmpty) {
       return _TaskWaitResult(tasks: tasks, settled: true);
@@ -431,6 +676,34 @@ Future<_TaskWaitResult> _waitForTasksToSettle({
     await Future<void>.delayed(const Duration(milliseconds: 500));
   }
   return _TaskWaitResult(tasks: lastTasks, settled: false);
+}
+
+Future<void> _writeStatusSnapshot({
+  required Directory runDir,
+  required String caseId,
+  required String operationId,
+  required int minTasks,
+  required Duration timeout,
+  required DateTime startedAt,
+  required List<dynamic> tasks,
+  required List<dynamic> activeTasks,
+}) async {
+  final now = DateTime.now();
+  await File(p.join(runDir.path, 'status.json')).writeAsString(
+    const JsonEncoder.withIndent('  ').convert({
+      'case_id': caseId,
+      'operation_id': operationId,
+      'updated_at': now.toIso8601String(),
+      'elapsed_ms': now.difference(startedAt).inMilliseconds,
+      'timeout_ms': timeout.inMilliseconds,
+      'task_count': tasks.length,
+      'min_tasks': minTasks,
+      'status_counts': _statusCounts(tasks),
+      'active_count': activeTasks.length,
+      'active_tasks': activeTasks.take(20).map(_taskSummary).toList(),
+    }),
+    flush: true,
+  );
 }
 
 Future<_MemoryWaitResult> _waitForMemory({
@@ -486,6 +759,23 @@ List<Map<String, dynamic>> _memoryEntries(Map<String, dynamic> memoryData) {
     }
   }
   return entries;
+}
+
+List<Map<String, dynamic>> _sourceSnippetsFromMemory(
+  List<Map<String, dynamic>> memoryEntries,
+) {
+  final snippets = <Map<String, dynamic>>[];
+  for (var i = 0; i < memoryEntries.length; i++) {
+    final entry = memoryEntries[i];
+    final content = entry['content']?.toString() ?? '';
+    if (content.trim().isEmpty) continue;
+    final id = entry['id']?.toString();
+    snippets.add({
+      'source_id': id == null || id.isEmpty ? 'memory_${i + 1}' : '$id:$i',
+      'snippet': content,
+    });
+  }
+  return snippets;
 }
 
 Map<String, dynamic> _cardObservationFromJson(Map<String, dynamic> card) {
@@ -563,6 +853,139 @@ List<Map<String, dynamic>> _taskTraceEvents(List<dynamic> tasks) {
         },
       )
       .toList();
+}
+
+Map<String, dynamic> _operationStats(List<Map<String, dynamic>> operationLogs) {
+  final operationTypes = <String>{};
+  final inputChannels = <String>{};
+  final journeyStages = <String>{};
+  final scenarioFamilies = <String>{};
+  DateTime? firstTime;
+  DateTime? lastTime;
+  var recordOperationCount = 0;
+  var correctionOperationCount = 0;
+  var noiseInputCount = 0;
+  var crossDayLinkCount = 0;
+  var followUpQueryCount = 0;
+
+  for (final operation in operationLogs) {
+    final type = operation['type']?.toString();
+    if (type != null && type.isNotEmpty) {
+      operationTypes.add(type);
+      if (type == 'record') recordOperationCount++;
+      if (type == 'ask_super_agent') followUpQueryCount++;
+    }
+    final channel = operation['channel']?.toString();
+    if (channel != null && channel.isNotEmpty) {
+      inputChannels.add(channel);
+    }
+    final journeyStage = operation['journey_stage']?.toString();
+    if (journeyStage != null && journeyStage.isNotEmpty) {
+      journeyStages.add(journeyStage);
+    }
+    final scenarioFamily = operation['scenario_family']?.toString();
+    if (scenarioFamily != null && scenarioFamily.isNotEmpty) {
+      scenarioFamilies.add(scenarioFamily);
+    }
+    if (operation['is_correction'] == true) correctionOperationCount++;
+    if (operation['is_noise'] == true) noiseInputCount++;
+    if (operation['cross_day_link'] == true) crossDayLinkCount++;
+    final time = DateTime.tryParse(operation['time']?.toString() ?? '');
+    if (time != null) {
+      firstTime =
+          firstTime == null || time.isBefore(firstTime) ? time : firstTime;
+      lastTime = lastTime == null || time.isAfter(lastTime) ? time : lastTime;
+    }
+  }
+
+  final journeySpanDays = firstTime == null || lastTime == null
+      ? 0.0
+      : lastTime.difference(firstTime).inHours / 24.0;
+
+  return {
+    'operation_count': operationLogs.length,
+    'operation_types': operationTypes.toList()..sort(),
+    'record_operation_count': recordOperationCount,
+    'input_channels': inputChannels.toList()..sort(),
+    'journey_stages': journeyStages.toList()..sort(),
+    'scenario_families': scenarioFamilies.toList()..sort(),
+    'correction_operation_count': correctionOperationCount,
+    'noise_input_count': noiseInputCount,
+    'cross_day_link_count': crossDayLinkCount,
+    'follow_up_query_count': followUpQueryCount,
+    'journey_start_time': firstTime?.toIso8601String(),
+    'journey_end_time': lastTime?.toIso8601String(),
+    'journey_span_days': journeySpanDays,
+  };
+}
+
+List<String> _personaMarkers(Map<String, dynamic> evalCase) {
+  final persona = _map(evalCase['persona']);
+  final profile = _map(persona['profile']);
+  return [
+    profile['occupation'],
+    profile['city'],
+    profile['project'],
+    ..._strings(profile['habits']),
+  ]
+      .whereType<Object>()
+      .map((value) => value.toString())
+      .where((value) => value.trim().isNotEmpty)
+      .toSet()
+      .toList()
+    ..sort();
+}
+
+List<String> _featureTriggers({
+  required List<Map<String, dynamic>> operationLogs,
+  required List<Map<String, dynamic>> traceEvents,
+  required List<Map<String, dynamic>> memoryEntries,
+  required Map<String, dynamic> cardsByOperation,
+}) {
+  final triggers = <String>{};
+  final operationTypes =
+      operationLogs.map((operation) => operation['type']?.toString()).toSet();
+  final traceNames = <String>{};
+  for (final event in traceEvents) {
+    for (final key in ['event_type', 'task_type', 'tool_name', 'agent_name']) {
+      final value = event[key]?.toString();
+      if (value != null && value.isNotEmpty) traceNames.add(value);
+    }
+  }
+
+  if (operationTypes.contains('record')) triggers.add('record_input');
+  if (cardsByOperation.values.any((card) => _map(card).isNotEmpty) ||
+      traceNames.contains('card_agent_task')) {
+    triggers.add('timeline_card');
+  }
+  if (memoryEntries.isNotEmpty) triggers.add('memory');
+  if (traceNames.contains('pkm_agent_task')) triggers.add('pkm');
+  if (traceNames.contains('schedule_refresh_router_task') ||
+      traceNames.contains('schedule_aggregator_task') ||
+      operationTypes.contains('refresh_schedule_aggregation')) {
+    triggers.add('schedule');
+  }
+  if (traceNames.contains('knowledge_insight_task') ||
+      operationTypes.contains('refresh_knowledge_insights')) {
+    triggers.add('knowledge_insight');
+  }
+  if (operationTypes.contains('fetch_timeline')) {
+    triggers.add('timeline_browse');
+  }
+  if (operationTypes.contains('post_comment') ||
+      traceNames.contains('process_ai_reply')) {
+    triggers.add('comment');
+  }
+  if (operationTypes.contains('ask_super_agent')) triggers.add('super_agent');
+  if (operationTypes.isNotEmpty) triggers.add('cost_trace');
+
+  return triggers.toList()..sort();
+}
+
+DateTime? _parseOptionalDateTime(Object? value) {
+  final raw = value?.toString();
+  if (raw == null || raw.isEmpty) return null;
+  return DateTime.tryParse(raw);
 }
 
 Map<String, dynamic> _taskSummary(dynamic task) {
@@ -671,6 +1094,7 @@ Future<void> _writeReplayArtifacts({
       'elapsed_ms': DateTime.now().difference(suiteStartedAt).inMilliseconds,
       'llm_enabled': _llmEnabled,
       'max_concurrency': 1,
+      'task_wait_policy': _taskWaitPolicySummary(),
       'cases': summaries,
     }),
     flush: true,
@@ -690,6 +1114,20 @@ String _formatStatusCounts(Map<String, dynamic> counts) {
   if (counts.isEmpty) return '-';
   final keys = counts.keys.toList()..sort();
   return keys.map((key) => '$key=${counts[key]}').join(',');
+}
+
+String _formatActiveTasks(List<dynamic> tasks) {
+  if (tasks.isEmpty) return '-';
+  return tasks.take(6).map((task) {
+    final retrySuffix = task.retryCount == null || task.retryCount == 0
+        ? ''
+        : '#retry${task.retryCount}';
+    final error = task.error?.toString();
+    final errorSuffix = error == null || error.isEmpty
+        ? ''
+        : ':${error.length > 80 ? '${error.substring(0, 80)}...' : error}';
+    return '${task.type}:${task.status}$retrySuffix$errorSuffix';
+  }).join(' | ');
 }
 
 int _taskLatencyMs(dynamic task) {
@@ -733,9 +1171,10 @@ List<String> _strings(Object? value) =>
     _list(value).map((e) => e.toString()).where((e) => e.isNotEmpty).toList();
 
 bool _contains(String haystack, String needle) {
-  return haystack.toLowerCase().replaceAll(RegExp(r'\s+'), '').contains(
-        needle.toLowerCase().replaceAll(RegExp(r'\s+'), ''),
-      );
+  return haystack
+      .toLowerCase()
+      .replaceAll(RegExp(r'\s+'), '')
+      .contains(needle.toLowerCase().replaceAll(RegExp(r'\s+'), ''));
 }
 
 String _formatDuration(Duration duration) {
@@ -812,9 +1251,7 @@ class _FakePathProviderPlatform extends PathProviderPlatform {
   Future<List<String>?> getExternalStoragePaths({
     StorageDirectory? type,
   }) async =>
-      [
-        p.join(rootPath, 'external_storage'),
-      ];
+      [p.join(rootPath, 'external_storage')];
 
   @override
   Future<String?> getDownloadsPath() async => p.join(rootPath, 'downloads');

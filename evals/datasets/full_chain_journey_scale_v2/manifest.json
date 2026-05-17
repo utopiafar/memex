@@ -1,0 +1,70 @@
+{
+  "dataset_id": "memex_full_chain_journey_scale_v2",
+  "version": 2,
+  "description": "Round 2：8 用户、每人 320 条输入，在 Round 1 基础上增加跨域场景、多跳检索、冲突修正、证据不足边界和追问闭环。",
+  "created_at": "2026-05-16",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "persona_count": 8,
+  "case_count": 8,
+  "records_per_persona": 320,
+  "input_count": 2560,
+  "record_operation_count": 2560,
+  "operation_count": 2616,
+  "eval_task_count": 80,
+  "families": [
+    "full_chain_journey_scale_v2"
+  ],
+  "evidence_goal": "用更大输入量和更多旅程指标验证第二轮数据/指标迭代。",
+  "journey_stages": [
+    "capture",
+    "card_generation",
+    "memory_write",
+    "pkm_organize",
+    "timeline_review",
+    "comment_correction",
+    "schedule_refresh",
+    "knowledge_insight",
+    "super_agent_qa",
+    "multi_hop_retrieval",
+    "conflict_resolution",
+    "abstention_boundary"
+  ],
+  "scenario_families": [
+    "work_project",
+    "schedule",
+    "family_care",
+    "health",
+    "finance",
+    "travel",
+    "home_admin",
+    "learning",
+    "social_relationship",
+    "legal_policy",
+    "emergency",
+    "noise",
+    "correction"
+  ],
+  "feature_points": [
+    "record_input",
+    "timeline_card",
+    "timeline_browse",
+    "comment",
+    "memory",
+    "pkm",
+    "schedule",
+    "knowledge_insight",
+    "super_agent",
+    "cost_trace",
+    "multi_hop_retrieval",
+    "conflict_resolution",
+    "abstention_boundary"
+  ],
+  "notes": [
+    "8 个 persona，每个 persona 用几百条跨日 record 操作模拟本地优先生活记录。",
+    "fixture_observed 用于快速验证 grader、指标聚合和报告结构；它不声称真实 Agent 已完成同等规模 replay。",
+    "operations 中保留 fetch_timeline、post_comment、refresh_schedule_aggregation、refresh_knowledge_insights、wait_memory 和 ask_super_agent，方便未来抽样切到真实 replay。",
+    "Round 2 在 Round 1 基础上增加输入量、场景族、追问/纠错样本和 journey 指标。"
+  ]
+}

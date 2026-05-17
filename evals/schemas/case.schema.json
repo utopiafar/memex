@@ -48,7 +48,15 @@
       "properties": {
         "id": {"type": "string", "minLength": 1},
         "type": {
-          "enum": ["record", "wait_memory", "ask_super_agent"]
+          "enum": [
+            "record",
+            "fetch_timeline",
+            "post_comment",
+            "refresh_schedule_aggregation",
+            "refresh_knowledge_insights",
+            "wait_memory",
+            "ask_super_agent"
+          ]
         },
         "time": {"type": "string"},
         "channel": {"type": "string"},
@@ -56,6 +64,10 @@
         "query": {"type": "string"},
         "quick_query": {"type": "boolean"},
         "timeout_seconds": {"type": "integer"},
+        "target_operation_id": {"type": "string"},
+        "date_from": {"type": "string"},
+        "date_to": {"type": "string"},
+        "limit": {"type": "integer"},
         "must_include_any": {
           "type": "array",
           "items": {"type": "string"}

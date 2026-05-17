@@ -1,0 +1,59 @@
+{
+  "dataset_id": "memex_full_chain_journey_scale_v1",
+  "version": 1,
+  "description": "Round 1：8 用户、每人 240 条跨日输入，覆盖工作/生活/家庭/健康/财务/旅行/噪声/纠错的用户旅程 fixture。",
+  "created_at": "2026-05-16",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "persona_count": 8,
+  "case_count": 8,
+  "records_per_persona": 240,
+  "input_count": 1920,
+  "record_operation_count": 1920,
+  "operation_count": 1968,
+  "eval_task_count": 64,
+  "families": [
+    "full_chain_journey_scale_v1"
+  ],
+  "evidence_goal": "先把 8 用户几百输入规模、旅程阶段和成本 trace 指标跑通。",
+  "journey_stages": [
+    "capture",
+    "card_generation",
+    "memory_write",
+    "pkm_organize",
+    "timeline_review",
+    "comment_correction",
+    "schedule_refresh",
+    "knowledge_insight",
+    "super_agent_qa"
+  ],
+  "scenario_families": [
+    "work_project",
+    "schedule",
+    "family_care",
+    "health",
+    "finance",
+    "travel",
+    "noise",
+    "correction"
+  ],
+  "feature_points": [
+    "record_input",
+    "timeline_card",
+    "timeline_browse",
+    "comment",
+    "memory",
+    "pkm",
+    "schedule",
+    "knowledge_insight",
+    "super_agent",
+    "cost_trace"
+  ],
+  "notes": [
+    "8 个 persona，每个 persona 用几百条跨日 record 操作模拟本地优先生活记录。",
+    "fixture_observed 用于快速验证 grader、指标聚合和报告结构；它不声称真实 Agent 已完成同等规模 replay。",
+    "operations 中保留 fetch_timeline、post_comment、refresh_schedule_aggregation、refresh_knowledge_insights、wait_memory 和 ask_super_agent，方便未来抽样切到真实 replay。",
+    "Round 2 在 Round 1 基础上增加输入量、场景族、追问/纠错样本和 journey 指标。"
+  ]
+}

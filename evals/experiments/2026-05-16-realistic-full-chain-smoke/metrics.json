@@ -1,0 +1,237 @@
+{
+  "run_id": "2026-05-16-realistic-full-chain-smoke",
+  "started_at": "2026-05-16T08:37:45.846503Z",
+  "benchmark_elapsed_ms": 52777,
+  "replay_elapsed_ms": 467852,
+  "replay_case_elapsed_total_ms": 467769,
+  "dataset_path": "evals/datasets/full_chain_realistic_smoke",
+  "adapter": "replay_file",
+  "evidence_level": "real_replay",
+  "observation_contract": "replay_observed",
+  "llm_judge_enabled": true,
+  "llm_judge_policy": "retrieval_and_super_agent_qa_unless_expected_llm_judge_false",
+  "llm_judge_assertion_count": 1,
+  "llm_judge_provider": "anthropic",
+  "llm_judge_model": "mimo-v2-pro",
+  "llm_judge_max_tokens": 4096,
+  "llm_judge_timeout_seconds": 180,
+  "case_count": 1,
+  "task_count": 3,
+  "dataset_summary": {
+    "case_count": 1,
+    "persona_count": 1,
+    "input_count": 6,
+    "task_count": 3,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "full_chain_realistic_replay": 1
+    },
+    "tasks_by_type": {
+      "cost_trace": 1,
+      "memory_write": 1,
+      "super_agent_qa": 1
+    },
+    "personas": [
+      {
+        "user_id": "eval_realistic_product_001",
+        "occupation": "增长产品经理",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 3,
+        "sample_inputs": [
+          "以后重要发布会提前一天提醒我，尤其是灰度和回滚相关的评审，别临近了才说。",
+          "语音记一下，下周二上午十点和 Mina 看导出灰度风险，记得带最近三天的失败率截图。"
+        ]
+      }
+    ]
+  },
+  "dataset_audit": {
+    "overall_score": 0.9,
+    "language_consistency": 1.0,
+    "persona_plausibility": 1.0,
+    "input_naturalness": 1.0,
+    "oracle_consistency": 1.0,
+    "coverage_notes": [
+      "所有 case 语言均为 zh-CN，符合要求",
+      "抽样中观察到输入包含 text、voice_transcript、ocr_clip 等多样渠道，内容自然",
+      "抽样中观察到 persona 为增长产品经理，职业相关输入可信"
+    ],
+    "issues": [],
+    "sample_reviews": [
+      {
+        "case_id": "realistic_chain_product_release",
+        "score": 1.0,
+        "reason": "语言一致，persona 可信，输入自然多样，ground_truth_world 与 eval_tasks 一致"
+      }
+    ],
+    "reason": "数据质量高，但 dataset_summary 显示仅有一个 case，需扩大规模以验证全面覆盖和多样性"
+  },
+  "assertions": {
+    "passed": 24,
+    "total": 24,
+    "pass_rate": 1.0,
+    "avg_score": 0.9950145833333333
+  },
+  "by_family": {
+    "cost_trace": {
+      "passed": 14,
+      "total": 14,
+      "pass_rate": 1.0,
+      "avg_score": 0.9930204166666666
+    },
+    "memory_write": {
+      "passed": 4,
+      "total": 4,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "super_agent_qa": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "by_metric": {
+    "total_token_budget": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 0.9700875
+    },
+    "cost_per_input": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 0.9601166666666666
+    },
+    "latency_budget": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "tool_call_budget": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "task_completion_status": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "retry_rate": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "failed_task_rate": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "record_operation_coverage": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "journey_time_span_coverage": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "app_operation_sequence_completeness": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "input_channel_diversity": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "feature_trigger_coverage": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "trace_completeness": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "cost_answer_must_include": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_must_write_recall": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_must_not_write_precision": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "memory_conflict_handling": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "answer_must_include": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unsupported_claim_absence": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "unnecessary_uncertainty_absence": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "prohibited_tool_absence": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "super_agent_read_only_compliance": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "llm_grounded_answer_score": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 58,
+    "tool_call_count": 177,
+    "avg_latency_ms": 7590.41095890411,
+    "p95_latency_ms": 53000.0,
+    "avg_total_tokens": 1031.4655172413793,
+    "total_tokens": 59825
+  }
+}

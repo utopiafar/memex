@@ -31,7 +31,8 @@ LLM judge 只用于语义质量，例如 groundedness、completeness、unsupport
 | 日程与提醒刷新 | Schedule Router | 新增/修改/取消日程、周期事件、跨时区、临近提醒、只影响 note 不影响 schedule 的输入 | refresh action accuracy、refresh precision/recall、missed refresh absence、unnecessary refresh absence、tool args accuracy、duplicate refresh rate |
 | 工具调用与路由 | Router / Tool | 搜索记忆、读卡片、写 PKM、更新记忆、请求日程刷新、禁止写入的只读场景 | router label accuracy、tool selection accuracy、tool args accuracy、prohibited tool absence、tool-call minimality、trace completeness |
 | 成本与稳定性 | Cost / Trace | 长输入、多轮输入、低价值闲聊、工具失败重试、模型慢响应、任务队列积压 | total token budget、p95 latency、tool call budget、task completion status、retry rate、failed task rate、queue idle time |
-| 单用户多天使用 | Full-chain replay | 1 个 persona 连续几十到上百条输入，覆盖工作/生活/临时情绪/咨询/纠正/追问 | journey pass rate、state consistency、memory carryover、retrieval after write、answer after conflict、cost per input、end-to-end latency |
+| 单用户多天使用 | Full-chain replay | 1 个 persona 连续几十到几百条输入，覆盖工作/生活/临时情绪/咨询/纠正/追问 | journey pass rate、state consistency、memory carryover、retrieval after write、answer after conflict、cost per input、end-to-end latency |
+| App 行为仿真 | Realistic replay | record、timeline browse、comment、schedule refresh、insight refresh、wait memory、Super Agent quick query 串行组合 | record operation coverage、journey time span coverage、app operation sequence completeness、input channel diversity、feature trigger coverage、journey stage coverage、scenario family coverage、cross-day continuity coverage、correction/noise/follow-up coverage |
 
 `production_like_retrieval_v3` 是当前 Retrieval QA 扩充样板：24 个用户、150 条输入、94 个任务，覆盖多来源答案、旧记录/新记录、相似实体干扰、隐私/安全边界和证据不足拒答。v3 证明 retrieval fixture 可以规模化到更丰富的报告指标，但也暴露出 input naturalness 会随扩量下降；后续扩展 Memory、PKM、Super Agent 时，应沿用“按职业场景单独设计 source 结构和噪声”的方式，而不是批量模板替换。
 
@@ -101,6 +102,30 @@ Schedule router 要用 confusion matrix 看：
 
 优先指标：journey pass rate、memory carryover、retrieval after write、answer after conflict、task completion status、cost per input。
 
+### 7. App 行为仿真
+
+真实 replay 不能只把多条输入塞给 `submitInput`。它还应该模拟用户在 App 里自然触发的动作：
+
+- 回看时间线：按时间范围读取卡片，确认记录能够被页面取回。
+- 评论卡片：触发 comment / reply 相关链路。
+- 手动刷新：触发 schedule aggregation 和 knowledge insight。
+- 等待后台任务：每个关键动作后等待 task idle，记录 active/failed/retry。真实 LLM replay 使用按预计 task 单元计算的动态等待预算，并定期输出/落盘 active task 状态，避免把慢响应误判成未收敛。
+- 追问：用 Super Agent quick query 检查 memory / card / PKM 写入后的可用性。
+
+优先指标：record operation coverage、journey time span coverage、app operation sequence completeness、input channel diversity、feature trigger coverage、journey stage coverage、scenario family coverage、persona specificity coverage、cross-day continuity coverage、correction operation coverage、noise resilience coverage、follow-up query coverage。
+
+### 8. 用户旅程细化
+
+8 用户 scale fixture 用来验证“数据集和指标口径”是否能承载更真实的长期使用形态，不等同真实 Agent 能力证明：
+
+- journey stage coverage：输入和操作是否覆盖 capture、card generation、memory write、PKM organize、timeline review、comment correction、schedule refresh、knowledge insight、Super Agent QA。
+- scenario family coverage：每个 persona 是否覆盖工作项目、日程、家庭照护、健康、财务、旅行、家庭行政、学习、社交关系、法律/合规、突发事件、噪声和纠错等场景族。
+- cross-day continuity coverage：跨天输入是否有复盘、回看、后续行动和前文引用。
+- correction operation coverage：用户明确修正旧偏好、覆盖旧事实或更新边界的样本是否足够。
+- noise resilience coverage：临时情绪、一次性尝试、OCR 不确定内容是否足够，并通过 must-not-write 验证不长期化。
+- follow-up query coverage：回看后继续追问、要求跨域总结或要求证据不足说明的闭环是否足够。
+- persona specificity coverage：trace 摘要是否保留职业、城市、项目和领域锚点，避免 8 个用户只是替换姓名。
+
 ## 数据量分层
 
 | 层级 | 用途 | 建议规模 |
@@ -108,7 +133,7 @@ Schedule router 要用 confusion matrix 看：
 | 模块 smoke | 每次改 prompt / grader / 小逻辑后快速定位 | 每模块 1-5 cases |
 | 模块 medium | 看模块稳定性和错误分布 | 每模块 30-80 cases |
 | 单用户 full-chain smoke | 验证真实链路能跑通 | 1 persona，5-20 条输入 |
-| 单用户 full-chain journey | 贴近真实使用 | 6-12 persona，每人 80-150 条输入 |
+| 单用户 full-chain journey | 贴近真实使用 | 8-12 persona，每人 200-350 条输入 |
 | 回归大集 | 重要版本前跑 | 20+ persona，总输入 2000+，但仍建议串行或限速 |
 
 ## 读报告时的优先级
