@@ -90,10 +90,7 @@ void main() {
 
         expect(tappedCards, contains('event-dentist'));
 
-        await tester.scrollUntilVisible(
-          find.text('Done grocery order'),
-          240,
-        );
+        await tester.scrollUntilVisible(find.text('Done grocery order'), 240);
         await tester.pumpAndSettle();
         expect(find.text('Done grocery order'), findsOneWidget);
       },
@@ -128,6 +125,172 @@ void main() {
       );
     });
 
+    testWidgets(
+      'renders grouped subtasks and toggles them without navigating',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(420, 1000));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final tappedCards = <String>[];
+        final toggledSubtasks = <String>[];
+
+        await tester.pumpWidget(
+          buildHost(
+            MagazineNarrativeTab(
+              aggregation: _subtaskAggregation(),
+              onTapCardId: tappedCards.add,
+              onToggleSubtask: (cardId, index) {
+                toggledSubtasks.add('$cardId:$index');
+              },
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Visa checklist'), findsOneWidget);
+        expect(find.text('1/5'), findsOneWidget);
+        expect(find.text('Fill application'), findsOneWidget);
+        expect(find.text('Print confirmation'), findsOneWidget);
+        expect(find.text('Book appointment'), findsOneWidget);
+        expect(find.text('Collect passport photos'), findsNothing);
+
+        await tester.tap(
+          find.byKey(const ValueKey('schedule_subtask_toggle_task-visa_1')),
+        );
+        await tester.pump();
+
+        expect(toggledSubtasks, ['task-visa:1']);
+        expect(tappedCards, isEmpty);
+
+        await tester.tap(
+          find.byKey(const ValueKey('schedule_subtasks_expand_task-visa')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Collect passport photos'), findsOneWidget);
+        expect(find.text('Buy mailing envelope'), findsOneWidget);
+      },
+    );
+
+    testWidgets('recomputes relative day labels from day dates', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        buildHost(
+          MagazineNarrativeTab(
+            referenceDate: DateTime(2026, 5, 16, 8),
+            aggregation: ScheduleAggregationModel(
+              id: 'agg_relative_labels',
+              generatedAt: DateTime(2026, 5, 15, 18),
+              timeRange: TimeRange(
+                from: DateTime(2026, 5, 15),
+                to: DateTime(2026, 5, 22),
+              ),
+              timeline: [
+                TimelineDay(
+                  dayLabel: 'Tomorrow',
+                  dayDate: DateTime(2026, 5, 16),
+                  items: [
+                    TimelineItem(
+                      cardId: 'event-today',
+                      title: 'Today event',
+                      startTime: DateTime(2026, 5, 16, 10),
+                    ),
+                  ],
+                ),
+                TimelineDay(
+                  dayLabel: 'Today',
+                  dayDate: DateTime(2026, 5, 17),
+                  items: [
+                    TimelineItem(
+                      cardId: 'event-tomorrow',
+                      title: 'Tomorrow event',
+                      startTime: DateTime(2026, 5, 17, 10),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('TODAY'), findsOneWidget);
+      expect(find.text('TOMORROW'), findsOneWidget);
+    });
+
+    testWidgets('renders stale relative, custom, and undated section labels', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(420, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final staleFutureDate = DateTime(2026, 5, 20);
+      final staleFutureLabel = DateFormat.MMMEd(
+        UserStorage.l10n.localeName,
+      ).format(staleFutureDate).toUpperCase();
+      final undatedItemLabel = DateFormat.MMMd(
+        UserStorage.l10n.localeName,
+      ).add_Hm().format(DateTime(2026, 5, 22, 16));
+
+      await tester.pumpWidget(
+        buildHost(
+          MagazineNarrativeTab(
+            referenceDate: DateTime(2026, 5, 16, 8),
+            aggregation: ScheduleAggregationModel(
+              id: 'agg_mixed_day_labels',
+              generatedAt: DateTime(2026, 5, 15, 18),
+              timeRange: TimeRange(
+                from: DateTime(2026, 5, 15),
+                to: DateTime(2026, 5, 23),
+              ),
+              timeline: [
+                TimelineDay(
+                  dayLabel: 'Tomorrow',
+                  dayDate: staleFutureDate,
+                  items: [
+                    TimelineItem(
+                      cardId: 'event-future-relative',
+                      title: 'Future stale relative label',
+                      startTime: DateTime(2026, 5, 20, 10),
+                    ),
+                  ],
+                ),
+                TimelineDay(
+                  dayLabel: 'Launch day',
+                  dayDate: DateTime(2026, 5, 21),
+                  items: [
+                    TimelineItem(
+                      cardId: 'event-custom',
+                      title: 'Custom label event',
+                      startTime: DateTime(2026, 5, 21, 11),
+                    ),
+                  ],
+                ),
+                TimelineDay(
+                  dayLabel: '',
+                  items: [
+                    TimelineItem(
+                      cardId: 'event-undated-section',
+                      title: 'Undated section event',
+                      startTime: DateTime(2026, 5, 22, 16),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(staleFutureLabel), findsOneWidget);
+      expect(find.text('TOMORROW'), findsNothing);
+      expect(find.text('LAUNCH DAY'), findsOneWidget);
+      expect(find.text('THIS WEEK'), findsOneWidget);
+      expect(find.text(undatedItemLabel), findsOneWidget);
+    });
+
     testWidgets('handles narrow screens with long hero metadata', (
       tester,
     ) async {
@@ -148,6 +311,26 @@ void main() {
         find.text(
           'Very long cross-city visa renewal preparation and paperwork deadline',
         ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('renders fresh output from a task-scoped run', (tester) async {
+      await tester.pumpWidget(
+        buildHost(
+          MagazineNarrativeTab(
+            aggregation: _complexAggregation(
+              heroTitle: 'Run-scoped refresh result',
+              editorialIntro: 'Fresh schedule output from a task-scoped run.',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Run-scoped refresh result'), findsOneWidget);
+      expect(
+        find.text('Fresh schedule output from a task-scoped run.'),
         findsOneWidget,
       );
     });
@@ -204,7 +387,47 @@ void main() {
   });
 }
 
-ScheduleAggregationModel _complexAggregation({bool longText = false}) {
+ScheduleAggregationModel _subtaskAggregation() {
+  return ScheduleAggregationModel(
+    id: 'agg_subtasks',
+    generatedAt: DateTime(2026, 5, 14, 18),
+    timeRange: TimeRange(
+      from: DateTime(2026, 5, 14),
+      to: DateTime(2026, 5, 21),
+    ),
+    timeline: [
+      TimelineDay(
+        dayLabel: 'Friday',
+        dayDate: DateTime(2026, 5, 15),
+        items: [
+          TimelineItem(
+            cardId: 'task-visa',
+            title: 'Visa checklist',
+            type: 'task',
+            status: 'pending',
+            startTime: DateTime(2026, 5, 15, 10),
+            subtasks: const [
+              ScheduleSubtask(
+                title: 'Collect passport photos',
+                completed: true,
+              ),
+              ScheduleSubtask(title: 'Fill application'),
+              ScheduleSubtask(title: 'Print confirmation'),
+              ScheduleSubtask(title: 'Book appointment'),
+              ScheduleSubtask(title: 'Buy mailing envelope'),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+ScheduleAggregationModel _complexAggregation({
+  bool longText = false,
+  String heroTitle = 'Visa renewal',
+  String editorialIntro = 'A heavy week with travel prep and home tasks.',
+}) {
   final location = longText
       ? 'Very long cross-city conference room name with building, floor, wing, and entrance instructions'
       : 'Clinic room 4';
@@ -220,14 +443,14 @@ ScheduleAggregationModel _complexAggregation({bool longText = false}) {
       cardId: 'event-visa',
       title: longText
           ? 'Very long cross-city visa renewal preparation and paperwork deadline'
-          : 'Visa renewal',
+          : heroTitle,
       description: 'Bring photos, passport, and printed forms.',
       startTime: DateTime(2026, 5, 15, 9, 30),
       endTime: DateTime(2026, 5, 15, 11),
       location: location,
       priority: 3,
     ),
-    editorialIntro: 'A heavy week with travel prep and home tasks.',
+    editorialIntro: editorialIntro,
     quoteBlocks: [
       QuoteBlock(
         title: 'Deadline pressure',

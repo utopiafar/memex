@@ -224,11 +224,12 @@ class UserStorage {
         return storedKey;
       }
 
-      final fallbackKey = configs.any((c) => c.key == LLMConfig.defaultClientKey)
-          ? LLMConfig.defaultClientKey
-          : configs.isNotEmpty
-              ? configs.first.key
-              : LLMConfig.defaultClientKey;
+      final fallbackKey =
+          configs.any((c) => c.key == LLMConfig.defaultClientKey)
+              ? LLMConfig.defaultClientKey
+              : configs.isNotEmpty
+                  ? configs.first.key
+                  : LLMConfig.defaultClientKey;
 
       if (configs.any((c) => c.key == fallbackKey)) {
         await prefs.setString(_keyDefaultLLMConfigKey, fallbackKey);
@@ -645,6 +646,7 @@ class UserStorage {
       case LLMConfig.typeZhipu:
       case LLMConfig.typeOpenRouter:
       case LLMConfig.typeOllama:
+      case LLMConfig.typeMemex:
         client = OpenAIClient(
           apiKey: llmConfig.getEffectiveApiKey(),
           baseUrl: llmConfig.baseUrl,

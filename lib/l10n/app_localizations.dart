@@ -63,7 +63,7 @@ import 'app_localizations_zh.dart';
 /// property.
 abstract class AppLocalizations {
   AppLocalizations(String locale)
-    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -86,16 +86,16 @@ abstract class AppLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-        delegate,
-        GlobalMaterialLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-      ];
+    delegate,
+    GlobalMaterialLocalizations.delegate,
+    GlobalCupertinoLocalizations.delegate,
+    GlobalWidgetsLocalizations.delegate,
+  ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
     Locale('en'),
-    Locale('zh'),
+    Locale('zh')
   ];
 
   /// No description provided for @timesLabel.
@@ -313,6 +313,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Only the Facts directory (raw input) will be kept. All other workspace directories (Cards, Discoveries, KnowledgeInsights, PKM, _System, etc.) will be deleted.\n\nThis action cannot be undone!'**
   String get confirmClearDataKeepFactsMessage;
+
+  /// No description provided for @clearFailedAgentContexts.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear failed conversation context'**
+  String get clearFailedAgentContexts;
+
+  /// No description provided for @confirmClearFailedAgentContextsMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the saved conversation context for Insight and Schedule agents? This is useful after changing models when previous agent messages are no longer compatible. Facts, cards, knowledge, memories, and model settings will not be deleted.'**
+  String get confirmClearFailedAgentContextsMessage;
+
+  /// No description provided for @failedAgentContextsCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Cleared {count} saved conversation context(s)'**
+  String failedAgentContextsCleared(Object count);
+
+  /// No description provided for @clearFailedAgentContextsFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to clear conversation context: {error}'**
+  String clearFailedAgentContextsFailed(Object error);
 
   /// No description provided for @dataClearedSuccess.
   ///
@@ -2936,6 +2960,156 @@ abstract class AppLocalizations {
   /// **'Xiaomi MIMO'**
   String get providerMimo;
 
+  /// No description provided for @providerMemex.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex AI'**
+  String get providerMemex;
+
+  /// No description provided for @memexSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign In'**
+  String get memexSignIn;
+
+  /// No description provided for @memexCreateAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Account'**
+  String get memexCreateAccount;
+
+  /// No description provided for @memexSignInToMemex.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to Memex AI'**
+  String get memexSignInToMemex;
+
+  /// No description provided for @memexCreateMemexAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Create Memex AI account'**
+  String get memexCreateMemexAccount;
+
+  /// No description provided for @memexUsername.
+  ///
+  /// In en, this message translates to:
+  /// **'Username'**
+  String get memexUsername;
+
+  /// No description provided for @memexPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password'**
+  String get memexPassword;
+
+  /// No description provided for @memexCreateAccountLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get memexCreateAccountLink;
+
+  /// No description provided for @memexSignInLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in instead'**
+  String get memexSignInLink;
+
+  /// No description provided for @memexTopUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Top up to start using Memex AI'**
+  String get memexTopUp;
+
+  /// No description provided for @memexApplyCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply Credentials'**
+  String get memexApplyCredentials;
+
+  /// No description provided for @memexCredentialsApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Credentials applied'**
+  String get memexCredentialsApplied;
+
+  /// No description provided for @memexTopUpSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Top up successful!'**
+  String get memexTopUpSuccess;
+
+  /// No description provided for @memexFillAllFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Please fill in all fields'**
+  String get memexFillAllFields;
+
+  /// No description provided for @memexUsernameTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Username must be at least 6 characters'**
+  String get memexUsernameTooShort;
+
+  /// No description provided for @memexAuthFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication failed'**
+  String get memexAuthFailed;
+
+  /// No description provided for @memexPaymentFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to create payment'**
+  String get memexPaymentFailed;
+
+  /// No description provided for @memexLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Logout'**
+  String get memexLogout;
+
+  /// No description provided for @memexPricingInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay-as-you-go · Official API pricing × {ratio}'**
+  String memexPricingInfo(Object ratio);
+
+  /// No description provided for @memexCustomAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom Amount'**
+  String get memexCustomAmount;
+
+  /// No description provided for @memexViewHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage History'**
+  String get memexViewHistory;
+
+  /// No description provided for @memexBalanceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance: {amount}'**
+  String memexBalanceLabel(Object amount);
+
+  /// No description provided for @memexConfirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm Password'**
+  String get memexConfirmPassword;
+
+  /// No description provided for @memexPasswordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match'**
+  String get memexPasswordMismatch;
+
+  /// No description provided for @memexPayAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay {amount}'**
+  String memexPayAmount(Object amount);
+
   /// No description provided for @modelIdLabel.
   ///
   /// In en, this message translates to:
@@ -3302,6 +3476,60 @@ abstract class AppLocalizations {
   /// **'Location'**
   String get backupLocation;
 
+  /// No description provided for @backupLocationDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Location details'**
+  String get backupLocationDetails;
+
+  /// No description provided for @backupLocationSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Shown in app'**
+  String get backupLocationSummary;
+
+  /// No description provided for @backupLocationFullPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Full path'**
+  String get backupLocationFullPath;
+
+  /// No description provided for @backupLocationUri.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder access URI'**
+  String get backupLocationUri;
+
+  /// No description provided for @copyBackupLocationPath.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy path'**
+  String get copyBackupLocationPath;
+
+  /// No description provided for @backupLocationCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup location copied'**
+  String get backupLocationCopied;
+
+  /// No description provided for @androidBackupLocationSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected folder: {folderName}'**
+  String androidBackupLocationSelected(Object folderName);
+
+  /// No description provided for @iosICloudBackupLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'iCloud Drive > Memex > Backups'**
+  String get iosICloudBackupLocation;
+
+  /// No description provided for @iosAppDocumentsBackupLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Files > On My iPhone > Memex > Backups'**
+  String get iosAppDocumentsBackupLocation;
+
   /// No description provided for @autoBackupStatus.
   ///
   /// In en, this message translates to:
@@ -3329,7 +3557,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupLocationMenu.
   ///
   /// In en, this message translates to:
-  /// **'Location'**
+  /// **'Change location'**
   String get backupLocationMenu;
 
   /// No description provided for @defaultBackupLocation.
@@ -3379,6 +3607,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restore this backup'**
   String get restoreThisBackup;
+
+  /// No description provided for @deleteThisBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this backup'**
+  String get deleteThisBackup;
+
+  /// No description provided for @confirmDeleteBackup.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete backup?'**
+  String get confirmDeleteBackup;
+
+  /// No description provided for @confirmDeleteBackupMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete {fileName}? This removes the stored backup file and cannot be undone.'**
+  String confirmDeleteBackupMessage(Object fileName);
+
+  /// No description provided for @backupDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup deleted: {fileName}'**
+  String backupDeleted(Object fileName);
+
+  /// No description provided for @backupDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not delete backup: {error}'**
+  String backupDeleteFailed(Object error);
 
   /// No description provided for @creatingSafetySnapshot.
   ///
@@ -4316,6 +4574,12 @@ abstract class AppLocalizations {
   /// **'Today'**
   String get today;
 
+  /// No description provided for @tomorrow.
+  ///
+  /// In en, this message translates to:
+  /// **'Tomorrow'**
+  String get tomorrow;
+
   /// No description provided for @yesterday.
   ///
   /// In en, this message translates to:
@@ -4591,6 +4855,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'not injected'**
   String get locationDebugNotInjected;
+
+  /// No description provided for @locationStatusUpdatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated'**
+  String get locationStatusUpdatedAt;
+
+  /// No description provided for @locationStatusSuccessTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Current location is ready'**
+  String get locationStatusSuccessTitle;
+
+  /// No description provided for @locationStatusSuccessBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex can attach this location summary when location context is relevant.'**
+  String get locationStatusSuccessBody;
+
+  /// No description provided for @locationStatusApproximateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Approximate location only'**
+  String get locationStatusApproximateTitle;
+
+  /// No description provided for @locationStatusApproximateBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Accuracy looks city or area level. You can keep using it, or enable Precise Location in system settings for a tighter context.'**
+  String get locationStatusApproximateBody;
+
+  /// No description provided for @locationStatusServiceDisabledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'System location is off'**
+  String get locationStatusServiceDisabledTitle;
+
+  /// No description provided for @locationStatusServiceDisabledBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex only uses device GPS and will not infer location from network or IP. On Android, open Location settings; on iOS, enable Settings > Privacy & Security > Location Services.'**
+  String get locationStatusServiceDisabledBody;
+
+  /// No description provided for @locationStatusPermissionDeniedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission is needed'**
+  String get locationStatusPermissionDeniedTitle;
+
+  /// No description provided for @locationStatusPermissionDeniedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow Memex to use location while testing or when location context is needed. Always access is not requested.'**
+  String get locationStatusPermissionDeniedBody;
+
+  /// No description provided for @locationStatusPermissionForeverTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Location permission is blocked'**
+  String get locationStatusPermissionForeverTitle;
+
+  /// No description provided for @locationStatusPermissionForeverBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Open app settings and allow location for Memex. On iOS, While Using the App is enough.'**
+  String get locationStatusPermissionForeverBody;
+
+  /// No description provided for @locationStatusDisabledTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Location Context is off'**
+  String get locationStatusDisabledTitle;
+
+  /// No description provided for @locationStatusDisabledBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on the switch above and save when you want Memex to attach device location to agent context.'**
+  String get locationStatusDisabledBody;
+
+  /// No description provided for @locationStatusGeocodeUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'GPS works, address lookup failed'**
+  String get locationStatusGeocodeUnavailableTitle;
+
+  /// No description provided for @locationStatusGeocodeUnavailableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex has coordinates but will not inject GPS-only context into the agent. Check the reverse geocoding provider and try again.'**
+  String get locationStatusGeocodeUnavailableBody;
+
+  /// No description provided for @locationStatusUnavailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Location unavailable'**
+  String get locationStatusUnavailableTitle;
+
+  /// No description provided for @locationStatusUnavailableBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Check system location services and app permission, then test again.'**
+  String get locationStatusUnavailableBody;
+
+  /// No description provided for @allowLocationPermissionButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow location permission'**
+  String get allowLocationPermissionButton;
+
+  /// No description provided for @openAppSettingsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open app settings'**
+  String get openAppSettingsButton;
+
+  /// No description provided for @openLocationSettingsButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Open location settings'**
+  String get openLocationSettingsButton;
+
+  /// No description provided for @locationSettingsOpenFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open system settings.'**
+  String get locationSettingsOpenFailed;
+
+  /// No description provided for @locationActionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Location action failed: {error}'**
+  String locationActionFailed(String error);
 
   /// No description provided for @settingsSearchPlaceholder.
   ///
@@ -5082,9 +5478,8 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-    'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-    'an issue with the localizations generation tool. Please file an issue '
-    'on GitHub with a reproducible sample app and the gen-l10n configuration '
-    'that was used.',
-  );
+      'AppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+      'an issue with the localizations generation tool. Please file an issue '
+      'on GitHub with a reproducible sample app and the gen-l10n configuration '
+      'that was used.');
 }

@@ -13,6 +13,9 @@ void main() {
     String language = 'en',
     LocationContextConfig config = const LocationContextConfig(),
     CurrentLocationContextLoader? loadCurrentContext,
+    LocationPermissionRequester? requestLocationPermission,
+    LocationSettingsOpener? openAppSettings,
+    LocationSettingsOpener? openLocationSettings,
   }) async {
     SharedPreferences.setMockInitialValues({
       'language': language,
@@ -24,6 +27,9 @@ void main() {
       MaterialApp(
         home: LocationContextSettingsPage(
           loadCurrentContext: loadCurrentContext,
+          requestLocationPermission: requestLocationPermission,
+          openAppSettings: openAppSettings,
+          openLocationSettings: openLocationSettings,
         ),
       ),
     );
@@ -297,6 +303,24 @@ void main() {
     expect(find.text('已保存'), findsOneWidget);
   });
 
+  testWidgets('enabling location context does not request permission', (
+    WidgetTester tester,
+  ) async {
+    var requestCount = 0;
+    await pumpLocationSettingsPage(
+      tester,
+      requestLocationPermission: () async {
+        requestCount += 1;
+      },
+    );
+
+    await tester.tap(find.byType(SwitchListTile));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Save'), findsOneWidget);
+    expect(requestCount, 0);
+  });
+
   testWidgets('test button displays a fresh reverse-geocoded location', (
     WidgetTester tester,
   ) async {
@@ -336,11 +360,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(receivedForceRefresh, isTrue);
+    expect(find.text('Current location is ready'), findsOneWidget);
+    expect(find.textContaining('Updated: 2026-05-15'), findsOneWidget);
     expect(find.textContaining('GPS: fresh'), findsOneWidget);
     expect(find.textContaining('Reverse geocode: OK'), findsOneWidget);
     expect(find.textContaining('Agent context: injected'), findsOneWidget);
     expect(
-      find.textContaining('Shanghai · Huangpu · People Square'),
+      find.text('Address summary: Shanghai · Huangpu · People Square'),
       findsOneWidget,
     );
     expect(
@@ -371,11 +397,179 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('GPS: unavailable'), findsOneWidget);
+    expect(find.text('Location permission is needed'), findsOneWidget);
+    expect(find.text('Allow location permission'), findsOneWidget);
     expect(find.textContaining('Reverse geocode: unavailable'), findsOneWidget);
     expect(
       find.textContaining('Reason: location permission denied'),
       findsOneWidget,
     );
+  });
+
+  testWidgets('permission guidance can request permission and retest', (
+    WidgetTester tester,
+  ) async {
+    var requestCount = 0;
+    var loadCount = 0;
+    await pumpLocationSettingsPage(
+      tester,
+      loadCurrentContext: ({bool forceRefresh = false}) async {
+        loadCount += 1;
+        if (loadCount == 1) {
+          return CurrentLocationContext(
+            status: 'unavailable',
+            source: 'device_gps',
+            updatedAt: DateTime.utc(2026, 5, 15, 10),
+            granularity: LocationContextGranularity.neighborhood,
+            reason: 'location permission denied',
+          );
+        }
+        return CurrentLocationContext(
+          status: 'fresh',
+          latitude: 31.230416,
+          longitude: 121.473701,
+          accuracyMeters: 8.5,
+          source: 'device_gps + reverse_geocode',
+          updatedAt: DateTime.utc(2026, 5, 15, 10),
+          granularity: LocationContextGranularity.neighborhood,
+          address: GeocodedAddress(
+            city: 'Shanghai',
+            district: 'Huangpu',
+            neighborhood: 'People Square',
+            provider: 'amap',
+            updatedAt: DateTime.utc(2026, 5, 15, 10),
+            confidence: 'high',
+          ),
+        );
+      },
+      requestLocationPermission: () async {
+        requestCount += 1;
+      },
+    );
+
+    await scrollToTestButton(tester);
+    await tester.tap(find.text('Test current location'));
+    await tester.pumpAndSettle();
+
+    await tester.scrollUntilVisible(
+      find.text('Allow location permission'),
+      100,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Allow location permission'));
+    await tester.pumpAndSettle();
+
+    expect(requestCount, 1);
+    expect(loadCount, 2);
+    expect(find.text('Current location is ready'), findsOneWidget);
+  });
+
+  testWidgets('service disabled guidance opens location settings', (
+    WidgetTester tester,
+  ) async {
+    var opened = false;
+    await pumpLocationSettingsPage(
+      tester,
+      loadCurrentContext: ({bool forceRefresh = false}) async {
+        return CurrentLocationContext(
+          status: 'unavailable',
+          source: 'device_gps',
+          updatedAt: DateTime.utc(2026, 5, 15, 10),
+          granularity: LocationContextGranularity.neighborhood,
+          reason: 'location service is disabled',
+        );
+      },
+      openLocationSettings: () async {
+        opened = true;
+        return true;
+      },
+    );
+
+    await scrollToTestButton(tester);
+    await tester.tap(find.text('Test current location'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('System location is off'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Open location settings'),
+      100,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Open location settings'));
+    await tester.pumpAndSettle();
+
+    expect(opened, isTrue);
+  });
+
+  testWidgets('blocked and approximate states point to app settings', (
+    WidgetTester tester,
+  ) async {
+    var appSettingsOpenCount = 0;
+    await pumpLocationSettingsPage(
+      tester,
+      loadCurrentContext: ({bool forceRefresh = false}) async {
+        return CurrentLocationContext(
+          status: 'unavailable',
+          source: 'device_gps',
+          updatedAt: DateTime.utc(2026, 5, 15, 10),
+          granularity: LocationContextGranularity.neighborhood,
+          reason: 'location permission permanently denied',
+        );
+      },
+      openAppSettings: () async {
+        appSettingsOpenCount += 1;
+        return true;
+      },
+    );
+
+    await scrollToTestButton(tester);
+    await tester.tap(find.text('Test current location'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Location permission is blocked'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Open app settings'),
+      100,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Open app settings'));
+    await tester.pumpAndSettle();
+    expect(appSettingsOpenCount, 1);
+
+    await pumpLocationSettingsPage(
+      tester,
+      loadCurrentContext: ({bool forceRefresh = false}) async {
+        return CurrentLocationContext(
+          status: 'fresh',
+          latitude: 31.230416,
+          longitude: 121.473701,
+          accuracyMeters: 1200,
+          source: 'device_gps + reverse_geocode',
+          updatedAt: DateTime.utc(2026, 5, 15, 10),
+          granularity: LocationContextGranularity.city,
+          address: GeocodedAddress(
+            city: 'Shanghai',
+            provider: 'amap',
+            updatedAt: DateTime.utc(2026, 5, 15, 10),
+            confidence: 'low',
+          ),
+        );
+      },
+      openAppSettings: () async {
+        appSettingsOpenCount += 1;
+        return true;
+      },
+    );
+
+    await scrollToTestButton(tester);
+    await tester.tap(find.text('Test current location'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Approximate location only'), findsOneWidget);
+    expect(find.text('Open app settings'), findsOneWidget);
   });
 
   testWidgets('test button explains GPS-only reverse geocode failure', (

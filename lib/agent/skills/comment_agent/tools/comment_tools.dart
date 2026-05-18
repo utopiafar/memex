@@ -45,7 +45,7 @@ class CommentToolFactory {
       },
       executable: (String content, String? reply_to_id) async {
         if (content.isEmpty) {
-          return "Error: Comment content cannot be empty.";
+          throw ArgumentError('Comment content cannot be empty.');
         }
 
         try {
@@ -72,7 +72,7 @@ class CommentToolFactory {
           );
 
           if (updatedCardData == null) {
-            return "Error: Card not found: $cardId";
+            throw StateError('Card not found: $cardId');
           }
 
           // Log event
@@ -129,8 +129,9 @@ class CommentToolFactory {
             content: TextPart("Comment saved successfully."),
             stopFlag: true,
           );
-        } catch (e) {
-          return "Error saving comment: $e";
+        } catch (e, st) {
+          getLogger('CommentTool').severe('Error saving comment', e, st);
+          rethrow;
         }
       },
     );

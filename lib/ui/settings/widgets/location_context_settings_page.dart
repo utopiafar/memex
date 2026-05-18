@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:memex/data/services/location_context_service.dart';
 import 'package:memex/domain/models/location_context_config.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
@@ -7,11 +8,22 @@ import 'package:memex/utils/user_storage.dart';
 
 typedef CurrentLocationContextLoader =
     Future<CurrentLocationContext> Function({bool forceRefresh});
+typedef LocationPermissionRequester = Future<void> Function();
+typedef LocationSettingsOpener = Future<bool> Function();
 
 class LocationContextSettingsPage extends StatefulWidget {
-  const LocationContextSettingsPage({super.key, this.loadCurrentContext});
+  const LocationContextSettingsPage({
+    super.key,
+    this.loadCurrentContext,
+    this.requestLocationPermission,
+    this.openAppSettings,
+    this.openLocationSettings,
+  });
 
   final CurrentLocationContextLoader? loadCurrentContext;
+  final LocationPermissionRequester? requestLocationPermission;
+  final LocationSettingsOpener? openAppSettings;
+  final LocationSettingsOpener? openLocationSettings;
 
   @override
   State<LocationContextSettingsPage> createState() =>
@@ -26,7 +38,9 @@ class _LocationContextSettingsPageState
   bool _loading = true;
   bool _saving = false;
   bool _testing = false;
+  bool _runningLocationAction = false;
   String? _testResult;
+  CurrentLocationContext? _testContext;
 
   bool get _hasChanges => !_isSameConfig(_config, _savedConfig);
 
@@ -84,6 +98,7 @@ class _LocationContextSettingsPageState
     setState(() {
       _testing = true;
       _testResult = null;
+      _testContext = null;
     });
     try {
       final loader =
@@ -93,6 +108,7 @@ class _LocationContextSettingsPageState
       if (!mounted) return;
       setState(() {
         _testResult = _formatLocationDebugResult(context);
+        _testContext = context;
       });
     } catch (e) {
       if (!mounted) return;
@@ -102,6 +118,53 @@ class _LocationContextSettingsPageState
     } finally {
       if (mounted) {
         setState(() => _testing = false);
+      }
+    }
+  }
+
+  Future<void> _handleGuidanceAction(_LocationGuidanceAction action) async {
+    if (_runningLocationAction) return;
+    setState(() => _runningLocationAction = true);
+
+    try {
+      switch (action) {
+        case _LocationGuidanceAction.requestPermission:
+          final requester =
+              widget.requestLocationPermission ??
+              () async => Geolocator.requestPermission();
+          await requester();
+          if (mounted) {
+            await _testLocation();
+          }
+        case _LocationGuidanceAction.openAppSettings:
+          final opener = widget.openAppSettings ?? Geolocator.openAppSettings;
+          final opened = await opener();
+          if (mounted && !opened) {
+            ToastHelper.showError(
+              context,
+              UserStorage.l10n.locationSettingsOpenFailed,
+            );
+          }
+        case _LocationGuidanceAction.openLocationSettings:
+          final opener =
+              widget.openLocationSettings ?? Geolocator.openLocationSettings;
+          final opened = await opener();
+          if (mounted && !opened) {
+            ToastHelper.showError(
+              context,
+              UserStorage.l10n.locationSettingsOpenFailed,
+            );
+          }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ToastHelper.showError(
+        context,
+        UserStorage.l10n.locationActionFailed(e.toString()),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _runningLocationAction = false);
       }
     }
   }
@@ -401,6 +464,10 @@ class _LocationContextSettingsPageState
                               : const Icon(Icons.location_searching),
                           label: Text(l10n.testCurrentLocation),
                         ),
+                        if (_testContext != null) ...[
+                          const SizedBox(height: 16),
+                          _locationStatusFeedback(_testContext!),
+                        ],
                         if (_testResult != null) ...[
                           const SizedBox(height: 12),
                           SelectableText(
@@ -419,6 +486,176 @@ class _LocationContextSettingsPageState
               ),
       ),
     );
+  }
+
+  Widget _locationStatusFeedback(CurrentLocationContext context) {
+    final feedback = _feedbackFor(context);
+    final details = _feedbackDetails(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(feedback.icon, color: feedback.color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    feedback.title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    feedback.message,
+                    style: TextStyle(color: Colors.grey[700], height: 1.35),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (details.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          ...details.map(
+            (detail) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                detail,
+                style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+              ),
+            ),
+          ),
+        ],
+        if (feedback.action != null) ...[
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _runningLocationAction
+                ? null
+                : () => _handleGuidanceAction(feedback.action!),
+            icon: _runningLocationAction
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Icon(feedback.actionIcon),
+            label: Text(feedback.actionLabel!),
+          ),
+        ],
+      ],
+    );
+  }
+
+  _LocationStatusFeedback _feedbackFor(CurrentLocationContext context) {
+    final l10n = UserStorage.l10n;
+    final reason = (context.reason ?? '').toLowerCase();
+
+    if (context.status == 'disabled') {
+      return _LocationStatusFeedback(
+        icon: Icons.location_disabled_outlined,
+        color: Colors.grey,
+        title: l10n.locationStatusDisabledTitle,
+        message: l10n.locationStatusDisabledBody,
+      );
+    }
+    if (reason.contains('service is disabled')) {
+      return _LocationStatusFeedback(
+        icon: Icons.location_off_outlined,
+        color: Colors.orange,
+        title: l10n.locationStatusServiceDisabledTitle,
+        message: l10n.locationStatusServiceDisabledBody,
+        action: _LocationGuidanceAction.openLocationSettings,
+        actionIcon: Icons.settings_outlined,
+        actionLabel: l10n.openLocationSettingsButton,
+      );
+    }
+    if (reason.contains('permanently denied')) {
+      return _LocationStatusFeedback(
+        icon: Icons.app_settings_alt_outlined,
+        color: Colors.orange,
+        title: l10n.locationStatusPermissionForeverTitle,
+        message: l10n.locationStatusPermissionForeverBody,
+        action: _LocationGuidanceAction.openAppSettings,
+        actionIcon: Icons.app_settings_alt_outlined,
+        actionLabel: l10n.openAppSettingsButton,
+      );
+    }
+    if (reason.contains('permission denied')) {
+      return _LocationStatusFeedback(
+        icon: Icons.location_on_outlined,
+        color: AppColors.primary,
+        title: l10n.locationStatusPermissionDeniedTitle,
+        message: l10n.locationStatusPermissionDeniedBody,
+        action: _LocationGuidanceAction.requestPermission,
+        actionIcon: Icons.location_on_outlined,
+        actionLabel: l10n.allowLocationPermissionButton,
+      );
+    }
+    if (context.isFresh && _looksApproximate(context)) {
+      return _LocationStatusFeedback(
+        icon: Icons.adjust_outlined,
+        color: Colors.orange,
+        title: l10n.locationStatusApproximateTitle,
+        message: l10n.locationStatusApproximateBody,
+        action: _LocationGuidanceAction.openAppSettings,
+        actionIcon: Icons.app_settings_alt_outlined,
+        actionLabel: l10n.openAppSettingsButton,
+      );
+    }
+    if (context.isFresh && context.address == null) {
+      return _LocationStatusFeedback(
+        icon: Icons.gps_fixed_outlined,
+        color: Colors.orange,
+        title: l10n.locationStatusGeocodeUnavailableTitle,
+        message: l10n.locationStatusGeocodeUnavailableBody,
+      );
+    }
+    if (context.isFresh) {
+      return _LocationStatusFeedback(
+        icon: Icons.check_circle_outline,
+        color: Colors.green,
+        title: l10n.locationStatusSuccessTitle,
+        message: l10n.locationStatusSuccessBody,
+      );
+    }
+
+    return _LocationStatusFeedback(
+      icon: Icons.info_outline,
+      color: Colors.orange,
+      title: l10n.locationStatusUnavailableTitle,
+      message: l10n.locationStatusUnavailableBody,
+    );
+  }
+
+  List<String> _feedbackDetails(CurrentLocationContext context) {
+    final l10n = UserStorage.l10n;
+    final summary = context.address?.summary(context.granularity);
+    return [
+      '${l10n.locationStatusUpdatedAt}: ${_formatTimestamp(context.updatedAt)}',
+      if (summary != null && summary.isNotEmpty)
+        '${l10n.locationDebugAddressSummary}: $summary',
+      if (context.accuracyMeters != null)
+        '${l10n.locationDebugAccuracy}: '
+            '${context.accuracyMeters!.toStringAsFixed(1)}m',
+    ];
+  }
+
+  bool _looksApproximate(CurrentLocationContext context) {
+    final accuracy = context.accuracyMeters;
+    return accuracy != null && accuracy >= 500;
+  }
+
+  String _formatTimestamp(DateTime value) {
+    String twoDigits(int number) => number.toString().padLeft(2, '0');
+    final local = value.toLocal();
+    return '${local.year}-${twoDigits(local.month)}-${twoDigits(local.day)} '
+        '${twoDigits(local.hour)}:${twoDigits(local.minute)}';
   }
 
   Widget _saveBar() {
@@ -481,4 +718,30 @@ class _LocationContextSettingsPageState
       child: child,
     );
   }
+}
+
+enum _LocationGuidanceAction {
+  requestPermission,
+  openAppSettings,
+  openLocationSettings,
+}
+
+class _LocationStatusFeedback {
+  const _LocationStatusFeedback({
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.message,
+    this.action,
+    this.actionIcon,
+    this.actionLabel,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String title;
+  final String message;
+  final _LocationGuidanceAction? action;
+  final IconData? actionIcon;
+  final String? actionLabel;
 }

@@ -131,6 +131,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'Only the Facts directory (raw input) will be kept. All other workspace directories (Cards, Discoveries, KnowledgeInsights, PKM, _System, etc.) will be deleted.\n\nThis action cannot be undone!';
 
   @override
+  String get clearFailedAgentContexts => 'Clear failed conversation context';
+
+  @override
+  String get confirmClearFailedAgentContextsMessage =>
+      'Clear the saved conversation context for Insight and Schedule agents? This is useful after changing models when previous agent messages are no longer compatible. Facts, cards, knowledge, memories, and model settings will not be deleted.';
+
+  @override
+  String failedAgentContextsCleared(Object count) {
+    return 'Cleared $count saved conversation context(s)';
+  }
+
+  @override
+  String clearFailedAgentContextsFailed(Object error) {
+    return 'Failed to clear conversation context: $error';
+  }
+
+  @override
   String get dataClearedSuccess => 'Data cleared successfully';
 
   @override
@@ -1592,6 +1609,87 @@ class AppLocalizationsEn extends AppLocalizations {
   String get providerMimo => 'Xiaomi MIMO';
 
   @override
+  String get providerMemex => 'Memex AI';
+
+  @override
+  String get memexSignIn => 'Sign In';
+
+  @override
+  String get memexCreateAccount => 'Create Account';
+
+  @override
+  String get memexSignInToMemex => 'Sign in to Memex AI';
+
+  @override
+  String get memexCreateMemexAccount => 'Create Memex AI account';
+
+  @override
+  String get memexUsername => 'Username';
+
+  @override
+  String get memexPassword => 'Password';
+
+  @override
+  String get memexCreateAccountLink => 'Create account';
+
+  @override
+  String get memexSignInLink => 'Sign in instead';
+
+  @override
+  String get memexTopUp => 'Top up to start using Memex AI';
+
+  @override
+  String get memexApplyCredentials => 'Apply Credentials';
+
+  @override
+  String get memexCredentialsApplied => 'Credentials applied';
+
+  @override
+  String get memexTopUpSuccess => 'Top up successful!';
+
+  @override
+  String get memexFillAllFields => 'Please fill in all fields';
+
+  @override
+  String get memexUsernameTooShort => 'Username must be at least 6 characters';
+
+  @override
+  String get memexAuthFailed => 'Authentication failed';
+
+  @override
+  String get memexPaymentFailed => 'Failed to create payment';
+
+  @override
+  String get memexLogout => 'Logout';
+
+  @override
+  String memexPricingInfo(Object ratio) {
+    return 'Pay-as-you-go · Official API pricing × $ratio';
+  }
+
+  @override
+  String get memexCustomAmount => 'Custom Amount';
+
+  @override
+  String get memexViewHistory => 'Usage History';
+
+  @override
+  String memexBalanceLabel(Object amount) {
+    return 'Balance: $amount';
+  }
+
+  @override
+  String get memexConfirmPassword => 'Confirm Password';
+
+  @override
+  String get memexPasswordMismatch => 'Passwords do not match';
+
+  @override
+  String memexPayAmount(Object amount) {
+    return 'Pay $amount';
+  }
+
+  @override
   String get modelIdLabel => 'Model ID';
 
   @override
@@ -1799,6 +1897,36 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupLocation => 'Location';
 
   @override
+  String get backupLocationDetails => 'Location details';
+
+  @override
+  String get backupLocationSummary => 'Shown in app';
+
+  @override
+  String get backupLocationFullPath => 'Full path';
+
+  @override
+  String get backupLocationUri => 'Folder access URI';
+
+  @override
+  String get copyBackupLocationPath => 'Copy path';
+
+  @override
+  String get backupLocationCopied => 'Backup location copied';
+
+  @override
+  String androidBackupLocationSelected(Object folderName) {
+    return 'Selected folder: $folderName';
+  }
+
+  @override
+  String get iosICloudBackupLocation => 'iCloud Drive > Memex > Backups';
+
+  @override
+  String get iosAppDocumentsBackupLocation =>
+      'Files > On My iPhone > Memex > Backups';
+
+  @override
   String get autoBackupStatus => 'Status';
 
   @override
@@ -1813,7 +1941,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get createSnapshotNow => 'Back up now';
 
   @override
-  String get backupLocationMenu => 'Location';
+  String get backupLocationMenu => 'Change location';
 
   @override
   String get defaultBackupLocation => 'Default backup folder';
@@ -1841,6 +1969,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get restoreThisBackup => 'Restore this backup';
+
+  @override
+  String get deleteThisBackup => 'Delete this backup';
+
+  @override
+  String get confirmDeleteBackup => 'Delete backup?';
+
+  @override
+  String confirmDeleteBackupMessage(Object fileName) {
+    return 'Delete $fileName? This removes the stored backup file and cannot be undone.';
+  }
+
+  @override
+  String backupDeleted(Object fileName) {
+    return 'Backup deleted: $fileName';
+  }
+
+  @override
+  String backupDeleteFailed(Object error) {
+    return 'Could not delete backup: $error';
+  }
 
   @override
   String get creatingSafetySnapshot => 'Creating safety snapshot...';
@@ -2369,6 +2518,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get today => 'Today';
 
   @override
+  String get tomorrow => 'Tomorrow';
+
+  @override
   String get yesterday => 'Yesterday';
 
   @override
@@ -2517,6 +2669,85 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get locationDebugNotInjected => 'not injected';
+
+  @override
+  String get locationStatusUpdatedAt => 'Updated';
+
+  @override
+  String get locationStatusSuccessTitle => 'Current location is ready';
+
+  @override
+  String get locationStatusSuccessBody =>
+      'Memex can attach this location summary when location context is relevant.';
+
+  @override
+  String get locationStatusApproximateTitle => 'Approximate location only';
+
+  @override
+  String get locationStatusApproximateBody =>
+      'Accuracy looks city or area level. You can keep using it, or enable Precise Location in system settings for a tighter context.';
+
+  @override
+  String get locationStatusServiceDisabledTitle => 'System location is off';
+
+  @override
+  String get locationStatusServiceDisabledBody =>
+      'Memex only uses device GPS and will not infer location from network or IP. On Android, open Location settings; on iOS, enable Settings > Privacy & Security > Location Services.';
+
+  @override
+  String get locationStatusPermissionDeniedTitle =>
+      'Location permission is needed';
+
+  @override
+  String get locationStatusPermissionDeniedBody =>
+      'Allow Memex to use location while testing or when location context is needed. Always access is not requested.';
+
+  @override
+  String get locationStatusPermissionForeverTitle =>
+      'Location permission is blocked';
+
+  @override
+  String get locationStatusPermissionForeverBody =>
+      'Open app settings and allow location for Memex. On iOS, While Using the App is enough.';
+
+  @override
+  String get locationStatusDisabledTitle => 'Location Context is off';
+
+  @override
+  String get locationStatusDisabledBody =>
+      'Turn on the switch above and save when you want Memex to attach device location to agent context.';
+
+  @override
+  String get locationStatusGeocodeUnavailableTitle =>
+      'GPS works, address lookup failed';
+
+  @override
+  String get locationStatusGeocodeUnavailableBody =>
+      'Memex has coordinates but will not inject GPS-only context into the agent. Check the reverse geocoding provider and try again.';
+
+  @override
+  String get locationStatusUnavailableTitle => 'Location unavailable';
+
+  @override
+  String get locationStatusUnavailableBody =>
+      'Check system location services and app permission, then test again.';
+
+  @override
+  String get allowLocationPermissionButton => 'Allow location permission';
+
+  @override
+  String get openAppSettingsButton => 'Open app settings';
+
+  @override
+  String get openLocationSettingsButton => 'Open location settings';
+
+  @override
+  String get locationSettingsOpenFailed => 'Could not open system settings.';
+
+  @override
+  String locationActionFailed(String error) {
+    return 'Location action failed: $error';
+  }
 
   @override
   String get settingsSearchPlaceholder => 'Search settings...';

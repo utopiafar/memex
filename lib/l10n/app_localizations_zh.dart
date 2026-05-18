@@ -126,6 +126,23 @@ class AppLocalizationsZh extends AppLocalizations {
       '将仅保留 Facts 目录（原始记录），删除工作区内其他所有目录（Cards、Discoveries、KnowledgeInsights、PKM、_System 等）。\n\n此操作不可恢复！';
 
   @override
+  String get clearFailedAgentContexts => '清除失败的对话上下文';
+
+  @override
+  String get confirmClearFailedAgentContextsMessage =>
+      '清除 Insight 和 Schedule Agent 已保存的对话上下文？这适用于切换模型后，旧的 agent 消息与新模型 API 不兼容的情况。Facts、卡片、知识库、记忆和模型配置不会被删除。';
+
+  @override
+  String failedAgentContextsCleared(Object count) {
+    return '已清除 $count 个已保存的对话上下文';
+  }
+
+  @override
+  String clearFailedAgentContextsFailed(Object error) {
+    return '清除对话上下文失败: $error';
+  }
+
+  @override
   String get dataClearedSuccess => '数据清除成功';
 
   @override
@@ -1544,6 +1561,87 @@ class AppLocalizationsZh extends AppLocalizations {
   String get providerMimo => 'Xiaomi MIMO (小米)';
 
   @override
+  String get providerMemex => 'Memex AI';
+
+  @override
+  String get memexSignIn => '登录';
+
+  @override
+  String get memexCreateAccount => '注册';
+
+  @override
+  String get memexSignInToMemex => '登录 Memex AI';
+
+  @override
+  String get memexCreateMemexAccount => '注册 Memex AI 账号';
+
+  @override
+  String get memexUsername => '用户名';
+
+  @override
+  String get memexPassword => '密码';
+
+  @override
+  String get memexCreateAccountLink => '注册账号';
+
+  @override
+  String get memexSignInLink => '已有账号，去登录';
+
+  @override
+  String get memexTopUp => '充值后即可使用 Memex AI';
+
+  @override
+  String get memexApplyCredentials => '应用凭证';
+
+  @override
+  String get memexCredentialsApplied => '凭证已应用';
+
+  @override
+  String get memexTopUpSuccess => '充值成功！';
+
+  @override
+  String get memexFillAllFields => '请填写所有字段';
+
+  @override
+  String get memexUsernameTooShort => '用户名至少 6 个字符';
+
+  @override
+  String get memexAuthFailed => '认证失败';
+
+  @override
+  String get memexPaymentFailed => '创建支付失败';
+
+  @override
+  String get memexLogout => '退出';
+
+  @override
+  String memexPricingInfo(Object ratio) {
+    return '按量计费 · 官方 API 定价 × $ratio';
+  }
+
+  @override
+  String get memexCustomAmount => '自定义金额';
+
+  @override
+  String get memexViewHistory => '使用记录';
+
+  @override
+  String memexBalanceLabel(Object amount) {
+    return '余额: $amount';
+  }
+
+  @override
+  String get memexConfirmPassword => '确认密码';
+
+  @override
+  String get memexPasswordMismatch => '两次密码不一致';
+
+  @override
+  String memexPayAmount(Object amount) {
+    return '支付 $amount';
+  }
+
+  @override
   String get modelIdLabel => 'Model ID';
 
   @override
@@ -1738,6 +1836,36 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backupLocation => '位置';
 
   @override
+  String get backupLocationDetails => '位置详情';
+
+  @override
+  String get backupLocationSummary => '应用中显示';
+
+  @override
+  String get backupLocationFullPath => '完整路径';
+
+  @override
+  String get backupLocationUri => '文件夹授权 URI';
+
+  @override
+  String get copyBackupLocationPath => '复制路径';
+
+  @override
+  String get backupLocationCopied => '备份位置已复制';
+
+  @override
+  String androidBackupLocationSelected(Object folderName) {
+    return '已选文件夹：$folderName';
+  }
+
+  @override
+  String get iosICloudBackupLocation => 'iCloud 云盘 > Memex > Backups';
+
+  @override
+  String get iosAppDocumentsBackupLocation =>
+      '文件 > 我的 iPhone > Memex > Backups';
+
+  @override
   String get autoBackupStatus => '状态';
 
   @override
@@ -1752,7 +1880,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get createSnapshotNow => '立即备份';
 
   @override
-  String get backupLocationMenu => '位置';
+  String get backupLocationMenu => '更改位置';
 
   @override
   String get defaultBackupLocation => '默认备份文件夹';
@@ -1778,6 +1906,27 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get restoreThisBackup => '恢复此备份';
+
+  @override
+  String get deleteThisBackup => '删除此备份';
+
+  @override
+  String get confirmDeleteBackup => '删除备份？';
+
+  @override
+  String confirmDeleteBackupMessage(Object fileName) {
+    return '删除 $fileName？这会移除已保存的备份文件，且无法撤销。';
+  }
+
+  @override
+  String backupDeleted(Object fileName) {
+    return '备份已删除：$fileName';
+  }
+
+  @override
+  String backupDeleteFailed(Object error) {
+    return '无法删除备份：$error';
+  }
 
   @override
   String get creatingSafetySnapshot => '正在创建安全快照...';
@@ -2283,6 +2432,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get today => '今天';
 
   @override
+  String get tomorrow => '明天';
+
+  @override
   String get yesterday => '昨天';
 
   @override
@@ -2426,6 +2578,80 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get locationDebugNotInjected => '未注入';
+
+  @override
+  String get locationStatusUpdatedAt => '更新时间';
+
+  @override
+  String get locationStatusSuccessTitle => '当前位置已可用';
+
+  @override
+  String get locationStatusSuccessBody => '当位置上下文与对话相关时，Memex 可以附加这段位置摘要。';
+
+  @override
+  String get locationStatusApproximateTitle => '仅获得大致位置';
+
+  @override
+  String get locationStatusApproximateBody =>
+      '当前精度看起来只到城市或区域级别。你可以继续使用，也可以在系统设置中开启精确位置以获得更细的上下文。';
+
+  @override
+  String get locationStatusServiceDisabledTitle => '系统定位已关闭';
+
+  @override
+  String get locationStatusServiceDisabledBody =>
+      'Memex 只使用设备 GPS，不会通过网络或 IP 推测位置。Android 可打开定位设置；iOS 请前往 设置 > 隐私与安全性 > 定位服务 开启。';
+
+  @override
+  String get locationStatusPermissionDeniedTitle => '需要允许位置权限';
+
+  @override
+  String get locationStatusPermissionDeniedBody =>
+      '仅在测试或实际需要位置上下文时允许 Memex 使用位置即可；不会请求始终访问。';
+
+  @override
+  String get locationStatusPermissionForeverTitle => '位置权限已被系统阻止';
+
+  @override
+  String get locationStatusPermissionForeverBody =>
+      '请打开应用设置，重新允许 Memex 使用位置。iOS 选择“使用 App 期间”即可。';
+
+  @override
+  String get locationStatusDisabledTitle => '位置上下文未开启';
+
+  @override
+  String get locationStatusDisabledBody =>
+      '如果希望 Memex 为 Agent 上下文附加设备位置，请打开上方开关并保存。';
+
+  @override
+  String get locationStatusGeocodeUnavailableTitle => 'GPS 可用，但地址解析失败';
+
+  @override
+  String get locationStatusGeocodeUnavailableBody =>
+      'Memex 已拿到坐标，但不会把纯 GPS 坐标注入给 Agent。请检查逆地理编码服务商后再试。';
+
+  @override
+  String get locationStatusUnavailableTitle => '位置不可用';
+
+  @override
+  String get locationStatusUnavailableBody => '请检查系统定位服务和应用权限，然后再次测试。';
+
+  @override
+  String get allowLocationPermissionButton => '允许位置权限';
+
+  @override
+  String get openAppSettingsButton => '打开应用设置';
+
+  @override
+  String get openLocationSettingsButton => '开启系统定位';
+
+  @override
+  String get locationSettingsOpenFailed => '无法打开系统设置。';
+
+  @override
+  String locationActionFailed(String error) {
+    return '位置操作失败：$error';
+  }
 
   @override
   String get settingsSearchPlaceholder => '搜索设置项...';

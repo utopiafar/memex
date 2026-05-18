@@ -56,6 +56,12 @@
   "clearData": "Clear data",
   "confirmClearDataMessage": "Clear data?",
   "confirmClearDataKeepFactsMessage": "Only the Facts directory (raw input) will be kept. All other workspace directories (Cards, Discoveries, KnowledgeInsights, PKM, _System, etc.) will be deleted.\n\nThis action cannot be undone!",
+  "clearFailedAgentContexts": "Clear failed conversation context",
+  "confirmClearFailedAgentContextsMessage": "Clear the saved conversation context for Insight and Schedule agents? This is useful after changing models when previous agent messages are no longer compatible. Facts, cards, knowledge, memories, and model settings will not be deleted.",
+  "failedAgentContextsCleared": "Cleared {count} saved conversation context(s)",
+  "@failedAgentContextsCleared": { "placeholders": { "count": {} } },
+  "clearFailedAgentContextsFailed": "Failed to clear conversation context: {error}",
+  "@clearFailedAgentContextsFailed": { "placeholders": { "error": {} } },
   "dataClearedSuccess": "Data cleared successfully",
   "@clearDataFailed": {
     "placeholders": {
@@ -746,6 +752,46 @@
   "providerOpenRouter": "OpenRouter",
   "providerOllama": "Ollama (Local)",
   "providerMimo": "Xiaomi MIMO",
+  "providerMemex": "Memex AI",
+  "memexSignIn": "Sign In",
+  "memexCreateAccount": "Create Account",
+  "memexSignInToMemex": "Sign in to Memex AI",
+  "memexCreateMemexAccount": "Create Memex AI account",
+  "memexUsername": "Username",
+  "memexPassword": "Password",
+  "memexCreateAccountLink": "Create account",
+  "memexSignInLink": "Sign in instead",
+  "memexTopUp": "Top up to start using Memex AI",
+  "memexApplyCredentials": "Apply Credentials",
+  "memexCredentialsApplied": "Credentials applied",
+  "memexTopUpSuccess": "Top up successful!",
+  "memexFillAllFields": "Please fill in all fields",
+  "memexUsernameTooShort": "Username must be at least 6 characters",
+  "memexAuthFailed": "Authentication failed",
+  "memexPaymentFailed": "Failed to create payment",
+  "memexLogout": "Logout",
+  "memexPricingInfo": "Pay-as-you-go · Official API pricing × {ratio}",
+  "@memexPricingInfo": {
+    "placeholders": {
+      "ratio": {}
+    }
+  },
+  "memexCustomAmount": "Custom Amount",
+  "memexViewHistory": "Usage History",
+  "memexBalanceLabel": "Balance: {amount}",
+  "@memexBalanceLabel": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
+  "memexConfirmPassword": "Confirm Password",
+  "memexPasswordMismatch": "Passwords do not match",
+  "memexPayAmount": "Pay {amount}",
+  "@memexPayAmount": {
+    "placeholders": {
+      "amount": {}
+    }
+  },
   "modelIdLabel": "Model ID",
   "modelIdHelper": "e.g. gemini-3.1-pro-preview, gpt-4o",
   "fetchingModels": "Fetching models...",
@@ -822,6 +868,20 @@
   "autoBackupDescription": "When enabled, Memex creates at most one local snapshot per day after startup or when returning to the foreground.",
   "backupSensitiveSettingsHint": "Backups include settings and model provider keys. Keep backup files somewhere you trust.",
   "backupLocation": "Location",
+  "backupLocationDetails": "Location details",
+  "backupLocationSummary": "Shown in app",
+  "backupLocationFullPath": "Full path",
+  "backupLocationUri": "Folder access URI",
+  "copyBackupLocationPath": "Copy path",
+  "backupLocationCopied": "Backup location copied",
+  "androidBackupLocationSelected": "Selected folder: {folderName}",
+  "@androidBackupLocationSelected": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "iosICloudBackupLocation": "iCloud Drive > Memex > Backups",
+  "iosAppDocumentsBackupLocation": "Files > On My iPhone > Memex > Backups",
   "autoBackupStatus": "Status",
   "noAutoBackupYet": "No automatic backup yet",
   "@lastBackupAt": {
@@ -831,7 +891,7 @@
   },
   "lastBackupAt": "Last backup: {time}",
   "createSnapshotNow": "Back up now",
-  "backupLocationMenu": "Location",
+  "backupLocationMenu": "Change location",
   "defaultBackupLocation": "Default backup folder",
   "defaultBackupLocationAndroidDesc": "Use Memex's app-specific external files folder. No storage permission needed.",
   "chooseBackupLocation": "Choose backup folder",
@@ -840,6 +900,26 @@
   "noStoredBackups": "Automatic backups will appear here after the first snapshot.",
   "refresh": "Refresh",
   "restoreThisBackup": "Restore this backup",
+  "deleteThisBackup": "Delete this backup",
+  "confirmDeleteBackup": "Delete backup?",
+  "@confirmDeleteBackupMessage": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "confirmDeleteBackupMessage": "Delete {fileName}? This removes the stored backup file and cannot be undone.",
+  "@backupDeleted": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleted": "Backup deleted: {fileName}",
+  "@backupDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupDeleteFailed": "Could not delete backup: {error}",
   "creatingSafetySnapshot": "Creating safety snapshot...",
   "@autoBackupCreated": {
     "placeholders": {
@@ -1068,6 +1148,7 @@
   "personaChatInputHint": "Type a message...",
   "personaChatEmptyHint": "Send the first message to begin this companion chat",
   "today": "Today",
+  "tomorrow": "Tomorrow",
   "yesterday": "Yesterday",
 
   "showInsightTextTitle": "Show Memex insight comment",
@@ -1138,6 +1219,35 @@
   "locationDebugUnavailable": "unavailable",
   "locationDebugInjected": "injected",
   "locationDebugNotInjected": "not injected",
+  "locationStatusUpdatedAt": "Updated",
+  "locationStatusSuccessTitle": "Current location is ready",
+  "locationStatusSuccessBody": "Memex can attach this location summary when location context is relevant.",
+  "locationStatusApproximateTitle": "Approximate location only",
+  "locationStatusApproximateBody": "Accuracy looks city or area level. You can keep using it, or enable Precise Location in system settings for a tighter context.",
+  "locationStatusServiceDisabledTitle": "System location is off",
+  "locationStatusServiceDisabledBody": "Memex only uses device GPS and will not infer location from network or IP. On Android, open Location settings; on iOS, enable Settings > Privacy & Security > Location Services.",
+  "locationStatusPermissionDeniedTitle": "Location permission is needed",
+  "locationStatusPermissionDeniedBody": "Allow Memex to use location while testing or when location context is needed. Always access is not requested.",
+  "locationStatusPermissionForeverTitle": "Location permission is blocked",
+  "locationStatusPermissionForeverBody": "Open app settings and allow location for Memex. On iOS, While Using the App is enough.",
+  "locationStatusDisabledTitle": "Location Context is off",
+  "locationStatusDisabledBody": "Turn on the switch above and save when you want Memex to attach device location to agent context.",
+  "locationStatusGeocodeUnavailableTitle": "GPS works, address lookup failed",
+  "locationStatusGeocodeUnavailableBody": "Memex has coordinates but will not inject GPS-only context into the agent. Check the reverse geocoding provider and try again.",
+  "locationStatusUnavailableTitle": "Location unavailable",
+  "locationStatusUnavailableBody": "Check system location services and app permission, then test again.",
+  "allowLocationPermissionButton": "Allow location permission",
+  "openAppSettingsButton": "Open app settings",
+  "openLocationSettingsButton": "Open location settings",
+  "locationSettingsOpenFailed": "Could not open system settings.",
+  "locationActionFailed": "Location action failed: {error}",
+  "@locationActionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
 
   "settingsSearchPlaceholder": "Search settings...",
   "settingsSearchEmpty": "No matching settings found",

@@ -56,6 +56,12 @@
   "clearData": "清除数据",
   "confirmClearDataMessage": "确定要清除数据吗？\n",
   "confirmClearDataKeepFactsMessage": "将仅保留 Facts 目录（原始记录），删除工作区内其他所有目录（Cards、Discoveries、KnowledgeInsights、PKM、_System 等）。\n\n此操作不可恢复！",
+  "clearFailedAgentContexts": "清除失败的对话上下文",
+  "confirmClearFailedAgentContextsMessage": "清除 Insight 和 Schedule Agent 已保存的对话上下文？这适用于切换模型后，旧的 agent 消息与新模型 API 不兼容的情况。Facts、卡片、知识库、记忆和模型配置不会被删除。",
+  "failedAgentContextsCleared": "已清除 {count} 个已保存的对话上下文",
+  "@failedAgentContextsCleared": { "placeholders": { "count": {} } },
+  "clearFailedAgentContextsFailed": "清除对话上下文失败: {error}",
+  "@clearFailedAgentContextsFailed": { "placeholders": { "error": {} } },
   "dataClearedSuccess": "数据清除成功",
   "@clearDataFailed": {
     "placeholders": {
@@ -746,6 +752,31 @@
   "providerOpenRouter": "OpenRouter",
   "providerOllama": "Ollama (本地)",
   "providerMimo": "Xiaomi MIMO (小米)",
+  "providerMemex": "Memex AI",
+  "memexSignIn": "登录",
+  "memexCreateAccount": "注册",
+  "memexSignInToMemex": "登录 Memex AI",
+  "memexCreateMemexAccount": "注册 Memex AI 账号",
+  "memexUsername": "用户名",
+  "memexPassword": "密码",
+  "memexCreateAccountLink": "注册账号",
+  "memexSignInLink": "已有账号，去登录",
+  "memexTopUp": "充值后即可使用 Memex AI",
+  "memexApplyCredentials": "应用凭证",
+  "memexCredentialsApplied": "凭证已应用",
+  "memexTopUpSuccess": "充值成功！",
+  "memexFillAllFields": "请填写所有字段",
+  "memexUsernameTooShort": "用户名至少 6 个字符",
+  "memexAuthFailed": "认证失败",
+  "memexPaymentFailed": "创建支付失败",
+  "memexLogout": "退出",
+  "memexPricingInfo": "按量计费 · 官方 API 定价 × {ratio}",
+  "memexCustomAmount": "自定义金额",
+  "memexViewHistory": "使用记录",
+  "memexBalanceLabel": "余额: {amount}",
+  "memexConfirmPassword": "确认密码",
+  "memexPasswordMismatch": "两次密码不一致",
+  "memexPayAmount": "支付 {amount}",
   "modelIdLabel": "Model ID",
   "modelIdHelper": "例如 gemini-3.1-pro-preview、gpt-4o",
   "fetchingModels": "正在获取模型列表...",
@@ -822,6 +853,20 @@
   "autoBackupDescription": "开启后，Memex 会在启动或回到前台时检查，每天最多创建一次本地时间点快照。",
   "backupSensitiveSettingsHint": "备份包含设置和模型服务商密钥，请只保存到你信任的位置。",
   "backupLocation": "位置",
+  "backupLocationDetails": "位置详情",
+  "backupLocationSummary": "应用中显示",
+  "backupLocationFullPath": "完整路径",
+  "backupLocationUri": "文件夹授权 URI",
+  "copyBackupLocationPath": "复制路径",
+  "backupLocationCopied": "备份位置已复制",
+  "androidBackupLocationSelected": "已选文件夹：{folderName}",
+  "@androidBackupLocationSelected": {
+    "placeholders": {
+      "folderName": {}
+    }
+  },
+  "iosICloudBackupLocation": "iCloud 云盘 > Memex > Backups",
+  "iosAppDocumentsBackupLocation": "文件 > 我的 iPhone > Memex > Backups",
   "autoBackupStatus": "状态",
   "noAutoBackupYet": "还没有自动备份",
   "@lastBackupAt": {
@@ -831,7 +876,7 @@
   },
   "lastBackupAt": "上次备份：{time}",
   "createSnapshotNow": "立即备份",
-  "backupLocationMenu": "位置",
+  "backupLocationMenu": "更改位置",
   "defaultBackupLocation": "默认备份文件夹",
   "defaultBackupLocationAndroidDesc": "使用 Memex 的应用专属外部目录，不需要存储权限。",
   "chooseBackupLocation": "选择备份文件夹",
@@ -840,6 +885,26 @@
   "noStoredBackups": "创建第一个自动快照后会显示在这里。",
   "refresh": "刷新",
   "restoreThisBackup": "恢复此备份",
+  "deleteThisBackup": "删除此备份",
+  "confirmDeleteBackup": "删除备份？",
+  "@confirmDeleteBackupMessage": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "confirmDeleteBackupMessage": "删除 {fileName}？这会移除已保存的备份文件，且无法撤销。",
+  "@backupDeleted": {
+    "placeholders": {
+      "fileName": {}
+    }
+  },
+  "backupDeleted": "备份已删除：{fileName}",
+  "@backupDeleteFailed": {
+    "placeholders": {
+      "error": {}
+    }
+  },
+  "backupDeleteFailed": "无法删除备份：{error}",
   "creatingSafetySnapshot": "正在创建安全快照...",
   "@autoBackupCreated": {
     "placeholders": {
@@ -1046,6 +1111,7 @@
   "personaChatInputHint": "输入消息...",
   "personaChatEmptyHint": "发出第一条消息，让这段陪伴开始",
   "today": "今天",
+  "tomorrow": "明天",
   "yesterday": "昨天",
 
   "showInsightTextTitle": "显示 Memex 洞察评论",
@@ -1116,6 +1182,35 @@
   "locationDebugUnavailable": "不可用",
   "locationDebugInjected": "已注入",
   "locationDebugNotInjected": "未注入",
+  "locationStatusUpdatedAt": "更新时间",
+  "locationStatusSuccessTitle": "当前位置已可用",
+  "locationStatusSuccessBody": "当位置上下文与对话相关时，Memex 可以附加这段位置摘要。",
+  "locationStatusApproximateTitle": "仅获得大致位置",
+  "locationStatusApproximateBody": "当前精度看起来只到城市或区域级别。你可以继续使用，也可以在系统设置中开启精确位置以获得更细的上下文。",
+  "locationStatusServiceDisabledTitle": "系统定位已关闭",
+  "locationStatusServiceDisabledBody": "Memex 只使用设备 GPS，不会通过网络或 IP 推测位置。Android 可打开定位设置；iOS 请前往 设置 > 隐私与安全性 > 定位服务 开启。",
+  "locationStatusPermissionDeniedTitle": "需要允许位置权限",
+  "locationStatusPermissionDeniedBody": "仅在测试或实际需要位置上下文时允许 Memex 使用位置即可；不会请求始终访问。",
+  "locationStatusPermissionForeverTitle": "位置权限已被系统阻止",
+  "locationStatusPermissionForeverBody": "请打开应用设置，重新允许 Memex 使用位置。iOS 选择“使用 App 期间”即可。",
+  "locationStatusDisabledTitle": "位置上下文未开启",
+  "locationStatusDisabledBody": "如果希望 Memex 为 Agent 上下文附加设备位置，请打开上方开关并保存。",
+  "locationStatusGeocodeUnavailableTitle": "GPS 可用，但地址解析失败",
+  "locationStatusGeocodeUnavailableBody": "Memex 已拿到坐标，但不会把纯 GPS 坐标注入给 Agent。请检查逆地理编码服务商后再试。",
+  "locationStatusUnavailableTitle": "位置不可用",
+  "locationStatusUnavailableBody": "请检查系统定位服务和应用权限，然后再次测试。",
+  "allowLocationPermissionButton": "允许位置权限",
+  "openAppSettingsButton": "打开应用设置",
+  "openLocationSettingsButton": "开启系统定位",
+  "locationSettingsOpenFailed": "无法打开系统设置。",
+  "locationActionFailed": "位置操作失败：{error}",
+  "@locationActionFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
 
   "settingsSearchPlaceholder": "搜索设置项...",
   "settingsSearchEmpty": "未找到匹配的设置项",
