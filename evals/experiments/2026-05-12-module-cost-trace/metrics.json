@@ -1,0 +1,145 @@
+{
+  "run_id": "2026-05-12-module-cost-trace",
+  "started_at": "2026-05-12T10:17:36.211176Z",
+  "benchmark_elapsed_ms": 45,
+  "dataset_path": "evals/datasets/modules/cost_trace",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 3,
+  "task_count": 3,
+  "dataset_summary": {
+    "case_count": 3,
+    "persona_count": 3,
+    "input_count": 111,
+    "task_count": 3,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "cost_trace": 3
+    },
+    "tasks_by_type": {
+      "cost_trace": 3
+    },
+    "personas": [
+      {
+        "user_id": "module_u_001",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 36,
+        "task_count": 1,
+        "sample_inputs": [
+          "早上先看一下昨天广告账户的消耗，今天预算别太激进。",
+          "午饭别订海鲜，最近过敏又有点反复。"
+        ]
+      },
+      {
+        "user_id": "module_u_002",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 37,
+        "task_count": 1,
+        "sample_inputs": [
+          "早上先过一遍版本风险，今天别被零碎需求打散。",
+          "以后评审材料希望结论先行，细节放后面。"
+        ]
+      },
+      {
+        "user_id": "module_u_003",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 38,
+        "task_count": 1,
+        "sample_inputs": [
+          "早上先跑昨天的数据质量检查，看有没有埋点延迟。",
+          "以后异常分析先看样本量，再看比例变化。"
+        ]
+      }
+    ]
+  },
+  "assertions": {
+    "passed": 24,
+    "total": 24,
+    "pass_rate": 1.0,
+    "avg_score": 0.8937499999999999
+  },
+  "by_family": {
+    "cost_trace": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0,
+      "avg_score": 0.8937499999999999
+    }
+  },
+  "by_metric": {
+    "total_token_budget": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 0.7527777777777777
+    },
+    "latency_budget": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "tool_call_budget": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "task_completion_status": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "cost_answer_must_include": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "cost_per_input": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 0.7333333333333333
+    },
+    "retry_rate": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "failed_task_rate": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "queue_idle_time": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "trace_completeness": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 3,
+    "tool_call_count": 3,
+    "avg_latency_ms": 5367.777777777777,
+    "p95_latency_ms": 9000.0,
+    "avg_total_tokens": 3233.3333333333335,
+    "total_tokens": 9700
+  }
+}

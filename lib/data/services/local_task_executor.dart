@@ -223,7 +223,13 @@ class LocalTaskExecutor {
   }
 
   // Max concurrent tasks
-  static const int _maxConcurrency = 5;
+  static const int _defaultMaxConcurrency = 5;
+
+  @visibleForTesting
+  static int? maxConcurrencyOverrideForTesting;
+
+  static int get _maxConcurrency =>
+      maxConcurrencyOverrideForTesting ?? _defaultMaxConcurrency;
   static const int _candidatePageSize = 50;
   static const int _maxCandidateScan = 500;
 

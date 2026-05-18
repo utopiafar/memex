@@ -1,0 +1,546 @@
+{
+  "run_id": "2026-05-16-full-chain-journey-scale-v2",
+  "started_at": "2026-05-16T15:52:10.900092Z",
+  "benchmark_elapsed_ms": 68,
+  "replay_elapsed_ms": 4608000,
+  "replay_case_elapsed_total_ms": 4608000,
+  "dataset_path": "evals/datasets/full_chain_journey_scale_v2",
+  "adapter": "fixture",
+  "evidence_level": "fixture_grader_smoke",
+  "observation_contract": "fixture_observed",
+  "llm_judge_enabled": false,
+  "llm_judge_policy": "disabled",
+  "llm_judge_assertion_count": 0,
+  "case_count": 8,
+  "task_count": 80,
+  "dataset_summary": {
+    "case_count": 8,
+    "persona_count": 8,
+    "input_count": 2560,
+    "task_count": 80,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "full_chain_journey_scale_v2": 8
+    },
+    "tasks_by_type": {
+      "card_extraction": 16,
+      "cost_trace": 8,
+      "memory_write": 8,
+      "pkm_organization": 8,
+      "retrieval_qa": 16,
+      "schedule_refresh": 8,
+      "super_agent_qa": 8,
+      "tool_calling": 8
+    },
+    "personas": [
+      {
+        "user_id": "scale_u_001",
+        "occupation": "增长产品经理",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 320,
+        "task_count": 10,
+        "sample_inputs": [
+          "以后 导出灰度 这种重要安排提前一天提醒我，最好把 失败率截图 一起列出来。",
+          "先记一下旧规则：下午也可以喝咖啡。，等我后面确认再改。"
+        ]
+      },
+      {
+        "user_id": "scale_u_002",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 320,
+        "task_count": 10,
+        "sample_inputs": [
+          "以后 北美站增长 这种重要安排提前一天提醒我，最好把 ROAS 分层表 一起列出来。",
+          "先记一下旧规则：ROAS 低于 1.8 才提醒。，等我后面确认再改。"
+        ]
+      },
+      {
+        "user_id": "scale_u_003",
+        "occupation": "数据分析师",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 320,
+        "task_count": 10,
+        "sample_inputs": [
+          "以后 Memex 评测看板 这种重要安排提前一天提醒我，最好把 hit@3 和 MRR 截图 一起列出来。",
+          "先记一下旧规则：指标解释可以只写中文名。，等我后面确认再改。"
+        ]
+      },
+      {
+        "user_id": "scale_u_004",
+        "occupation": "律师",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 320,
+        "task_count": 10,
+        "sample_inputs": [
+          "以后 合同条款库 这种重要安排提前一天提醒我，最好把 条款来源编号 一起列出来。",
+          "先记一下旧规则：合同问题可以直接给结论。，等我后面确认再改。"
+        ]
+      },
+      {
+        "user_id": "scale_u_005",
+        "occupation": "财务主管",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 320,
+        "task_count": 10,
+        "sample_inputs": [
+          "以后 预算月结 这种重要安排提前一天提醒我，最好把 付款审批表 一起列出来。",
+          "先记一下旧规则：付款超过五万再提醒。，等我后面确认再改。"
+        ]
+      },
+      {
+        "user_id": "scale_u_006",
+        "occupation": "内容运营",
+        "city": "苏州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 320,
+        "task_count": 10,
+        "sample_inputs": [
+          "以后 小红书活动 这种重要安排提前一天提醒我，最好把 素材来源链接 一起列出来。",
+          "先记一下旧规则：素材复盘只看点赞数。，等我后面确认再改。"
+        ]
+      },
+      {
+        "user_id": "scale_u_007",
+        "occupation": "家庭照护者",
+        "city": "南京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 320,
+        "task_count": 10,
+        "sample_inputs": [
+          "以后 妈妈康复计划 这种重要安排提前一天提醒我，最好把 血压记录表 一起列出来。",
+          "先记一下旧规则：晚间用药按 8 点提醒。，等我后面确认再改。"
+        ]
+      },
+      {
+        "user_id": "scale_u_008",
+        "occupation": "研究生",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 320,
+        "task_count": 10,
+        "sample_inputs": [
+          "以后 论文开题 这种重要安排提前一天提醒我，最好把 文献矩阵 一起列出来。",
+          "先记一下旧规则：文献综述每周日提醒。，等我后面确认再改。"
+        ]
+      }
+    ]
+  },
+  "assertions": {
+    "passed": 824,
+    "total": 824,
+    "pass_rate": 1.0,
+    "avg_score": 0.9919836379716984
+  },
+  "by_family": {
+    "cost_trace": {
+      "passed": 176,
+      "total": 176,
+      "pass_rate": 1.0,
+      "avg_score": 0.9750078125000001
+    },
+    "memory_write": {
+      "passed": 104,
+      "total": 104,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_qa": {
+      "passed": 168,
+      "total": 168,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "schedule_refresh": {
+      "passed": 56,
+      "total": 56,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "pkm_organization": {
+      "passed": 80,
+      "total": 80,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "super_agent_qa": {
+      "passed": 96,
+      "total": 96,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "tool_calling": {
+      "passed": 48,
+      "total": 48,
+      "pass_rate": 1.0
+    },
+    "card_extraction": {
+      "passed": 96,
+      "total": 96,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "by_metric": {
+    "total_token_budget": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 0.7750703125
+    },
+    "cost_per_input": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 0.8000625
+    },
+    "latency_budget": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0
+    },
+    "tool_call_budget": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0
+    },
+    "task_completion_status": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0
+    },
+    "retry_rate": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "failed_task_rate": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "queue_idle_time": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0
+    },
+    "record_operation_coverage": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "journey_time_span_coverage": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "app_operation_sequence_completeness": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "input_channel_diversity": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "feature_trigger_coverage": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "journey_stage_coverage": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "scenario_family_coverage": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "persona_specificity_coverage": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "cross_day_continuity_coverage": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "correction_operation_coverage": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "noise_resilience_coverage": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "follow_up_query_coverage": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "trace_completeness": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "cost_answer_must_include": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_must_write_recall": {
+      "passed": 32,
+      "total": 32,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_source_grounding": {
+      "passed": 32,
+      "total": 32,
+      "pass_rate": 1.0
+    },
+    "memory_must_not_write_precision": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0
+    },
+    "memory_duplicate_rate": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_conflict_handling": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0
+    },
+    "retrieval_hit_at_1": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_3": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_5": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_mrr": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_recall_at_5": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_filter_accuracy": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "answer_must_include": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unsupported_claim_absence": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0
+    },
+    "unnecessary_uncertainty_absence": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "answer_source_citation": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "grounded_answer_rate": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "schedule_refresh_action_accuracy": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0
+    },
+    "schedule_refresh_unnecessary_absence": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0
+    },
+    "schedule_refresh_missed_absence": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0
+    },
+    "schedule_refresh_duplicate_rate": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "tool_selection_accuracy": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "tool_args_accuracy": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "tool_call_minimality": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "pkm_path_accuracy": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "pkm_content_preservation": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "pkm_source_grounding": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "pkm_update_freshness": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "pkm_merge_split_quality": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0
+    },
+    "pkm_prohibited_content_absence": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0
+    },
+    "prohibited_tool_absence": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "super_agent_read_only_compliance": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0
+    },
+    "personalization_accuracy": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "router_label_accuracy": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0
+    },
+    "card_schema_valid": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "card_status_accuracy": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "title_constraint_accuracy": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "hallucinated_field_absence": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "card_field_constraint_accuracy": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "input_to_card_latency": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 248,
+    "tool_call_count": 136,
+    "avg_latency_ms": 979.7638888888889,
+    "p95_latency_ms": 1455.0,
+    "avg_total_tokens": 4464.645161290323,
+    "total_tokens": 1107232
+  }
+}

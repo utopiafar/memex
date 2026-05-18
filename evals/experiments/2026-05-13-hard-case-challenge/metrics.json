@@ -1,0 +1,580 @@
+{
+  "run_id": "2026-05-13-hard-case-challenge",
+  "started_at": "2026-05-12T18:01:48.676219Z",
+  "benchmark_elapsed_ms": 35186,
+  "dataset_path": "evals/datasets/hard_case_challenge",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 112,
+  "task_count": 112,
+  "dataset_summary": {
+    "case_count": 112,
+    "persona_count": 16,
+    "input_count": 1568,
+    "task_count": 112,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "hard_case_card_ambiguous_time": 16,
+      "hard_case_memory_conflict": 16,
+      "hard_case_memory_transient": 16,
+      "hard_case_pkm_organization": 16,
+      "hard_case_retrieval_grounding": 16,
+      "hard_case_schedule_router": 16,
+      "hard_case_super_agent_boundary": 16
+    },
+    "tasks_by_type": {
+      "card_extraction": 16,
+      "memory_write": 32,
+      "pkm_organization": 16,
+      "retrieval_qa": 16,
+      "schedule_refresh": 16,
+      "super_agent_qa": 16
+    },
+    "personas": [
+      {
+        "user_id": "hard_u_01",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "今天有点低落，主要是早会被临时打断了三次，不要把这个写成长期偏好。以后重要会议还是提前一天提醒我。",
+          "今天在上海处理预算复盘，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      },
+      {
+        "user_id": "hard_u_02",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "今天很累，因为晚上没睡好，这只是今天的身体状态；但重要会议提前一天提醒这个规则要记住。",
+          "今天在深圳处理饮食限制，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      },
+      {
+        "user_id": "hard_u_03",
+        "occupation": "老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "我现在不太想说话，只是下午连续开会后的临时反应，别写成长记忆。重要会议提前一天提醒我。",
+          "今天在北京处理临时情绪，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      },
+      {
+        "user_id": "hard_u_04",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "今天有点烦，客服群消息太多了，这只是一次性状态；以后重要会议还是提前一天提醒。",
+          "今天在杭州处理客户反馈，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      },
+      {
+        "user_id": "hard_u_05",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "今天脑子有点空，可能是午饭吃太少，不是长期习惯。重要会议提醒保持提前一天。",
+          "今天在上海处理项目周报，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      },
+      {
+        "user_id": "hard_u_06",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "刚刚路上堵车心情差，别把它当成长期情绪。重要会议提前一天提醒我就好。",
+          "今天在深圳处理日程改期，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      },
+      {
+        "user_id": "hard_u_07",
+        "occupation": "老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "今天想安静一下，是因为临时材料太多，不代表以后不要开会。重要会议要提前一天通知。",
+          "今天在北京处理证据引用，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      },
+      {
+        "user_id": "hard_u_08",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "下午有点焦虑，只是发布前的临时状态。以后重要会议提前一天提醒我。",
+          "今天在杭州处理PKM 归档，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      },
+      {
+        "user_id": "hard_u_09",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "今天有点低落，主要是早会被临时打断了三次，不要把这个写成长期偏好。以后重要会议还是提前一天提醒我。",
+          "今天在上海处理工具调用，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      },
+      {
+        "user_id": "hard_u_10",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "今天很累，因为晚上没睡好，这只是今天的身体状态；但重要会议提前一天提醒这个规则要记住。",
+          "今天在深圳处理时间解析，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      },
+      {
+        "user_id": "hard_u_11",
+        "occupation": "老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "我现在不太想说话，只是下午连续开会后的临时反应，别写成长记忆。重要会议提前一天提醒我。",
+          "今天在北京处理冲突记忆，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      },
+      {
+        "user_id": "hard_u_12",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "今天有点烦，客服群消息太多了，这只是一次性状态；以后重要会议还是提前一天提醒。",
+          "今天在杭州处理只读问答，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      },
+      {
+        "user_id": "hard_u_13",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "今天脑子有点空，可能是午饭吃太少，不是长期习惯。重要会议提醒保持提前一天。",
+          "今天在上海处理来源追溯，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      },
+      {
+        "user_id": "hard_u_14",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "刚刚路上堵车心情差，别把它当成长期情绪。重要会议提前一天提醒我就好。",
+          "今天在深圳处理会议提醒，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      },
+      {
+        "user_id": "hard_u_15",
+        "occupation": "老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "今天想安静一下，是因为临时材料太多，不代表以后不要开会。重要会议要提前一天通知。",
+          "今天在北京处理预算复盘，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      },
+      {
+        "user_id": "hard_u_16",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 7,
+        "input_count": 98,
+        "task_count": 7,
+        "sample_inputs": [
+          "下午有点焦虑，只是发布前的临时状态。以后重要会议提前一天提醒我。",
+          "今天在杭州处理饮食限制，有点碎，但这只是背景，不要影响 memory_transient 的判断。"
+        ]
+      }
+    ]
+  },
+  "dataset_audit": {
+    "overall_score": 0.6,
+    "language_consistency": 0.7,
+    "persona_plausibility": 0.8,
+    "input_naturalness": 0.5,
+    "oracle_consistency": 0.3,
+    "coverage_notes": [
+      "样本仅覆盖了 `memory_transient` 和 `memory_conflict` 两个家族，其余5个家族（如 `card_ambiguous_time`, `pkm_organization` 等）无样本，无法评估。",
+      "提供的24个样本案例在结构和内容上高度同质化，可能无法代表整个数据集的多样性。"
+    ],
+    "issues": [
+      {
+        "case_id": "ALL_SAMPLE_CASES",
+        "severity": "high",
+        "issue": "样本覆盖严重不均衡，无法评估数据集整体质量。",
+        "suggestion": "需要从所有7个案例家族中抽取代表性样本进行审查。"
+      },
+      {
+        "case_id": "hard_memory_transient_01",
+        "severity": "high",
+        "issue": "Oracle泄漏：`eval_tasks.expected` 中的 `must_write` 和 `must_not_write` 要求直接、明确地源自 `input_stream` 的第一条消息（用户指令），使得任务变成了简单的指令遵循，而非基于隐藏真相的推理。",
+        "suggestion": "评估任务应基于 `ground_truth_world` 中隐含的、需要从对话历史中推断出的状态或规则，而非直接复述用户明确给出的指令。"
+      },
+      {
+        "case_id": "hard_memory_transient_01",
+        "severity": "medium",
+        "issue": "输入内容高度模板化和重复。所有 `memory_transient` 案例的第一条输入都遵循“表达临时情绪/状态 + 强调重要会议提前一天提醒”的固定模式，且后续上下文（context）也高度相似，只是替换了关键词（如“预算复盘”、“饮食限制”）。",
+        "suggestion": "增加用户表达的多样性和自然度，避免使用“不要把这个写成长期偏好”这类直接揭示任务目标的元指令。上下文应更贴近真实、连贯的对话流。"
+      },
+      {
+        "case_id": "hard_memory_conflict_01",
+        "severity": "high",
+        "issue": "Oracle泄漏：`eval_tasks.expected` 中的 `conflicts` 要求直接对应 `input_stream` 第一条消息中用户明确陈述的新旧偏好对比，任务本质是信息提取而非冲突消解推理。",
+        "suggestion": "冲突场景应设计得更隐蔽，例如新偏好在对话中逐渐浮现，或旧偏好存在于更早的、未直接引用的记忆中，需要Agent进行关联和判断。"
+      },
+      {
+        "case_id": "hard_memory_conflict_01",
+        "severity": "medium",
+        "issue": "所有 `memory_conflict` 案例都围绕“咖啡偏好”这一单一主题，且输入表述虽有变化但语义相同，缺乏多样性。",
+        "suggestion": "引入更多类型的偏好或事实冲突场景（如日程安排、工作习惯、饮食限制等）。"
+      },
+      {
+        "case_id": "ALL_CASES",
+        "severity": "medium",
+        "issue": "`context` 流中的许多消息包含“不要影响 memory_transient 的判断”、“先不用写成长记忆”等元指令，这在真实用户交互中极不自然，像是给评估系统的提示而非用户对话。",
+        "suggestion": "移除所有元指令，让上下文成为纯粹的用户与Agent或其他人的自然对话、笔记或状态更新。"
+      },
+      {
+        "case_id": "ALL_CASES",
+        "severity": "low",
+        "issue": "时间跨度设置（2026年5月）略显刻意，且每天都有密集输入，不太符合一般用户的实际使用频率。",
+        "suggestion": "时间设置可以更随机，输入频率可以更符合真实场景（如某些天无输入）。"
+      }
+    ],
+    "sample_reviews": [
+      {
+        "case_id": "hard_memory_transient_01",
+        "score": 0.4,
+        "reason": "典型的模板化案例，存在严重的oracle泄漏问题。评估任务直接复述用户指令，无法测试Agent的推理能力。"
+      },
+      {
+        "case_id": "hard_memory_transient_02",
+        "score": 0.4,
+        "reason": "与case 01结构完全相同，仅替换了职业、城市和少数词汇，问题性质一致。"
+      },
+      {
+        "case_id": "hard_memory_conflict_01",
+        "score": 0.3,
+        "reason": "冲突解决任务设计失败，答案直接来自用户输入。咖啡主题重复。"
+      },
+      {
+        "case_id": "hard_memory_conflict_02",
+        "score": 0.3,
+        "reason": "与conflict case 01本质相同，仅输入表述稍有变化，核心问题未变。"
+      }
+    ],
+    "reason": "数据集在语言和基础persona设置上合格，但存在根本性设计缺陷：1) 样本覆盖不全，无法评估整体；2) 评估任务存在严重的oracle泄漏，将复杂推理任务降级为简单指令遵循；3) 案例内容高度模板化和重复，缺乏自然对话的多样性和复杂性。因此，当前数据集不适合作为有效的Agent能力评估基准，需要重新设计任务逻辑并大幅扩充和多样化案例内容。"
+  },
+  "assertions": {
+    "passed": 496,
+    "total": 576,
+    "pass_rate": 0.8611111111111112,
+    "avg_score": 0.9044117647058824
+  },
+  "by_family": {
+    "memory_write": {
+      "passed": 80,
+      "total": 96,
+      "pass_rate": 0.8333333333333334,
+      "avg_score": 0.90625
+    },
+    "card_extraction": {
+      "passed": 100,
+      "total": 112,
+      "pass_rate": 0.8928571428571429,
+      "avg_score": 0.75
+    },
+    "retrieval_qa": {
+      "passed": 120,
+      "total": 128,
+      "pass_rate": 0.9375,
+      "avg_score": 1.0
+    },
+    "super_agent_qa": {
+      "passed": 64,
+      "total": 80,
+      "pass_rate": 0.8,
+      "avg_score": 0.875
+    },
+    "schedule_refresh": {
+      "passed": 68,
+      "total": 80,
+      "pass_rate": 0.85,
+      "avg_score": 1.0
+    },
+    "pkm_organization": {
+      "passed": 64,
+      "total": 80,
+      "pass_rate": 0.8,
+      "avg_score": 0.75
+    }
+  },
+  "by_metric": {
+    "memory_must_write_recall": {
+      "passed": 28,
+      "total": 32,
+      "pass_rate": 0.875,
+      "avg_score": 0.875
+    },
+    "memory_must_not_write_precision": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75
+    },
+    "memory_write_precision": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75,
+      "avg_score": 0.875
+    },
+    "memory_duplicate_rate": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_conflict_handling": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75
+    },
+    "card_schema_valid": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "card_type_accuracy": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "time_parse_accuracy": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75,
+      "avg_score": 0.75
+    },
+    "participant_recall": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75,
+      "avg_score": 0.75
+    },
+    "location_accuracy": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "title_constraint_accuracy": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75,
+      "avg_score": 0.75
+    },
+    "hallucinated_field_absence": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "retrieval_hit_at_1": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_3": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_5": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_mrr": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_recall_at_5": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "answer_must_include": {
+      "passed": 28,
+      "total": 28,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unsupported_claim_absence": {
+      "passed": 24,
+      "total": 32,
+      "pass_rate": 0.75
+    },
+    "unnecessary_uncertainty_absence": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0
+    },
+    "answer_source_citation": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "grounded_answer_rate": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "abstention_accuracy": {
+      "passed": 0,
+      "total": 4,
+      "pass_rate": 0.0
+    },
+    "prohibited_tool_absence": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75
+    },
+    "super_agent_read_only_compliance": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75
+    },
+    "personalization_accuracy": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75,
+      "avg_score": 0.75
+    },
+    "schedule_refresh_action_accuracy": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75
+    },
+    "schedule_refresh_unnecessary_absence": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75
+    },
+    "schedule_refresh_missed_absence": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "schedule_refresh_duplicate_rate": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75,
+      "avg_score": 1.0
+    },
+    "tool_selection_accuracy": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0
+    },
+    "tool_args_accuracy": {
+      "passed": 8,
+      "total": 8,
+      "pass_rate": 1.0
+    },
+    "pkm_path_accuracy": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75
+    },
+    "pkm_content_preservation": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75,
+      "avg_score": 0.75
+    },
+    "pkm_source_grounding": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75
+    },
+    "pkm_merge_split_quality": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0
+    },
+    "pkm_prohibited_content_absence": {
+      "passed": 12,
+      "total": 16,
+      "pass_rate": 0.75
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 112,
+    "tool_call_count": 16,
+    "avg_latency_ms": 1046.6666666666667,
+    "p95_latency_ms": 1200.0,
+    "avg_total_tokens": 2245.0,
+    "total_tokens": 251440
+  }
+}

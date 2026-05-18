@@ -1,0 +1,204 @@
+{
+  "run_id": "2026-05-13-retrieval-source-grounding-llm-sample",
+  "started_at": "2026-05-13T02:16:48.090148Z",
+  "benchmark_elapsed_ms": 425904,
+  "dataset_path": "evals/datasets/retrieval_source_grounding",
+  "adapter": "fixture",
+  "evidence_level": "fixture_smoke_needs_dataset_work",
+  "observation_contract": "fixture_observed",
+  "llm_judge_enabled": true,
+  "llm_judge_policy": "retrieval_and_super_agent_qa_unless_expected_llm_judge_false",
+  "llm_judge_assertion_count": 24,
+  "llm_judge_provider": "anthropic",
+  "llm_judge_model": "mimo-v2-pro",
+  "llm_judge_max_tokens": 4096,
+  "llm_judge_timeout_seconds": 240,
+  "case_count": 2,
+  "task_count": 24,
+  "dataset_summary": {
+    "case_count": 2,
+    "persona_count": 2,
+    "input_count": 200,
+    "task_count": 24,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "retrieval_source_grounding": 2
+    },
+    "tasks_by_type": {
+      "retrieval_qa": 24
+    },
+    "personas": [
+      {
+        "user_id": "retrieval_u_001",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "5月8日下午三点和Alex在腾讯会议讨论导出项目预算，重点看 CPA、ROAS 和退款率。",
+          "导出项目预算复盘 owner 先写Alex，后面问这个项目先找他对齐。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_002",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "5月8日下午三点和Jason在腾讯会议讨论北美站增长预算，重点看 CPA、ROAS 和退款率。",
+          "北美站增长预算复盘 owner 先写Jason，后面问这个项目先找他对齐。"
+        ]
+      }
+    ]
+  },
+  "dataset_audit": {
+    "overall_score": 0.6,
+    "language_consistency": 1.0,
+    "persona_plausibility": 0.8,
+    "input_naturalness": 0.6,
+    "oracle_consistency": 0.9,
+    "coverage_notes": [
+      "数据集专注于‘retrieval_source_grounding’家族，任务类型单一（均为retrieval_qa）。",
+      "覆盖了记忆、事件、笔记、PKM等多种来源类型，并测试了多源总结和未知问题处理。",
+      "两个案例结构高度平行，仅项目名、人名、城市等关键信息不同。"
+    ],
+    "issues": [
+      {
+        "case_id": "retrieval_grounding_002",
+        "severity": "high",
+        "issue": "案例002的输入流（input_stream）几乎是案例001的复制粘贴，仅替换了项目名（导出项目->北美站增长）和人名（Alex->Jason, Leo->Mina），缺乏独立生成的自然内容。",
+        "suggestion": "为案例002重新生成一套独立、多样化的输入流，反映其跨境电商运营的特定场景和对话，避免简单替换关键词。"
+      },
+      {
+        "case_id": "retrieval_grounding_001",
+        "severity": "medium",
+        "issue": "输入流中后期（约从input_13开始）大量条目内容高度重复，反复强调‘不要写成长期偏好’、‘没有记录就说不确定’等规则，显得冗余且不自然。",
+        "suggestion": "精简重复的规则性输入，或将其融入更具体、场景化的对话中，增加输入内容的多样性和信息密度。"
+      },
+      {
+        "case_id": "retrieval_grounding_001",
+        "severity": "low",
+        "issue": "部分eval_tasks的查询（如‘unknown_travel’, ‘unknown_medical’）在两个案例中完全相同，虽然测试了不确定性处理，但降低了任务多样性。",
+        "suggestion": "为不同persona设计更贴合其职业或生活场景的‘未知问题’查询。"
+      }
+    ],
+    "sample_reviews": [
+      {
+        "case_id": "retrieval_grounding_001",
+        "score": 0.7,
+        "reason": "语言地道，persona合理，oracle一致性高。主要扣分点在于输入流中后期存在大量重复、模板化的规则强调，降低了自然度。"
+      },
+      {
+        "case_id": "retrieval_grounding_002",
+        "score": 0.5,
+        "reason": "语言和oracle一致性良好，但输入流与案例001高度雷同，存在严重的模板化复制问题，严重影响了数据的自然性和评估价值。"
+      }
+    ],
+    "reason": "数据集在语言、persona设计和oracle一致性方面基础良好，但存在严重的模板化重复问题，特别是第二个案例几乎完全复制第一个案例的结构和内容，导致输入自然度和整体多样性不足，需大幅修改后方可用于可靠评估。"
+  },
+  "assertions": {
+    "passed": 236,
+    "total": 236,
+    "pass_rate": 1.0,
+    "avg_score": 1.0
+  },
+  "by_family": {
+    "retrieval_qa": {
+      "passed": 236,
+      "total": 236,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "by_metric": {
+    "retrieval_hit_at_1": {
+      "passed": 20,
+      "total": 20,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_3": {
+      "passed": 20,
+      "total": 20,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_5": {
+      "passed": 20,
+      "total": 20,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_mrr": {
+      "passed": 20,
+      "total": 20,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_recall_at_5": {
+      "passed": 20,
+      "total": 20,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_filter_accuracy": {
+      "passed": 18,
+      "total": 18,
+      "pass_rate": 1.0
+    },
+    "answer_must_include": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unnecessary_uncertainty_absence": {
+      "passed": 20,
+      "total": 20,
+      "pass_rate": 1.0
+    },
+    "answer_source_citation": {
+      "passed": 20,
+      "total": 20,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "grounded_answer_rate": {
+      "passed": 20,
+      "total": 20,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "llm_grounded_answer_score": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unsupported_claim_absence": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0
+    },
+    "abstention_accuracy": {
+      "passed": 4,
+      "total": 4,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 24,
+    "tool_call_count": 48,
+    "avg_latency_ms": 380.0,
+    "p95_latency_ms": 900.0,
+    "avg_total_tokens": 2220.0,
+    "total_tokens": 53280
+  }
+}

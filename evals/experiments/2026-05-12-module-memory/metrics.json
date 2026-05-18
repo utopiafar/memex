@@ -1,0 +1,147 @@
+{
+  "run_id": "2026-05-12-module-memory",
+  "started_at": "2026-05-12T10:17:36.171896Z",
+  "benchmark_elapsed_ms": 47,
+  "dataset_path": "evals/datasets/modules/memory",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 6,
+  "task_count": 6,
+  "dataset_summary": {
+    "case_count": 6,
+    "persona_count": 4,
+    "input_count": 227,
+    "task_count": 6,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "memory_conflict": 2,
+      "memory_write": 4
+    },
+    "tasks_by_type": {
+      "memory_write": 6
+    },
+    "personas": [
+      {
+        "user_id": "module_u_001",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 37,
+        "task_count": 1,
+        "sample_inputs": [
+          "早上先看一下昨天广告账户的消耗，今天预算别太激进。",
+          "午饭别订海鲜，最近过敏又有点反复。"
+        ]
+      },
+      {
+        "user_id": "module_u_002",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 2,
+        "input_count": 76,
+        "task_count": 2,
+        "sample_inputs": [
+          "早上先过一遍版本风险，今天别被零碎需求打散。",
+          "以后评审材料希望结论先行，细节放后面。"
+        ]
+      },
+      {
+        "user_id": "module_u_003",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 38,
+        "task_count": 1,
+        "sample_inputs": [
+          "早上先跑昨天的数据质量检查，看有没有埋点延迟。",
+          "以后异常分析先看样本量，再看比例变化。"
+        ]
+      },
+      {
+        "user_id": "module_u_004",
+        "occupation": "高校老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 2,
+        "input_count": 76,
+        "task_count": 2,
+        "sample_inputs": [
+          "早上先看学生发来的论文摘要，今天课前只能粗读。",
+          "公开课提醒要提前两天准备讲义。"
+        ]
+      }
+    ]
+  },
+  "assertions": {
+    "passed": 31,
+    "total": 31,
+    "pass_rate": 1.0,
+    "avg_score": 1.0
+  },
+  "by_family": {
+    "memory_write": {
+      "passed": 31,
+      "total": 31,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "by_metric": {
+    "memory_must_write_recall": {
+      "passed": 5,
+      "total": 5,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_source_grounding": {
+      "passed": 5,
+      "total": 5,
+      "pass_rate": 1.0
+    },
+    "memory_must_not_write_precision": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "memory_write_precision": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_duplicate_rate": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_conflict_handling": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "memory_temporal_validity": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "sensitive_overwrite_absence": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 0,
+    "tool_call_count": 0,
+    "avg_latency_ms": 0.0,
+    "p95_latency_ms": 0.0,
+    "avg_total_tokens": 0.0,
+    "total_tokens": 0
+  }
+}

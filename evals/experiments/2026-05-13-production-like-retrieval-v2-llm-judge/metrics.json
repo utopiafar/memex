@@ -1,0 +1,355 @@
+{
+  "run_id": "2026-05-13-production-like-retrieval-v2-llm-judge",
+  "started_at": "2026-05-13T04:20:08.443650Z",
+  "benchmark_elapsed_ms": 802107,
+  "dataset_path": "evals/datasets/production_like_retrieval_v2",
+  "adapter": "fixture",
+  "evidence_level": "audited_synthetic_fixture",
+  "observation_contract": "fixture_observed",
+  "llm_judge_enabled": true,
+  "llm_judge_policy": "retrieval_and_super_agent_qa_unless_expected_llm_judge_false",
+  "llm_judge_assertion_count": 47,
+  "llm_judge_provider": "anthropic",
+  "llm_judge_model": "mimo-v2-pro",
+  "llm_judge_max_tokens": 4096,
+  "llm_judge_timeout_seconds": 180,
+  "case_count": 12,
+  "task_count": 47,
+  "dataset_summary": {
+    "case_count": 12,
+    "persona_count": 12,
+    "input_count": 78,
+    "task_count": 47,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "production_retrieval_v2_chronic_care": 1,
+      "production_retrieval_v2_construction_architect": 1,
+      "production_retrieval_v2_family_caregiver": 1,
+      "production_retrieval_v2_finance_fpna": 1,
+      "production_retrieval_v2_game_design": 1,
+      "production_retrieval_v2_growth_product": 1,
+      "production_retrieval_v2_investigative_editor": 1,
+      "production_retrieval_v2_ops_warehouse": 1,
+      "production_retrieval_v2_restaurant_owner": 1,
+      "production_retrieval_v2_sre_incident": 1,
+      "production_retrieval_v2_technical_recruiting": 1,
+      "production_retrieval_v2_ux_research": 1
+    },
+    "tasks_by_type": {
+      "retrieval_qa": 47
+    },
+    "personas": [
+      {
+        "user_id": "v2_architect_site_001",
+        "occupation": "建筑设计项目经理",
+        "city": "重庆",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 3,
+        "sample_inputs": [
+          "南塔现场巡检是 5月15日下午四点，照片 P12 到 P18 都是幕墙龙骨偏差，别只写“外立面问题”。",
+          "照片 OCR 可用信息：临边防护缺两处，材料堆放挡消防通道，幕墙龙骨最大偏差 8mm。"
+        ]
+      },
+      {
+        "user_id": "v2_caregiver_001",
+        "occupation": "双职工家长",
+        "city": "苏州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "5月24日早上九点儿童医院复查，带过敏记录和上次化验单，别忘。",
+          "老师今天反馈三件事：午睡短，体育课后咳嗽一次，手工课找不到蓝色文件夹。先别紧张。"
+        ]
+      },
+      {
+        "user_id": "v2_clinic_followup_001",
+        "occupation": "慢病随访医生",
+        "city": "南京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "随访反馈有点散：三位说夜间咳嗽，两位找不到问卷入口，还有一位一直问隐私授权，先记成反馈，不是诊断。",
+          "5月16日下午三点和周医生评审门诊随访表单，带隐私授权截图，还有问卷漏斗。"
+        ]
+      },
+      {
+        "user_id": "v2_editor_001",
+        "occupation": "深度报道编辑",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 7,
+        "task_count": 4,
+        "sample_inputs": [
+          "5月6日晚上 7:30 和线人 M 电话，对方只愿意匿名引用，别写实名。",
+          "M 的两条线索目前交叉验证过：采购绕过二次审批，验收记录晚于付款日期。语气克制点。"
+        ]
+      },
+      {
+        "user_id": "v2_finance_fpna_001",
+        "occupation": "FP&A 分析师",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 7,
+        "task_count": 4,
+        "sample_inputs": [
+          "Q2 最新 forecast：保守 1280 万，乐观 1410 万，云成本上涨会压毛利率。这个是今晚版本。",
+          "5月13日早上九点半预算委员会，看 Q2 forecast、云成本、续费率，别只讲收入。"
+        ]
+      },
+      {
+        "user_id": "v2_game_designer_001",
+        "occupation": "独立游戏设计师",
+        "city": "武汉",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "第 4 章 playtest：12 个人里 7 个卡灯塔谜题，平均通关 38 分钟，还有 2 个说音乐太压迫。",
+          "5月21日晚上九点章节 4 bug bash，重点看存档丢失和灯塔交互提示。"
+        ]
+      },
+      {
+        "user_id": "v2_ops_warehouse_001",
+        "occupation": "仓配运营负责人",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "夜里 3:18 西区分拣线扫码枪离线，3:42 临时切手工复核。我有点困，先把时间线记准。",
+          "异常影响复盘：错分 17 单，延迟出库 43 单，投诉主要是生鲜延误。"
+        ]
+      },
+      {
+        "user_id": "v2_prod_growth_001",
+        "occupation": "增长产品经理",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 7,
+        "task_count": 4,
+        "sample_inputs": [
+          "Kai 那场邀请链路 A/B 评审是 5 月 11 日下午两点。低线城市新用户转化不行，别只看总盘。",
+          "邀请链路今天的数据有点拧巴：老用户邀请转化 8.2%，新用户 4.7%，弹窗关闭率 31%，大图文投诉更多。"
+        ]
+      },
+      {
+        "user_id": "v2_recruiter_001",
+        "occupation": "技术招聘负责人",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 7,
+        "task_count": 4,
+        "sample_inputs": [
+          "5月22日下午三点面 Lin，Agent 算法工程师，面试官 Tao 和 Mina。",
+          "Lin 面试反馈：检索评估讲得清楚，工程落地一般，追问 LLM judge 校准的时候有点虚。"
+        ]
+      },
+      {
+        "user_id": "v2_restaurant_001",
+        "occupation": "餐厅主理人",
+        "city": "厦门",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 7,
+        "task_count": 4,
+        "sample_inputs": [
+          "旧报价先留着：三文鱼 68 元/斤，但后面供应商应该会更新。",
+          "供应商邮件：5月12日最新，三文鱼 74 一斤，青口 22 一斤；三文鱼到货不稳定。"
+        ]
+      },
+      {
+        "user_id": "v2_sre_001",
+        "occupation": "数据平台 SRE",
+        "city": "西安",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 7,
+        "task_count": 4,
+        "sample_inputs": [
+          "2:17 数据同步延迟告警，2:41 暂停低优先级回填，3:05 恢复。时间线别写乱。",
+          "事故影响：最大延迟 48 分钟，影响 BI 看板 6 个，没有影响线上交易链路。"
+        ]
+      },
+      {
+        "user_id": "v2_ux_research_001",
+        "occupation": "用户研究员",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "5月18日上午访了 P03、P07、P11 三个新手用户，时间 10 点到 12 点。",
+          "访谈观察先记：P03 找不到导入入口，P07 误解同步状态，P11 一直担心历史记录丢失。别写真名。"
+        ]
+      }
+    ]
+  },
+  "dataset_audit": {
+    "overall_score": 0.9,
+    "language_consistency": 1.0,
+    "persona_plausibility": 0.95,
+    "input_naturalness": 0.9,
+    "oracle_consistency": 0.95,
+    "coverage_notes": [
+      "覆盖12种不同职业，地域分布广泛（北京、上海、深圳、重庆、南京、苏州、杭州、厦门、武汉、成都、广州、西安），场景多样。",
+      "输入类型丰富，包含会议记录、语音转文字、日历笔记、OCR结果、邮件剪辑等，符合真实工作场景。",
+      "每个案例均包含3个检索问答任务和1个需要拒绝回答（abstain）的任务，结构完整。",
+      "噪声条目设计合理，能模拟真实环境中的无关信息、语音识别错误和用户情绪表达。"
+    ],
+    "issues": [
+      {
+        "case_id": "production_retrieval_v2_technical_recruiting",
+        "severity": "low",
+        "issue": "候选人信息（Lin 和 Chen）在输入中同时出现，虽有区分提示，但对模型检索的精确性要求较高，可能造成轻微混淆。",
+        "suggestion": "可考虑在评估任务的 `expected_filters` 中更明确地强调 `candidate: \"Lin\"`，或在输入中增加一条更明确的区分指令。"
+      },
+      {
+        "case_id": "production_retrieval_v2_chronic_care",
+        "severity": "low",
+        "issue": "噪声条目 `cc_noise_02` 中提到的语音识别错误（“隐私瘦全”）可能过于具体和生硬，略微降低了自然度。",
+        "suggestion": "可以调整为更通用的表述，如“语音识别常把‘授权’听错，注意结合上下文判断”。"
+      }
+    ],
+    "sample_reviews": [
+      {
+        "case_id": "production_retrieval_v2_growth_product",
+        "score": 0.95,
+        "reason": "角色（增长产品经理）专业性强，输入包含具体数据（8.2%，4.7%）和决策，噪声（如地铁噪音、预算焦虑）自然，评估任务能很好检验对新老用户拆分、决策依据和信息边界（旧数据、未知预算）的理解。"
+      },
+      {
+        "case_id": "production_retrieval_v2_ops_warehouse",
+        "score": 0.9,
+        "reason": "仓配运营场景真实，输入包含精确时间线（3:18, 3:42）和影响数据（错分17单），噪声（语音识别混淆“手工”与“收工”）贴合实际。评估任务覆盖事件复盘、流程查询和用户偏好记忆。"
+      },
+      {
+        "case_id": "production_retrieval_v2_investigative_editor",
+        "score": 0.9,
+        "reason": "深度报道编辑的角色设定和职业操守（区分已核实、待核实、传闻）非常真实。输入内容（线人访谈、线索验证）和评估任务（验证线索、引用限制、处理传闻）高度契合，体现了领域特殊性。"
+      },
+      {
+        "case_id": "production_retrieval_v2_restaurant_owner",
+        "score": 0.85,
+        "reason": "餐厅主理人场景生活化，输入包含报价更新、过敏提醒等关键信息。评估任务能有效检验对最新信息、过敏优先级和未知信息（配酒）的处理。噪声（语音识别“青口”为“清口”）合理。"
+      },
+      {
+        "case_id": "production_retrieval_v2_sre_incident",
+        "score": 0.9,
+        "reason": "SRE事故复盘场景专业，输入包含精确时间线、影响范围和处理流程。评估任务覆盖事件复盘、runbook查询和安全边界（密钥）。噪声（语音识别错误、疲劳状态）自然。"
+      }
+    ],
+    "reason": "数据集整体质量很高。语言稳定为中文且自然，12个职业角色设定可信且体现了领域差异（如医生的诊断边界、编辑的核实要求、SRE的安全意识）。输入内容多样，包含工作记录、语音转写、日历事件等，信息密度适中且有自然噪声。ground_truth_world、input_stream与eval_tasks之间高度一致，预期答案均可从给定信息中合理推出，无明显oracle泄漏。虽有极个别轻微可优化点（如候选人区分），但完全满足作为小规模benchmark数据的要求。"
+  },
+  "assertions": {
+    "passed": 440,
+    "total": 440,
+    "pass_rate": 1.0,
+    "avg_score": 1.0
+  },
+  "by_family": {
+    "retrieval_qa": {
+      "passed": 440,
+      "total": 440,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "by_metric": {
+    "retrieval_hit_at_1": {
+      "passed": 36,
+      "total": 36,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_3": {
+      "passed": 36,
+      "total": 36,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_5": {
+      "passed": 36,
+      "total": 36,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_mrr": {
+      "passed": 36,
+      "total": 36,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_recall_at_5": {
+      "passed": 36,
+      "total": 36,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_filter_accuracy": {
+      "passed": 36,
+      "total": 36,
+      "pass_rate": 1.0
+    },
+    "answer_must_include": {
+      "passed": 47,
+      "total": 47,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unnecessary_uncertainty_absence": {
+      "passed": 36,
+      "total": 36,
+      "pass_rate": 1.0
+    },
+    "answer_source_citation": {
+      "passed": 36,
+      "total": 36,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "grounded_answer_rate": {
+      "passed": 36,
+      "total": 36,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "llm_grounded_answer_score": {
+      "passed": 47,
+      "total": 47,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unsupported_claim_absence": {
+      "passed": 11,
+      "total": 11,
+      "pass_rate": 1.0
+    },
+    "abstention_accuracy": {
+      "passed": 11,
+      "total": 11,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 47,
+    "tool_call_count": 166,
+    "avg_latency_ms": 294.4319248826291,
+    "p95_latency_ms": 980.0,
+    "avg_total_tokens": 1872.127659574468,
+    "total_tokens": 87990
+  }
+}

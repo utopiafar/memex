@@ -1,0 +1,183 @@
+{
+  "run_id": "2026-05-12-full-chain-medium-llm-expanded",
+  "started_at": "2026-05-11T17:49:22.926990Z",
+  "dataset_path": "evals/datasets/full_chain_medium",
+  "adapter": "replay_file",
+  "llm_judge_enabled": false,
+  "case_count": 6,
+  "task_count": 18,
+  "dataset_summary": {
+    "case_count": 6,
+    "persona_count": 6,
+    "input_count": 12,
+    "task_count": 18,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "full_chain_replay": 6
+    },
+    "tasks_by_type": {
+      "card_extraction": 12,
+      "cost_trace": 6
+    },
+    "personas": [
+      {
+        "user_id": "eval_fc_medium_001",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 2,
+        "task_count": 3,
+        "sample_inputs": [
+          "明天上午十点提醒我和 Ada 过一下投流预算。",
+          "周五下午三点和老王在腾讯会议复盘客户续约，记一下。"
+        ]
+      },
+      {
+        "user_id": "eval_fc_medium_002",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 2,
+        "task_count": 3,
+        "sample_inputs": [
+          "下周三晚上七点提醒我去望京和 Annie 吃饭。",
+          "今天下班前提醒我把数据看板周报发给 Leo。"
+        ]
+      },
+      {
+        "user_id": "eval_fc_medium_003",
+        "occupation": "律师",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 2,
+        "task_count": 3,
+        "sample_inputs": [
+          "5月16日下午两点和 Mina 线上确认合同风险。",
+          "明早九点提醒我检查版本灰度监控和回滚预案。"
+        ]
+      },
+      {
+        "user_id": "eval_fc_medium_004",
+        "occupation": "财务主管",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 2,
+        "task_count": 3,
+        "sample_inputs": [
+          "周四中午前提醒我确认供应商付款清单。",
+          "明天下午四点和 Jason 讨论预算调整，地点飞书会议。"
+        ]
+      },
+      {
+        "user_id": "eval_fc_medium_005",
+        "occupation": "内容运营",
+        "city": "苏州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 2,
+        "task_count": 3,
+        "sample_inputs": [
+          "这周五提醒我整理小红书活动复盘素材。",
+          "5月18日上午十点和 Grace 看一下选题排期。"
+        ]
+      },
+      {
+        "user_id": "eval_fc_medium_006",
+        "occupation": "数据分析师",
+        "city": "武汉",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 2,
+        "task_count": 3,
+        "sample_inputs": [
+          "明天早上提醒我检查实验埋点有没有漏字段。",
+          "周三下午两点和小陈复盘转化漏斗异常。"
+        ]
+      }
+    ]
+  },
+  "assertions": {
+    "passed": 39,
+    "total": 78,
+    "pass_rate": 0.5,
+    "avg_score": 0.38295833333333335
+  },
+  "by_family": {
+    "card_extraction": {
+      "passed": 18,
+      "total": 48,
+      "pass_rate": 0.375,
+      "avg_score": 0.16666666666666666
+    },
+    "cost_trace": {
+      "passed": 21,
+      "total": 30,
+      "pass_rate": 0.7,
+      "avg_score": 0.59925
+    }
+  },
+  "by_metric": {
+    "card_schema_valid": {
+      "passed": 2,
+      "total": 12,
+      "pass_rate": 0.16666666666666666
+    },
+    "card_status_accuracy": {
+      "passed": 2,
+      "total": 12,
+      "pass_rate": 0.16666666666666666
+    },
+    "title_constraint_accuracy": {
+      "passed": 2,
+      "total": 12,
+      "pass_rate": 0.16666666666666666,
+      "avg_score": 0.16666666666666666
+    },
+    "hallucinated_field_absence": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0
+    },
+    "total_token_budget": {
+      "passed": 4,
+      "total": 6,
+      "pass_rate": 0.6666666666666666,
+      "avg_score": 0.19849999999999998
+    },
+    "latency_budget": {
+      "passed": 5,
+      "total": 6,
+      "pass_rate": 0.8333333333333334
+    },
+    "tool_call_budget": {
+      "passed": 5,
+      "total": 6,
+      "pass_rate": 0.8333333333333334
+    },
+    "task_completion_status": {
+      "passed": 1,
+      "total": 6,
+      "pass_rate": 0.16666666666666666
+    },
+    "cost_answer_must_include": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 213,
+    "tool_call_count": 666,
+    "avg_latency_ms": 860.3268945022288,
+    "p95_latency_ms": 0.0,
+    "avg_total_tokens": 1396.8967136150234,
+    "total_tokens": 297539
+  }
+}

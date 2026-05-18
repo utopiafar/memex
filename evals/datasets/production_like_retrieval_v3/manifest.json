@@ -1,0 +1,65 @@
+{
+  "dataset_id": "memex_production_like_retrieval_v3",
+  "version": 3,
+  "description": "生产贴近 Retrieval QA 扩展样本 v3：在 v2 基础上扩到更多行业、更多输入和更不规则任务结构。",
+  "created_at": "2026-05-13",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "persona_count": 24,
+  "case_count": 24,
+  "input_count": 150,
+  "task_count": 94,
+  "families": [
+    "production_retrieval_v3_seed_growth_product",
+    "production_retrieval_v3_cross_border_ecommerce",
+    "production_retrieval_v3_seed_chronic_care",
+    "production_retrieval_v3_robotics_lab",
+    "production_retrieval_v3_seed_finance_fpna",
+    "production_retrieval_v3_climate_analyst",
+    "production_retrieval_v3_seed_ops_warehouse",
+    "production_retrieval_v3_museum_curator",
+    "production_retrieval_v3_seed_ux_research",
+    "production_retrieval_v3_podcast_producer",
+    "production_retrieval_v3_seed_investigative_editor",
+    "production_retrieval_v3_patent_agent",
+    "production_retrieval_v3_seed_restaurant_owner",
+    "production_retrieval_v3_counselor_ops",
+    "production_retrieval_v3_seed_construction_architect",
+    "production_retrieval_v3_travel_planner",
+    "production_retrieval_v3_seed_game_design",
+    "production_retrieval_v3_open_source_maintainer",
+    "production_retrieval_v3_seed_technical_recruiting",
+    "production_retrieval_v3_farm_coop_manager",
+    "production_retrieval_v3_seed_family_caregiver",
+    "production_retrieval_v3_insurance_adjuster",
+    "production_retrieval_v3_seed_sre_incident",
+    "production_retrieval_v3_university_lab_manager"
+  ],
+  "lineage": {
+    "extends_dataset": "memex_production_like_retrieval_v2",
+    "v2_seed_case_count": 12,
+    "new_case_count": 12,
+    "v2_fixes_applied": [
+      "chronic_care_voice_noise_made_less_artificial",
+      "technical_recruiting_candidate_filter_made_explicit"
+    ]
+  },
+  "complexity_dimensions": [
+    "multi_source_answer",
+    "latest_update_vs_old_record",
+    "domain_specific_persona",
+    "weakly_related_noise",
+    "voice_transcript_chatter",
+    "screenshot_or_email_like_input",
+    "similar_entity_distractor",
+    "sensitive_boundary",
+    "abstention_for_unknown_fact",
+    "uneven_task_count_per_case"
+  ],
+  "notes": [
+    "v3 继承 v2 中已审计的复杂 retrieval 场景，并新增 12 个行业样本。",
+    "新增样本刻意让 task 数、source 数和拒答比例不完全一致，避免“每个 case 都一样”的模板感。",
+    "仍是 fixture adapter，用于验证 harness、指标和 LLM judge；不能替代真实 Memex replay。"
+  ]
+}

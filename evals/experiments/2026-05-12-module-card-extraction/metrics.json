@@ -1,0 +1,150 @@
+{
+  "run_id": "2026-05-12-module-card-extraction",
+  "started_at": "2026-05-12T10:17:35.940973Z",
+  "benchmark_elapsed_ms": 75,
+  "dataset_path": "evals/datasets/modules/card_extraction",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 4,
+  "task_count": 4,
+  "dataset_summary": {
+    "case_count": 4,
+    "persona_count": 3,
+    "input_count": 149,
+    "task_count": 4,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "card_extraction": 4
+    },
+    "tasks_by_type": {
+      "card_extraction": 4
+    },
+    "personas": [
+      {
+        "user_id": "module_u_001",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 2,
+        "input_count": 75,
+        "task_count": 2,
+        "sample_inputs": [
+          "早上先看一下昨天广告账户的消耗，今天预算别太激进。",
+          "午饭别订海鲜，最近过敏又有点反复。"
+        ]
+      },
+      {
+        "user_id": "module_u_002",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 37,
+        "task_count": 1,
+        "sample_inputs": [
+          "早上先过一遍版本风险，今天别被零碎需求打散。",
+          "以后评审材料希望结论先行，细节放后面。"
+        ]
+      },
+      {
+        "user_id": "module_u_004",
+        "occupation": "高校老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 37,
+        "task_count": 1,
+        "sample_inputs": [
+          "早上先看学生发来的论文摘要，今天课前只能粗读。",
+          "公开课提醒要提前两天准备讲义。"
+        ]
+      }
+    ]
+  },
+  "assertions": {
+    "passed": 29,
+    "total": 29,
+    "pass_rate": 1.0,
+    "avg_score": 1.0
+  },
+  "by_family": {
+    "card_extraction": {
+      "passed": 29,
+      "total": 29,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "by_metric": {
+    "card_schema_valid": {
+      "passed": 4,
+      "total": 4,
+      "pass_rate": 1.0
+    },
+    "card_type_accuracy": {
+      "passed": 4,
+      "total": 4,
+      "pass_rate": 1.0
+    },
+    "time_parse_accuracy": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "participant_recall": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "location_accuracy": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    },
+    "title_constraint_accuracy": {
+      "passed": 4,
+      "total": 4,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "hallucinated_field_absence": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "entity_recall": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "input_to_card_latency": {
+      "passed": 2,
+      "total": 2,
+      "pass_rate": 1.0
+    },
+    "card_field_constraint_accuracy": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "card_status_accuracy": {
+      "passed": 1,
+      "total": 1,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 0,
+    "tool_call_count": 0,
+    "avg_latency_ms": 0.0,
+    "p95_latency_ms": 0.0,
+    "avg_total_tokens": 0.0,
+    "total_tokens": 0
+  }
+}
