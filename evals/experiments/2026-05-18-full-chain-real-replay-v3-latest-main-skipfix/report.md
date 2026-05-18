@@ -8,6 +8,7 @@
 - 长跑闭环：首分片完成 case 1-12 后被 Flutter test 默认 240 分钟超时截断；随后增加 `MEMEX_EVAL_CASE_OFFSET` 和 `MEMEX_EVAL_TEST_TIMEOUT_MINUTES` 后从 case offset 12 续跑 case 13-16。两段 observations 合并后覆盖全部 16 case、96 task。
 - 时间口径：自动报告中的 `Replay 实测耗时` 来自首分片；本次正式解读使用合并后的 case 观察耗时 `5小时15分02秒`。其中首分片 3小时55分56秒，tail 分片 1小时19分07秒。
 - 结论：原先“明确不要长期化/噪声/临时状态”的 no-op path 在本轮没有复现为失败，`memory_must_not_write_precision` 为 32/32。剩余不稳定主要是新的 PKM 复杂内容 loop、Knowledge Insight max-turn 后可恢复重试、Schedule Aggregator 一次 max-turn 后未在窗口内收敛，以及标题/记忆召回/问答完整性质量不足。
+- 未收敛 case 详细复盘见 `non_converged_cases.md`。已提交上游问题：PKM loopDetection https://github.com/memex-lab/memex/issues/146；Schedule Aggregator no-op completion https://github.com/memex-lab/memex/issues/147。
 
 ### 主要失败形态
 
