@@ -31,6 +31,14 @@ Future<void> processWithPkmAgent({
   try {
     _logger.info("processWithPkmAgent for $factId (dryRun: $dryRun)");
 
+    final skipDecision = PkmAgent.detectNonPersistentInput(contentText);
+    if (skipDecision.shouldSkip) {
+      _logger.info(
+        'Skipping PKM agent for $factId because input is non-persistent: ${skipDecision.toJson()}',
+      );
+      return;
+    }
+
     // Skip if LLM is not configured.
     final llmConfig = await UserStorage.getAgentLLMConfig(
       AgentDefinitions.pkmAgent,
@@ -73,13 +81,20 @@ Future<void> processWithPkmAgent({
     );
 
     // 4. Run Agent
-    await PkmAgent.runWithContent(
+    final completion = await PkmAgent.runWithContent(
       client: client,
       modelConfig: resources.modelConfig,
       userId: userId,
       factId: factId,
       instruction: instruction,
     );
+
+    if (completion.skippedPkm) {
+      _logger.info(
+        'PKM agent completed with non-persistent skip for $factId: ${completion.toJson()}',
+      );
+      return;
+    }
 
     await MemorySyncService.instance.enqueueFact(userId, factId);
   } catch (e, stack) {

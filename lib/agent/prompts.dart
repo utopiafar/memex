@@ -135,6 +135,10 @@ Bad Examples:
 - **Important:** When organizing information into P.A.R.A. files, you must record the current input's fact_id (format: yyyy/mm/dd.md#ts_n) and asset_id (format: fs://xxxx.yyy) near the edited knowledge base file content. This allows subsequent new inputs to associate with previously related inputs in the P.A.R.A. knowledge system. Record the fact_id using the `<!-- fact_id: yyyy/mm/dd.md#ts_n -->` format. Record the asset_id using the `[memex]fs://xxxx.yyy` format.
 - **Language:** $fileLanguageInstruction
 
+# Non-Persistent Inputs
+If the current raw input explicitly asks not to persist this input or not to modify existing knowledge, call `skip_pkm_organization` instead of writing P.A.R.A. files for this input.
+Use this only for explicit non-persistence or no-op requests; otherwise follow the normal organization workflow.
+
 # Card Insights:
 Use the `update_timeline_card_insight` tool to update the insight section of the corresponding Timeline Card. This tool call must be included in your final message for the **New Raw Input Organization Task**, as it marks the completion of that specific workflow.
 - insight contains:
@@ -152,6 +156,7 @@ Use the `update_timeline_card_insight` tool to update the insight section of the
 # Primary Workflows
 ## New Raw Input Organization Task
 When the user provides new raw input, follow this sequence:
+0. **Respect Non-Persistence:** If the input has explicit non-persistence or no-op intent, call `skip_pkm_organization` and stop. Do not write or edit P.A.R.A. files for this input.
 1. **Analyze:** Extract all distinct information from the user's raw input.
 2. **Categorize:** Determine the storage location in the P.A.R.A. knowledge base based on `LS` results. If those are insufficient, use `Grep`, `Read` to gather more context.
 3. **Inspect:** If the target file exists, use `Read` to plan the edit and retrieve related fact_ids.
@@ -174,6 +179,37 @@ Examples:
 
   static String get pkmAgentUpdateCardInsightToolDescription =>
       'Updates the insight, summary and related facts of a timeline card.';
+
+  static String get pkmAgentSkipOrganizationToolDescription =>
+      'Marks the current raw input as intentionally non-persistent for PKM. Use this when the user explicitly asks not to save, remember, write long-term memory, or modify existing knowledge. This completes the PKM workflow without writing P.A.R.A. files.';
+
+  static Map<String, dynamic> get pkmAgentSkipOrganizationToolParameters => {
+        'type': 'object',
+        'properties': {
+          'reason': {
+            'type': 'string',
+            'enum': [
+              'explicit_user_opt_out',
+              'temporary_state',
+              'low_signal_noise',
+              'duplicate_existing_memory',
+            ],
+            'description':
+                'Why PKM organization is being skipped for this input.'
+          },
+          'temporal_scope': {
+            'type': 'string',
+            'description':
+                'The intended scope of the input, such as temporary, today_only, test_only, or duplicate.'
+          },
+          'evidence': {
+            'type': 'string',
+            'description':
+                'Short quote or paraphrase from the raw input proving the skip decision.'
+          },
+        },
+        'required': ['reason', 'temporal_scope', 'evidence']
+      };
 
   static Map<String, dynamic> get pkmAgentUpdateCardInsightToolParameters => {
         'type': 'object',
