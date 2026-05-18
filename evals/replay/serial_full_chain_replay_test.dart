@@ -63,24 +63,38 @@ void main() {
 
       final router = MemexRouter();
       final allCases = await _loadCases(datasetPath);
+      final caseOffset = _intFromEnv('MEMEX_EVAL_CASE_OFFSET') ?? 0;
       final caseLimit = _intFromEnv('MEMEX_EVAL_CASE_LIMIT');
-      final cases =
-          caseLimit == null ? allCases : allCases.take(caseLimit).toList();
+      if (caseOffset < 0 || caseOffset >= allCases.length) {
+        throw StateError(
+          'MEMEX_EVAL_CASE_OFFSET=$caseOffset is outside dataset range '
+          '0..${allCases.length - 1}.',
+        );
+      }
+      final offsetCases = allCases.skip(caseOffset);
+      final cases = caseLimit == null
+          ? offsetCases.toList()
+          : offsetCases.take(caseLimit).toList();
       final observations = <Map<String, dynamic>>[];
       final summaries = <Map<String, dynamic>>[];
       final suiteStartedAt = DateTime.now();
 
       stdout.writeln(
         '[serial replay] start dataset=$datasetPath cases=${cases.length} '
+        'case_offset=$caseOffset total_cases=${allCases.length} '
         'llm_enabled=$_llmEnabled task_wait_policy=$_taskWaitPolicyDescription '
         'status_interval=${_formatDuration(_statusInterval)} '
         'max_concurrency=1',
       );
 
       try {
-        for (var caseIndex = 0; caseIndex < cases.length; caseIndex++) {
-          final evalCase = cases[caseIndex];
-          final caseId = evalCase['case_id']?.toString() ?? 'case_$caseIndex';
+        for (var localCaseIndex = 0;
+            localCaseIndex < cases.length;
+            localCaseIndex++) {
+          final globalCaseIndex = caseOffset + localCaseIndex;
+          final evalCase = cases[localCaseIndex];
+          final caseId =
+              evalCase['case_id']?.toString() ?? 'case_$globalCaseIndex';
           final operations = (_list(evalCase['operations'])).map(_map).toList();
           final dataRoot = await Directory.systemTemp.createTemp(
             'memex_serial_${caseId}_',
@@ -88,7 +102,7 @@ void main() {
 
           LocalTaskExecutor.instance.stop();
           router.resetForLogout();
-          final userId = _caseUserId(evalCase, caseIndex);
+          final userId = _caseUserId(evalCase, globalCaseIndex);
           await UserStorage.saveUser(userId);
           await UserStorage.setLocale(const Locale('zh', 'CN'));
           await UserStorage.setWorkspaceStorageToCustom(userId, dataRoot.path);
@@ -100,7 +114,8 @@ void main() {
           );
 
           stdout.writeln(
-            '[serial replay] case ${caseIndex + 1}/${cases.length} '
+            '[serial replay] case ${globalCaseIndex + 1}/${allCases.length} '
+            'shard_case=${localCaseIndex + 1}/${cases.length} '
             'case_id=$caseId user_id=$userId operations=${operations.length}',
           );
 
@@ -544,11 +559,14 @@ void main() {
         }
       }
     },
-    timeout: const Timeout(Duration(minutes: 240)),
+    timeout: Timeout(Duration(minutes: _testTimeoutMinutes)),
   );
 }
 
 bool get _llmEnabled => Platform.environment['MEMEX_EVAL_ENABLE_LLM'] == '1';
+
+int get _testTimeoutMinutes =>
+    _intFromEnv('MEMEX_EVAL_TEST_TIMEOUT_MINUTES') ?? (_llmEnabled ? 720 : 240);
 
 Duration _taskWaitTimeoutFor(String? operationType) {
   final fixedSeconds = _intFromEnv('MEMEX_EVAL_TASK_TIMEOUT_SECONDS');

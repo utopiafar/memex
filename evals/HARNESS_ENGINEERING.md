@@ -12,6 +12,24 @@ Harness 的目标不是把分数做漂亮，而是让每次实验的假设、数
 - 原始 `debug_log.json`、`outputs.jsonl`、`trace.ndjson` 放到 `evals/runs/<run-id>/`，实验目录只保留 `report.md` 和 `metrics.json`。
 - 外部模型 key 只能通过环境变量或本地忽略文件传入，不能进入数据集、报告、trace 或 README。
 
+## 2026-05-18 Real Replay v3 长跑续跑修正
+
+### 问题
+
+`full_chain_journey_real_replay_v3` 全量真实 LLM replay 为 16 case、192 record。按每个 case 15-30 分钟估算，单次 Flutter test 很容易超过默认 240 分钟测试超时。实际长跑在完成前 12 个 case 后，于第 13 个 case 被 `TimeoutException after 4:00:00` 截断；这不是业务链路主动失败，而是测试框架预算不足。
+
+### 修正
+
+- `serial_full_chain_replay_test.dart` 增加 `MEMEX_EVAL_CASE_OFFSET`，支持从指定 0-based case 继续跑剩余分片。
+- 增加 `MEMEX_EVAL_TEST_TIMEOUT_MINUTES`，真实 LLM 长跑默认测试超时提高到 720 分钟，也可按需覆盖。
+- 分片运行必须使用独立 `MEMEX_EVAL_RUN_DIR`，保留每个 shard 的 `observations.jsonl` / `summary.json`；正式报告再合并 observation 评分。
+
+### 后续避免
+
+- 真实 LLM 全量 replay 不再假设单个 test process 可以在 240 分钟内完成。
+- 若预计超过 3 小时，优先按 case offset 分片运行，减少失败重跑成本。
+- 报告里要区分三类时间问题：业务任务不收敛、单个 agent 极慢但成功、测试框架总时长超时。
+
 ## 2026-05-13 Production-like Retrieval v2
 
 ### 实验目标
