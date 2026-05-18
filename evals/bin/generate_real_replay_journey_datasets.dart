@@ -18,6 +18,14 @@ Future<void> main() async {
     recordLimit: 16,
     round: 2,
   );
+  await _writeVariant(
+    id: 'full_chain_journey_real_replay_v3',
+    sourcePath: 'evals/datasets/full_chain_journey_scale_v2/cases.jsonl',
+    outputDir: 'evals/datasets/full_chain_journey_real_replay_v3',
+    recordLimit: 12,
+    recordOffsets: const [0, 160],
+    round: 3,
+  );
 }
 
 Future<void> _writeVariant({
@@ -26,12 +34,27 @@ Future<void> _writeVariant({
   required String outputDir,
   required int recordLimit,
   required int round,
+  List<int> recordOffsets = const [0],
 }) async {
   final cases = await _loadCases(sourcePath);
-  final replayCases = [
-    for (final evalCase in cases.take(8))
-      _replayCase(evalCase: evalCase, recordLimit: recordLimit, round: round),
-  ];
+  final sourceCases = cases.take(8).toList();
+  final replayCases = <JsonMap>[];
+  for (final evalCase in sourceCases) {
+    for (var windowIndex = 0;
+        windowIndex < recordOffsets.length;
+        windowIndex++) {
+      replayCases.add(
+        _replayCase(
+          evalCase: evalCase,
+          recordLimit: recordLimit,
+          recordOffset: recordOffsets[windowIndex],
+          caseSuffix:
+              recordOffsets.length == 1 ? null : _caseSuffix(windowIndex),
+          round: round,
+        ),
+      );
+    }
+  }
   final outDir = Directory(outputDir);
   await outDir.create(recursive: true);
 
@@ -57,14 +80,16 @@ Future<void> _writeVariant({
     'dataset_id': 'memex_$id',
     'version': round,
     'description':
-        '真实 full-chain replay 数据集：8 用户，每用户 $recordLimit 条 record，加 timeline browse、comment、schedule refresh、knowledge insight refresh、memory wait、Super Agent quick query。',
+        '真实 full-chain replay 数据集：${sourceCases.length} 个 persona，${replayCases.length} 个 case，每 case $recordLimit 条 record，加 timeline browse、comment、schedule refresh、knowledge insight refresh、memory wait、Super Agent quick query。',
     'created_at': '2026-05-17',
     'language': 'zh-CN',
     'locale': 'zh-CN',
     'case_file': 'cases.jsonl',
-    'persona_count': replayCases.length,
+    'persona_count': sourceCases.length,
     'case_count': replayCases.length,
-    'records_per_persona': recordLimit,
+    'records_per_case': recordLimit,
+    'records_per_persona': recordLimit * recordOffsets.length,
+    'record_offsets': recordOffsets,
     'input_count': recordCount,
     'operation_count': operationCount,
     'eval_task_count': taskCount,
@@ -82,7 +107,7 @@ Future<void> _writeVariant({
     flush: true,
   );
   stdout.writeln(
-    'Generated $id: ${replayCases.length} users, $recordCount records, '
+    'Generated $id: ${replayCases.length} cases, $recordCount records, '
     '$operationCount operations, $taskCount tasks at $outputDir',
   );
 }
@@ -90,12 +115,15 @@ Future<void> _writeVariant({
 JsonMap _replayCase({
   required JsonMap evalCase,
   required int recordLimit,
+  required int recordOffset,
+  required String? caseSuffix,
   required int round,
 }) {
-  final caseId = evalCase['case_id'].toString().replaceFirst(
-        'journey_scale',
-        'journey_real_replay',
+  final baseCaseId = evalCase['case_id'].toString().replaceFirst(
+        RegExp(r'journey_scale_v\d+'),
+        'journey_real_replay_v$round',
       );
+  final caseId = caseSuffix == null ? baseCaseId : '${baseCaseId}_$caseSuffix';
   final persona = _map(evalCase['persona']);
   final profile = _map(persona['profile']);
   final project = profile['project']?.toString() ?? '';
@@ -125,9 +153,24 @@ JsonMap _replayCase({
   final records = _list(evalCase['operations'])
       .map(_map)
       .where((operation) => operation['type'] == 'record')
+      .skip(recordOffset)
       .take(recordLimit)
-      .map((operation) => {...operation, 'id': _remapId(operation['id'])})
+      .map(
+          (operation) => {...operation, 'id': _remapId(operation['id'], round)})
       .toList();
+  if (records.length < recordLimit) {
+    throw StateError(
+      'Case $caseId only has ${records.length} records after offset '
+      '$recordOffset, expected $recordLimit.',
+    );
+  }
+  final projectCardRecord = _selectExpectationRecord(
+    records,
+    [project, primaryPerson],
+    fallbackIndex: 3,
+  );
+  final projectTitleNeedles =
+      _needlesPresentInRecord(projectCardRecord, [project, primaryPerson]);
   final lastRecordTime = records.last['time']?.toString();
   final commentTarget = records.length >= 4
       ? records[3]['id'].toString()
@@ -237,8 +280,20 @@ JsonMap _replayCase({
           'max_tool_calls': 5000,
           'max_retry_rate': 0.2,
           'max_failed_task_rate': 0.05,
+          'max_active_task_count': 0,
+          'max_failed_task_count': 0,
+          'max_root_invariant_failures': 0,
+          'max_loop_detection_tasks': 0,
+          'max_max_turns_tasks': 0,
           'require_all_tasks_completed': true,
           'min_record_operations': recordLimit,
+          'min_operation_success_rate': 0.95,
+          'min_operation_settlement_rate': 0.95,
+          'min_card_materialization_rate': 0.90,
+          'min_card_completed_rate': 0.90,
+          'min_memory_entry_count': 2,
+          'min_llm_agent_count': 3,
+          'min_tool_diversity': 3,
           'min_journey_span_days': journeySpanDays.floor(),
           'expected_operation_types': operationTypes,
           'expected_input_channels': channels,
@@ -306,13 +361,9 @@ JsonMap _replayCase({
         'task_id': '${caseId}_card_project',
         'type': 'card_extraction',
         'expected': {
-          'operation_id':
-              records.length >= 4 ? records[3]['id'] : records.first['id'],
+          'operation_id': projectCardRecord['id'],
           'status': 'completed',
-          'title_contains': [
-            if (project.isNotEmpty) project,
-            if (primaryPerson.isNotEmpty) primaryPerson,
-          ],
+          'title_contains': projectTitleNeedles,
           'must_not_fields': ['stock_price'],
           'max_latency_ms': 600000,
         },
@@ -324,9 +375,7 @@ JsonMap _replayCase({
           'expected': {
             'operation_id': records[11]['id'],
             'status': 'completed',
-            'title_contains': [
-              if (project.isNotEmpty) project,
-            ],
+            'title_contains': _needlesPresentInRecord(records[11], [project]),
             'must_not_fields': ['stock_price'],
             'max_latency_ms': 600000,
           },
@@ -384,8 +433,54 @@ Future<List<JsonMap>> _loadCases(String path) async {
   return cases;
 }
 
-String _remapId(Object? id) =>
-    id.toString().replaceFirst('journey_scale', 'journey_real_replay');
+String _caseSuffix(int index) {
+  const alphabet = 'abcdefghijklmnopqrstuvwxyz';
+  if (index < alphabet.length) return alphabet[index];
+  return 'window_${index + 1}';
+}
+
+String _remapId(Object? id, int round) => id.toString().replaceFirst(
+      RegExp(r'journey_scale_v\d+'),
+      'journey_real_replay_v$round',
+    );
+
+JsonMap _selectExpectationRecord(
+  List<JsonMap> records,
+  List<String> needles, {
+  required int fallbackIndex,
+}) {
+  final requiredNeedles =
+      needles.where((needle) => needle.trim().isNotEmpty).toList();
+  for (final record in records) {
+    final content = record['content']?.toString() ?? '';
+    if (requiredNeedles.every((needle) => _contains(content, needle))) {
+      return record;
+    }
+  }
+  for (final record in records) {
+    final content = record['content']?.toString() ?? '';
+    if (requiredNeedles.any((needle) => _contains(content, needle))) {
+      return record;
+    }
+  }
+  final index = fallbackIndex.clamp(0, records.length - 1).toInt();
+  return records[index];
+}
+
+List<String> _needlesPresentInRecord(JsonMap record, List<String> needles) {
+  final content = record['content']?.toString() ?? '';
+  return needles
+      .where((needle) => needle.trim().isNotEmpty)
+      .where((needle) => _contains(content, needle))
+      .toList();
+}
+
+bool _contains(String haystack, String needle) {
+  return haystack
+      .toLowerCase()
+      .replaceAll(RegExp(r'\s+'), '')
+      .contains(needle.toLowerCase().replaceAll(RegExp(r'\s+'), ''));
+}
 
 String _extractBetween(String text, String start, String end) {
   final startIndex = text.indexOf(start);

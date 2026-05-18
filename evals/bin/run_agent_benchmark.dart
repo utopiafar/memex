@@ -1796,6 +1796,74 @@ class TaskGrader {
       );
     }
 
+    final maxActiveTaskCount =
+        (expected['max_active_task_count'] as num?)?.toInt();
+    if (maxActiveTaskCount != null) {
+      final activeTaskCount =
+          (observed['active_task_count'] as num?)?.toInt() ??
+              _list(observed['active_tasks']).length;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'active_task_count_budget',
+          passed: activeTaskCount <= maxActiveTaskCount,
+          message:
+              'active_task_count=$activeTaskCount, max=$maxActiveTaskCount.',
+        ),
+      );
+    }
+
+    final maxFailedTaskCount =
+        (expected['max_failed_task_count'] as num?)?.toInt();
+    if (maxFailedTaskCount != null) {
+      final failedTaskCount =
+          (observed['failed_task_count'] as num?)?.toInt() ??
+              _list(observed['failed_tasks']).length;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'failed_task_count_budget',
+          passed: failedTaskCount <= maxFailedTaskCount,
+          message:
+              'failed_task_count=$failedTaskCount, max=$maxFailedTaskCount.',
+        ),
+      );
+    }
+
+    final maxLoopDetectionTasks =
+        (expected['max_loop_detection_tasks'] as num?)?.toInt();
+    if (maxLoopDetectionTasks != null) {
+      final loopDetectionTaskCount =
+          (observed['loop_detection_task_count'] as num?)?.toInt() ?? 0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'loop_detection_absence',
+          passed: loopDetectionTaskCount <= maxLoopDetectionTasks,
+          message:
+              'loop_detection_tasks=$loopDetectionTaskCount, max=$maxLoopDetectionTasks.',
+        ),
+      );
+    }
+
+    final maxMaxTurnsTasks = (expected['max_max_turns_tasks'] as num?)?.toInt();
+    if (maxMaxTurnsTasks != null) {
+      final maxTurnsTaskCount =
+          (observed['max_turns_task_count'] as num?)?.toInt() ?? 0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'max_turns_absence',
+          passed: maxTurnsTaskCount <= maxMaxTurnsTasks,
+          message: 'max_turns_tasks=$maxTurnsTaskCount, max=$maxMaxTurnsTasks.',
+        ),
+      );
+    }
+
     final taskEvents = traceEvents.where((e) => e['event_type'] == 'task');
     final taskCount = taskEvents.length;
     final retryCount =
@@ -1847,6 +1915,23 @@ class TaskGrader {
       );
     }
 
+    final maxRootInvariantFailures =
+        (expected['max_root_invariant_failures'] as num?)?.toInt();
+    if (maxRootInvariantFailures != null) {
+      final rootInvariantFailureCount =
+          (observed['root_invariant_failure_count'] as num?)?.toInt() ?? 0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'root_invariant_absence',
+          passed: rootInvariantFailureCount <= maxRootInvariantFailures,
+          message:
+              'root_invariant_failures=$rootInvariantFailureCount, max=$maxRootInvariantFailures.',
+        ),
+      );
+    }
+
     final minRecordOperations =
         (expected['min_record_operations'] as num?)?.toInt();
     if (minRecordOperations != null) {
@@ -1861,6 +1946,136 @@ class TaskGrader {
           score: min(1, recordOperationCount / max(1, minRecordOperations)),
           message:
               'record_operations=$recordOperationCount, min=$minRecordOperations.',
+        ),
+      );
+    }
+
+    final minOperationSuccessRate =
+        (expected['min_operation_success_rate'] as num?)?.toDouble();
+    if (minOperationSuccessRate != null) {
+      final operationSuccessRate =
+          (observed['operation_success_rate'] as num?)?.toDouble() ?? 0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'operation_success_rate',
+          passed: operationSuccessRate >= minOperationSuccessRate,
+          score:
+              min(1, operationSuccessRate / max(0.01, minOperationSuccessRate)),
+          message:
+              'operation_success_rate=${operationSuccessRate.toStringAsFixed(3)}, min=$minOperationSuccessRate.',
+        ),
+      );
+    }
+
+    final minOperationSettlementRate =
+        (expected['min_operation_settlement_rate'] as num?)?.toDouble();
+    if (minOperationSettlementRate != null) {
+      final operationSettlementRate =
+          (observed['operation_settlement_rate'] as num?)?.toDouble() ?? 0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'operation_settlement_rate',
+          passed: operationSettlementRate >= minOperationSettlementRate,
+          score: min(
+            1,
+            operationSettlementRate / max(0.01, minOperationSettlementRate),
+          ),
+          message:
+              'operation_settlement_rate=${operationSettlementRate.toStringAsFixed(3)}, min=$minOperationSettlementRate.',
+        ),
+      );
+    }
+
+    final minCardMaterializationRate =
+        (expected['min_card_materialization_rate'] as num?)?.toDouble();
+    if (minCardMaterializationRate != null) {
+      final cardMaterializationRate =
+          (observed['card_materialization_rate'] as num?)?.toDouble() ?? 0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'card_materialization_rate',
+          passed: cardMaterializationRate >= minCardMaterializationRate,
+          score: min(
+            1,
+            cardMaterializationRate / max(0.01, minCardMaterializationRate),
+          ),
+          message:
+              'card_materialization_rate=${cardMaterializationRate.toStringAsFixed(3)}, min=$minCardMaterializationRate.',
+        ),
+      );
+    }
+
+    final minCardCompletedRate =
+        (expected['min_card_completed_rate'] as num?)?.toDouble();
+    if (minCardCompletedRate != null) {
+      final cardCompletedRate =
+          (observed['card_completed_rate'] as num?)?.toDouble() ?? 0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'card_completed_rate',
+          passed: cardCompletedRate >= minCardCompletedRate,
+          score: min(1, cardCompletedRate / max(0.01, minCardCompletedRate)),
+          message:
+              'card_completed_rate=${cardCompletedRate.toStringAsFixed(3)}, min=$minCardCompletedRate.',
+        ),
+      );
+    }
+
+    final minMemoryEntryCount =
+        (expected['min_memory_entry_count'] as num?)?.toInt();
+    if (minMemoryEntryCount != null) {
+      final memoryEntryCount =
+          (observed['memory_entry_count'] as num?)?.toInt() ?? 0;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'memory_artifact_presence',
+          passed: memoryEntryCount >= minMemoryEntryCount,
+          score: min(1, memoryEntryCount / max(1, minMemoryEntryCount)),
+          message:
+              'memory_entries=$memoryEntryCount, min=$minMemoryEntryCount.',
+        ),
+      );
+    }
+
+    final minLlmAgentCount = (expected['min_llm_agent_count'] as num?)?.toInt();
+    if (minLlmAgentCount != null) {
+      final llmAgentCount = (observed['llm_agent_count'] as num?)?.toInt() ??
+          _map(observed['llm_calls_by_agent']).length;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'llm_agent_coverage',
+          passed: llmAgentCount >= minLlmAgentCount,
+          score: min(1, llmAgentCount / max(1, minLlmAgentCount)),
+          message: 'llm_agent_count=$llmAgentCount, min=$minLlmAgentCount.',
+        ),
+      );
+    }
+
+    final minToolDiversity = (expected['min_tool_diversity'] as num?)?.toInt();
+    if (minToolDiversity != null) {
+      final toolDiversity =
+          (observed['tool_diversity_count'] as num?)?.toInt() ??
+              _map(observed['tool_call_counts_by_name']).length;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'tool_diversity',
+          passed: toolDiversity >= minToolDiversity,
+          score: min(1, toolDiversity / max(1, minToolDiversity)),
+          message: 'tool_diversity=$toolDiversity, min=$minToolDiversity.',
         ),
       );
     }
@@ -2635,6 +2850,7 @@ class MetricsAggregator {
     }
     final benchmarkElapsedMs =
         DateTime.now().toUtc().difference(startedAt.toUtc()).inMilliseconds;
+    final observability = _aggregateObservability(taskResults);
 
     return {
       'run_id': runId,
@@ -2668,6 +2884,7 @@ class MetricsAggregator {
       'task_count': taskResults.length,
       'dataset_summary': datasetSummary.toJson(),
       if (datasetAudit != null) 'dataset_audit': datasetAudit,
+      if (observability.isNotEmpty) 'observability': observability,
       'assertions': total.toJson(),
       'by_family': byFamily.map((k, v) => MapEntry(k, v.toJson())),
       'by_metric': byMetric.map((k, v) => MapEntry(k, v.toJson())),
@@ -2681,6 +2898,139 @@ class MetricsAggregator {
         'total_tokens': tokenTotals.fold<double>(0, (a, b) => a + b).round(),
       },
     };
+  }
+
+  static JsonMap _aggregateObservability(List<TaskResult> taskResults) {
+    final summaries = taskResults
+        .where((task) => task.type == 'cost_trace')
+        .map((task) => task.observedSummary)
+        .toList();
+    if (summaries.isEmpty) return {};
+
+    int sumInt(String key) => summaries.fold<int>(
+          0,
+          (sum, summary) => sum + ((summary[key] as num?)?.toInt() ?? 0),
+        );
+
+    double ratio({
+      required String numeratorKey,
+      required String denominatorKey,
+    }) {
+      final denominator = sumInt(denominatorKey);
+      if (denominator == 0) return 0;
+      return sumInt(numeratorKey) / denominator;
+    }
+
+    Map<String, int> sumCountMap(String key) {
+      final result = <String, int>{};
+      for (final summary in summaries) {
+        for (final entry in _map(summary[key]).entries) {
+          result[entry.key] =
+              (result[entry.key] ?? 0) + ((entry.value as num?)?.toInt() ?? 0);
+        }
+      }
+      return _sortedIntMap(result);
+    }
+
+    return {
+      'case_count': summaries.length,
+      'journey_execution': {
+        'operation_count': sumInt('operation_count'),
+        'successful_operation_count': sumInt('successful_operation_count'),
+        'errored_operation_count': sumInt('errored_operation_count'),
+        'operation_success_rate': ratio(
+          numeratorKey: 'successful_operation_count',
+          denominatorKey: 'operation_count',
+        ),
+        'task_wait_operation_count': sumInt('task_wait_operation_count'),
+        'task_wait_settled_count': sumInt('task_wait_settled_count'),
+        'operation_settlement_rate': ratio(
+          numeratorKey: 'task_wait_settled_count',
+          denominatorKey: 'task_wait_operation_count',
+        ),
+        'record_operation_count': sumInt('record_operation_count'),
+        'operation_elapsed_ms_by_type': _aggregateOperationElapsed(summaries),
+      },
+      'task_health': {
+        'active_task_count': sumInt('active_task_count'),
+        'failed_task_count': sumInt('failed_task_count'),
+        'retrying_task_count': sumInt('retrying_task_count'),
+        'loop_detection_task_count': sumInt('loop_detection_task_count'),
+        'max_turns_task_count': sumInt('max_turns_task_count'),
+        'max_retry_count': summaries.fold<int>(
+          0,
+          (maxRetry, summary) => max(
+            maxRetry,
+            (summary['max_retry_count'] as num?)?.toInt() ?? 0,
+          ),
+        ),
+        'task_type_counts': sumCountMap('task_type_counts'),
+        'active_task_type_counts': sumCountMap('active_task_type_counts'),
+        'failed_task_type_counts': sumCountMap('failed_task_type_counts'),
+        'retrying_task_type_counts': sumCountMap('retrying_task_type_counts'),
+      },
+      'test_framework': {
+        'root_invariant_checked_count': sumInt('root_invariant_checked_count'),
+        'root_invariant_failure_count': sumInt('root_invariant_failure_count'),
+      },
+      'artifact_health': {
+        'submitted_record_count': sumInt('submitted_record_count'),
+        'resolved_card_count': sumInt('resolved_card_count'),
+        'completed_card_count': sumInt('completed_card_count'),
+        'titled_card_count': sumInt('titled_card_count'),
+        'missing_card_count': sumInt('missing_card_count'),
+        'card_materialization_rate': ratio(
+          numeratorKey: 'resolved_card_count',
+          denominatorKey: 'submitted_record_count',
+        ),
+        'card_completed_rate': ratio(
+          numeratorKey: 'completed_card_count',
+          denominatorKey: 'submitted_record_count',
+        ),
+        'card_status_counts': sumCountMap('card_status_counts'),
+        'memory_entry_count': sumInt('memory_entry_count'),
+        'memory_source_linked_entry_count':
+            sumInt('memory_source_linked_entry_count'),
+        'memory_content_chars': sumInt('memory_content_chars'),
+      },
+      'llm_and_tool': {
+        'llm_calls_by_agent': sumCountMap('llm_calls_by_agent'),
+        'llm_tokens_by_agent': sumCountMap('llm_tokens_by_agent'),
+        'cached_token_count': sumInt('cached_token_count'),
+        'thought_token_count': sumInt('thought_token_count'),
+        'tool_call_counts_by_name': sumCountMap('tool_call_counts_by_name'),
+      },
+    };
+  }
+
+  static JsonMap _aggregateOperationElapsed(List<JsonMap> summaries) {
+    final byType = <String, _ElapsedBucket>{};
+    for (final summary in summaries) {
+      for (final entry
+          in _map(summary['operation_elapsed_ms_by_type']).entries) {
+        final value = _map(entry.value);
+        final count = (value['count'] as num?)?.toInt() ?? 0;
+        final avgMs = (value['avg_ms'] as num?)?.toDouble() ?? 0;
+        final maxMs = (value['max_ms'] as num?)?.toInt() ?? 0;
+        if (count == 0) continue;
+        byType.putIfAbsent(entry.key, _ElapsedBucket.new).add(
+              count: count,
+              totalMs: avgMs * count,
+              maxMs: maxMs,
+            );
+      }
+    }
+    final entries = byType.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
+    return Map.fromEntries(
+      entries.map((entry) => MapEntry(entry.key, entry.value.toJson())),
+    );
+  }
+
+  static Map<String, int> _sortedIntMap(Map<String, int> values) {
+    return Map.fromEntries(
+      values.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
+    );
   }
 }
 
@@ -2707,6 +3057,28 @@ class _Bucket {
       };
 }
 
+class _ElapsedBucket {
+  int count = 0;
+  double totalMs = 0;
+  int maxMs = 0;
+
+  void add({
+    required int count,
+    required double totalMs,
+    required int maxMs,
+  }) {
+    this.count += count;
+    this.totalMs += totalMs;
+    if (maxMs > this.maxMs) this.maxMs = maxMs;
+  }
+
+  JsonMap toJson() => {
+        'count': count,
+        'avg_ms': count == 0 ? 0 : totalMs / count,
+        'max_ms': maxMs,
+      };
+}
+
 class ReportRenderer {
   static String render(BenchmarkResult result) {
     final buffer = StringBuffer();
@@ -2720,6 +3092,7 @@ class ReportRenderer {
     _writeDatasetAndCost(buffer, result, assertions, cost);
     _writeMetricDefinitions(buffer, result);
     _writeResultData(buffer, result, cost);
+    _writeObservabilityBreakdown(buffer, result);
 
     final failures = _failures(result);
     buffer.writeln('## 失败样本');
@@ -2899,6 +3272,167 @@ class ReportRenderer {
     buffer.writeln(
       '- Benchmark 评分耗时：${_duration(result.metrics['benchmark_elapsed_ms'])}',
     );
+    buffer.writeln();
+  }
+
+  static void _writeObservabilityBreakdown(
+    StringBuffer buffer,
+    BenchmarkResult result,
+  ) {
+    final observability = _map(result.metrics['observability']);
+    if (observability.isEmpty) return;
+
+    final journey = _map(observability['journey_execution']);
+    final taskHealth = _map(observability['task_health']);
+    final testFramework = _map(observability['test_framework']);
+    final artifactHealth = _map(observability['artifact_health']);
+    final llmAndTool = _map(observability['llm_and_tool']);
+    buffer.writeln('### 观测指标分层');
+    buffer.writeln();
+    buffer.writeln('| 类别 | 指标 | 数值 |');
+    buffer.writeln('| --- | --- | ---: |');
+    _writeObservationRow(
+      buffer,
+      '旅程执行',
+      '操作成功率',
+      _pct((journey['operation_success_rate'] as num?)?.toDouble() ?? 0),
+    );
+    _writeObservationRow(
+      buffer,
+      '旅程执行',
+      '需等待操作收敛率',
+      _pct((journey['operation_settlement_rate'] as num?)?.toDouble() ?? 0),
+    );
+    _writeObservationRow(
+      buffer,
+      '旅程执行',
+      '记录操作数',
+      '${journey['record_operation_count'] ?? 0}',
+    );
+    _writeObservationRow(
+      buffer,
+      '后台任务',
+      'active / failed / retrying',
+      '${taskHealth['active_task_count'] ?? 0} / '
+          '${taskHealth['failed_task_count'] ?? 0} / '
+          '${taskHealth['retrying_task_count'] ?? 0}',
+    );
+    _writeObservationRow(
+      buffer,
+      '后台任务',
+      'loopDetection / maxTurns',
+      '${taskHealth['loop_detection_task_count'] ?? 0} / '
+          '${taskHealth['max_turns_task_count'] ?? 0}',
+    );
+    _writeObservationRow(
+      buffer,
+      '测试框架',
+      'root invariant failures / checks',
+      '${testFramework['root_invariant_failure_count'] ?? 0} / '
+          '${testFramework['root_invariant_checked_count'] ?? 0}',
+    );
+    _writeObservationRow(
+      buffer,
+      '产物健康',
+      'Card materialized / completed',
+      '${_pct((artifactHealth['card_materialization_rate'] as num?)?.toDouble() ?? 0)} / '
+          '${_pct((artifactHealth['card_completed_rate'] as num?)?.toDouble() ?? 0)}',
+    );
+    _writeObservationRow(
+      buffer,
+      '产物健康',
+      'Memory entries / sourced',
+      '${artifactHealth['memory_entry_count'] ?? 0} / '
+          '${artifactHealth['memory_source_linked_entry_count'] ?? 0}',
+    );
+    _writeObservationRow(
+      buffer,
+      '成本行为',
+      '缓存 token / thought token',
+      '${llmAndTool['cached_token_count'] ?? 0} / '
+          '${llmAndTool['thought_token_count'] ?? 0}',
+    );
+    buffer.writeln();
+
+    _writeTopCountMap(
+      buffer,
+      title: '任务类型分布',
+      counts: _map(taskHealth['task_type_counts']),
+    );
+    _writeTopCountMap(
+      buffer,
+      title: 'Active 任务类型',
+      counts: _map(taskHealth['active_task_type_counts']),
+    );
+    _writeTopCountMap(
+      buffer,
+      title: '失败任务类型',
+      counts: _map(taskHealth['failed_task_type_counts']),
+    );
+    _writeTopCountMap(
+      buffer,
+      title: 'LLM 调用 by agent',
+      counts: _map(llmAndTool['llm_calls_by_agent']),
+    );
+    _writeTopCountMap(
+      buffer,
+      title: 'Token by agent',
+      counts: _map(llmAndTool['llm_tokens_by_agent']),
+    );
+    _writeTopCountMap(
+      buffer,
+      title: 'Tool 调用 by name',
+      counts: _map(llmAndTool['tool_call_counts_by_name']),
+    );
+
+    final elapsedByType = _map(journey['operation_elapsed_ms_by_type']);
+    if (elapsedByType.isNotEmpty) {
+      buffer.writeln('#### 操作耗时分布');
+      buffer.writeln();
+      buffer.writeln('| Operation | Count | Avg | Max |');
+      buffer.writeln('| --- | ---: | ---: | ---: |');
+      for (final entry in elapsedByType.entries.toList()
+        ..sort((a, b) => a.key.compareTo(b.key))) {
+        final bucket = _map(entry.value);
+        buffer.writeln(
+          '| `${entry.key}` | ${bucket['count'] ?? 0} | '
+          '${_duration(bucket['avg_ms'])} | ${_duration(bucket['max_ms'])} |',
+        );
+      }
+      buffer.writeln();
+    }
+  }
+
+  static void _writeObservationRow(
+    StringBuffer buffer,
+    String category,
+    String metric,
+    String value,
+  ) {
+    buffer.writeln('| $category | $metric | $value |');
+  }
+
+  static void _writeTopCountMap(
+    StringBuffer buffer, {
+    required String title,
+    required JsonMap counts,
+  }) {
+    if (counts.isEmpty) return;
+    buffer.writeln('#### $title');
+    buffer.writeln();
+    buffer.writeln('| Item | Count |');
+    buffer.writeln('| --- | ---: |');
+    final entries = counts.entries.toList()
+      ..sort((a, b) {
+        final byCount = ((b.value as num?)?.toInt() ?? 0)
+            .compareTo((a.value as num?)?.toInt() ?? 0);
+        return byCount == 0 ? a.key.compareTo(b.key) : byCount;
+      });
+    for (final entry in entries.take(12)) {
+      buffer.writeln(
+        '| `${_escapeTable(entry.key)}` | ${(entry.value as num?)?.toInt() ?? 0} |',
+      );
+    }
     buffer.writeln();
   }
 
@@ -3154,6 +3688,11 @@ class ReportRenderer {
         '- 对全链路失败，优先查看 cost task 中的 `settled`、`active_tasks`、`failed_tasks`，再关联同一 case 的 card 断言。',
       );
     }
+    if (metrics.contains('root_invariant_absence')) {
+      buffer.writeln(
+        '- 对 root invariant 失败，先看 `operation_logs[].root_invariant`，确认当前 `FileSystemService.dataRoot`、Fact 文件路径和 case data root 是否一致。',
+      );
+    }
     if (metrics.contains('card_schema_valid') ||
         metrics.contains('card_status_accuracy') ||
         metrics.contains('title_constraint_accuracy')) {
@@ -3183,6 +3722,11 @@ class ReportRenderer {
           'active task 中出现 loopDetection，说明至少部分 agent task 卡在重复工具调用保护上，而不是普通网络超时。',
         );
       }
+    }
+    if (metrics.contains('root_invariant_absence')) {
+      conclusions.add(
+        '测试框架观测到 data root 不变量失败；这类问题优先归类为实验框架/环境隔离问题，不能直接当作 agent 能力退化。',
+      );
     }
     if (metrics.contains('card_schema_valid') ||
         metrics.contains('card_status_accuracy')) {
@@ -3227,6 +3771,11 @@ class ReportRenderer {
           '针对 loopDetection case，优先检查 card_agent / pkm_agent 的工具调用终止条件，避免同一工具连续调用 5 次后进入 retrying。',
         );
       }
+    }
+    if (metrics.contains('root_invariant_absence')) {
+      suggestions.add(
+        '先修复 replay harness 的用户切换、workspace root 初始化和 FileSystemService root 切换，再重新跑同一数据集。',
+      );
     }
     if (metrics.contains('card_schema_valid') ||
         metrics.contains('card_status_accuracy') ||
@@ -3343,9 +3892,21 @@ String _metricScenario(String metric) {
       metric == 'latency_budget' ||
       metric == 'tool_call_budget' ||
       metric == 'task_completion_status' ||
+      metric == 'active_task_count_budget' ||
+      metric == 'failed_task_count_budget' ||
+      metric == 'loop_detection_absence' ||
+      metric == 'max_turns_absence' ||
       metric == 'retry_rate' ||
       metric == 'failed_task_rate' ||
       metric == 'queue_idle_time' ||
+      metric == 'root_invariant_absence' ||
+      metric == 'operation_success_rate' ||
+      metric == 'operation_settlement_rate' ||
+      metric == 'card_materialization_rate' ||
+      metric == 'card_completed_rate' ||
+      metric == 'memory_artifact_presence' ||
+      metric == 'llm_agent_coverage' ||
+      metric == 'tool_diversity' ||
       metric == 'record_operation_coverage' ||
       metric == 'journey_time_span_coverage' ||
       metric == 'app_operation_sequence_completeness' ||
@@ -3387,7 +3948,10 @@ String _metricCategory(String metric) {
       return '结构合法性';
     case 'card_type_accuracy':
     case 'card_status_accuracy':
+    case 'card_completed_rate':
       return 'Card 状态';
+    case 'card_materialization_rate':
+      return '产物生成';
     case 'time_parse_accuracy':
       return '时间解析';
     case 'input_to_card_latency':
@@ -3415,6 +3979,8 @@ String _metricCategory(String metric) {
       return '去重';
     case 'memory_conflict_handling':
       return '冲突处理';
+    case 'memory_artifact_presence':
+      return '产物生成';
     case 'sensitive_overwrite_absence':
       return '隐私边界';
     case 'retrieval_hit_at_1':
@@ -3478,17 +4044,30 @@ String _metricCategory(String metric) {
     case 'tool_call_budget':
       return '工具成本';
     case 'task_completion_status':
+    case 'active_task_count_budget':
+    case 'failed_task_count_budget':
+    case 'operation_settlement_rate':
       return '任务收敛';
+    case 'loop_detection_absence':
+    case 'max_turns_absence':
+      return 'Agent 循环控制';
     case 'retry_rate':
     case 'failed_task_rate':
       return '稳定性';
     case 'queue_idle_time':
       return '队列等待';
+    case 'root_invariant_absence':
+      return '测试框架不变量';
     case 'record_operation_coverage':
+    case 'operation_success_rate':
     case 'journey_time_span_coverage':
     case 'journey_stage_coverage':
     case 'scenario_family_coverage':
       return '用户旅程覆盖';
+    case 'llm_agent_coverage':
+      return 'Agent 覆盖';
+    case 'tool_diversity':
+      return '工具覆盖';
     case 'persona_specificity_coverage':
       return '用户画像区分';
     case 'cross_day_continuity_coverage':
@@ -3518,6 +4097,10 @@ String _metricDescription(String metric) {
       return '抽取出的 card 类型是否等于期望类型。';
     case 'card_status_accuracy':
       return '后台任务结束后 card 是否离开 processing 状态。';
+    case 'card_materialization_rate':
+      return '真实提交记录中有多少能取回对应 card 产物。';
+    case 'card_completed_rate':
+      return '真实提交记录中有多少对应 card 已进入 completed 状态。';
     case 'time_parse_accuracy':
       return '时间解析是否落在允许误差内。';
     case 'input_to_card_latency':
@@ -3548,6 +4131,8 @@ String _metricDescription(String metric) {
       return '新旧偏好冲突时是否保留最新事实、停用旧事实。';
     case 'memory_temporal_validity':
       return '记忆是否带有正确的有效起止时间。';
+    case 'memory_artifact_presence':
+      return '真实旅程是否沉淀出最低数量的 memory 产物。';
     case 'sensitive_overwrite_absence':
       return '敏感或临时状态是否没有被错误写成长记忆。';
     case 'retrieval_hit_at_1':
@@ -3624,14 +4209,28 @@ String _metricDescription(String metric) {
       return '工具调用次数是否未超过预算。';
     case 'task_completion_status':
       return '全链路后台任务是否全部结束且没有 failed/processing/retrying/pending。';
+    case 'active_task_count_budget':
+      return '观察结束时仍 active 的后台任务数量是否在预算内。';
+    case 'failed_task_count_budget':
+      return '观察结束时 failed 的后台任务数量是否在预算内。';
+    case 'loop_detection_absence':
+      return '后台任务是否没有触发 loopDetection 保护。';
+    case 'max_turns_absence':
+      return '后台任务是否没有触发 Maximum turns reached。';
     case 'retry_rate':
       return '任务 retry 比例是否低于预算。';
     case 'failed_task_rate':
       return '任务失败比例是否低于预算。';
     case 'queue_idle_time':
       return '任务队列等待或空转时间是否在预算内。';
+    case 'root_invariant_absence':
+      return 'Replay harness 每条 record 是否写入并观测在当前 case 的 data root。';
     case 'record_operation_coverage':
       return '全链路 replay 中真实提交记录的数量是否达到本轮样本要求。';
+    case 'operation_success_rate':
+      return '真实用户旅程操作是否大多无错误且等待型操作能继续推进。';
+    case 'operation_settlement_rate':
+      return '需要等待后台任务的操作中，有多少在预算窗口内完成收敛。';
     case 'journey_time_span_coverage':
       return '模拟用户操作是否跨越足够多天，避免只测单日短上下文。';
     case 'app_operation_sequence_completeness':
@@ -3640,6 +4239,10 @@ String _metricDescription(String metric) {
       return '输入是否覆盖文本、语音转写、OCR/剪贴等不同真实来源形态。';
     case 'feature_trigger_coverage':
       return 'trace 和操作记录是否覆盖本轮预期功能触发点。';
+    case 'llm_agent_coverage':
+      return '真实链路中调用 LLM 的 agent 种类是否达到预期，避免只跑到单点链路。';
+    case 'tool_diversity':
+      return '真实链路中被调用的工具种类是否达到预期，反映跨功能路径覆盖。';
     case 'journey_stage_coverage':
       return '用户旅程是否覆盖捕获、组织、回看、追问、修正和洞察等阶段。';
     case 'scenario_family_coverage':
@@ -3671,6 +4274,24 @@ String _zhFailureMessage(AssertionResult failure) {
       return '标题没有覆盖期望关键词。${_titleMissingMessage(failure.message)}';
     case 'task_completion_status':
       return '后台任务没有全部正常结束。${failure.message}';
+    case 'active_task_count_budget':
+    case 'failed_task_count_budget':
+    case 'loop_detection_absence':
+    case 'max_turns_absence':
+    case 'operation_settlement_rate':
+      return '后台任务收敛或 Agent 循环控制不达标。${failure.message}';
+    case 'operation_success_rate':
+      return '真实用户旅程操作成功率不足。${failure.message}';
+    case 'root_invariant_absence':
+      return '测试框架 data root 不变量失败。${failure.message}';
+    case 'card_materialization_rate':
+    case 'card_completed_rate':
+      return '记录到 Card 的产物链路不完整。${failure.message}';
+    case 'memory_artifact_presence':
+      return '旅程没有沉淀出足够的 memory 产物。${failure.message}';
+    case 'llm_agent_coverage':
+    case 'tool_diversity':
+      return '真实链路覆盖的 agent/tool 广度不足。${failure.message}';
     case 'total_token_budget':
       return 'Token 成本超过预算或余量不足。${failure.message}';
     case 'latency_budget':
@@ -3744,17 +4365,99 @@ JsonMap _summarizeObservation(JsonMap observed) {
       'tasks_settled': observed['tasks_settled'],
     if (observed['task_status_counts'] != null)
       'task_status_counts': observed['task_status_counts'],
+    if (observed['task_type_counts'] != null)
+      'task_type_counts': observed['task_type_counts'],
+    if (observed['task_status_counts_by_type'] != null)
+      'task_status_counts_by_type': observed['task_status_counts_by_type'],
+    if (observed['active_task_count'] != null)
+      'active_task_count': observed['active_task_count'],
+    if (observed['failed_task_count'] != null)
+      'failed_task_count': observed['failed_task_count'],
+    if (observed['retrying_task_count'] != null)
+      'retrying_task_count': observed['retrying_task_count'],
+    if (observed['active_task_type_counts'] != null)
+      'active_task_type_counts': observed['active_task_type_counts'],
+    if (observed['failed_task_type_counts'] != null)
+      'failed_task_type_counts': observed['failed_task_type_counts'],
+    if (observed['retrying_task_type_counts'] != null)
+      'retrying_task_type_counts': observed['retrying_task_type_counts'],
+    if (observed['loop_detection_task_count'] != null)
+      'loop_detection_task_count': observed['loop_detection_task_count'],
+    if (observed['max_turns_task_count'] != null)
+      'max_turns_task_count': observed['max_turns_task_count'],
+    if (observed['max_retry_count'] != null)
+      'max_retry_count': observed['max_retry_count'],
     if (observed['active_tasks'] != null)
       'active_tasks': observed['active_tasks'],
     if (observed['failed_tasks'] != null)
       'failed_tasks': observed['failed_tasks'],
+    if (observed['operation_count'] != null)
+      'operation_count': observed['operation_count'],
+    if (observed['record_operation_count'] != null)
+      'record_operation_count': observed['record_operation_count'],
+    if (observed['successful_operation_count'] != null)
+      'successful_operation_count': observed['successful_operation_count'],
+    if (observed['errored_operation_count'] != null)
+      'errored_operation_count': observed['errored_operation_count'],
+    if (observed['operation_success_rate'] != null)
+      'operation_success_rate': observed['operation_success_rate'],
+    if (observed['task_wait_operation_count'] != null)
+      'task_wait_operation_count': observed['task_wait_operation_count'],
+    if (observed['task_wait_settled_count'] != null)
+      'task_wait_settled_count': observed['task_wait_settled_count'],
+    if (observed['operation_settlement_rate'] != null)
+      'operation_settlement_rate': observed['operation_settlement_rate'],
+    if (observed['operation_elapsed_ms_by_type'] != null)
+      'operation_elapsed_ms_by_type': observed['operation_elapsed_ms_by_type'],
+    if (observed['root_invariant_checked_count'] != null)
+      'root_invariant_checked_count': observed['root_invariant_checked_count'],
+    if (observed['root_invariant_failure_count'] != null)
+      'root_invariant_failure_count': observed['root_invariant_failure_count'],
     if (observed['card'] != null)
       'card': {
         'card_type': _map(observed['card'])['card_type'],
         'title': _map(observed['card'])['title'],
       },
-    if (observed['memory_entries'] != null)
+    if (observed['submitted_record_count'] != null)
+      'submitted_record_count': observed['submitted_record_count'],
+    if (observed['resolved_card_count'] != null)
+      'resolved_card_count': observed['resolved_card_count'],
+    if (observed['completed_card_count'] != null)
+      'completed_card_count': observed['completed_card_count'],
+    if (observed['titled_card_count'] != null)
+      'titled_card_count': observed['titled_card_count'],
+    if (observed['missing_card_count'] != null)
+      'missing_card_count': observed['missing_card_count'],
+    if (observed['card_status_counts'] != null)
+      'card_status_counts': observed['card_status_counts'],
+    if (observed['card_materialization_rate'] != null)
+      'card_materialization_rate': observed['card_materialization_rate'],
+    if (observed['card_completed_rate'] != null)
+      'card_completed_rate': observed['card_completed_rate'],
+    if (observed['memory_entries'] != null &&
+        observed['memory_entry_count'] == null)
       'memory_entry_count': _list(observed['memory_entries']).length,
+    if (observed['memory_entry_count'] != null)
+      'memory_entry_count': observed['memory_entry_count'],
+    if (observed['memory_source_linked_entry_count'] != null)
+      'memory_source_linked_entry_count':
+          observed['memory_source_linked_entry_count'],
+    if (observed['memory_content_chars'] != null)
+      'memory_content_chars': observed['memory_content_chars'],
+    if (observed['llm_calls_by_agent'] != null)
+      'llm_calls_by_agent': observed['llm_calls_by_agent'],
+    if (observed['llm_tokens_by_agent'] != null)
+      'llm_tokens_by_agent': observed['llm_tokens_by_agent'],
+    if (observed['llm_agent_count'] != null)
+      'llm_agent_count': observed['llm_agent_count'],
+    if (observed['cached_token_count'] != null)
+      'cached_token_count': observed['cached_token_count'],
+    if (observed['thought_token_count'] != null)
+      'thought_token_count': observed['thought_token_count'],
+    if (observed['tool_call_counts_by_name'] != null)
+      'tool_call_counts_by_name': observed['tool_call_counts_by_name'],
+    if (observed['tool_diversity_count'] != null)
+      'tool_diversity_count': observed['tool_diversity_count'],
     if (observed['retrieved_sources'] != null)
       'retrieved_sources': _sourceIds(observed['retrieved_sources']),
     if (observed['tool_calls'] != null)

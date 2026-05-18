@@ -1,14 +1,18 @@
 {
   "dataset_id": "memex_full_chain_journey_real_replay_v1",
   "version": 1,
-  "description": "真实 full-chain replay 数据集：8 用户，每用户 8 条 record，加 timeline browse、comment、schedule refresh、knowledge insight refresh、memory wait、Super Agent quick query。",
+  "description": "真实 full-chain replay 数据集：8 个 persona，8 个 case，每 case 8 条 record，加 timeline browse、comment、schedule refresh、knowledge insight refresh、memory wait、Super Agent quick query。",
   "created_at": "2026-05-17",
   "language": "zh-CN",
   "locale": "zh-CN",
   "case_file": "cases.jsonl",
   "persona_count": 8,
   "case_count": 8,
+  "records_per_case": 8,
   "records_per_persona": 8,
+  "record_offsets": [
+    0
+  ],
   "input_count": 64,
   "operation_count": 112,
   "eval_task_count": 32,

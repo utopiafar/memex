@@ -12,6 +12,24 @@ Harness 的目标不是把分数做漂亮，而是让每次实验的假设、数
 - 原始 `debug_log.json`、`outputs.jsonl`、`trace.ndjson` 放到 `evals/runs/<run-id>/`，实验目录只保留 `report.md` 和 `metrics.json`。
 - 外部模型 key 只能通过环境变量或本地忽略文件传入，不能进入数据集、报告、trace 或 README。
 
+## 2026-05-18 Real Replay v3 长跑续跑修正
+
+### 问题
+
+`full_chain_journey_real_replay_v3` 全量真实 LLM replay 为 16 case、192 record。按每个 case 15-30 分钟估算，单次 Flutter test 很容易超过默认 240 分钟测试超时。实际长跑在完成前 12 个 case 后，于第 13 个 case 被 `TimeoutException after 4:00:00` 截断；这不是业务链路主动失败，而是测试框架预算不足。
+
+### 修正
+
+- `serial_full_chain_replay_test.dart` 增加 `MEMEX_EVAL_CASE_OFFSET`，支持从指定 0-based case 继续跑剩余分片。
+- 增加 `MEMEX_EVAL_TEST_TIMEOUT_MINUTES`，真实 LLM 长跑默认测试超时提高到 720 分钟，也可按需覆盖。
+- 分片运行必须使用独立 `MEMEX_EVAL_RUN_DIR`，保留每个 shard 的 `observations.jsonl` / `summary.json`；正式报告再合并 observation 评分。
+
+### 后续避免
+
+- 真实 LLM 全量 replay 不再假设单个 test process 可以在 240 分钟内完成。
+- 若预计超过 3 小时，优先按 case offset 分片运行，减少失败重跑成本。
+- 报告里要区分三类时间问题：业务任务不收敛、单个 agent 极慢但成功、测试框架总时长超时。
+
 ## 2026-05-13 Production-like Retrieval v2
 
 ### 实验目标
@@ -239,3 +257,35 @@ v2 已经把生产贴近 Retrieval QA 扩到 12 个用户、78 条输入、47 �
 - 成本：947245 tokens，710 次 LLM 调用，3942 次 tool 调用，P95 LLM 延迟 100000ms。
 - 对比 180 秒固定窗口：第一用户完整跑到 follow-up，第二用户从 1 条 record 推进到 4 条，部分 card 慢尾在 4-7 分钟后才返回；因此 180 秒确实偏小。
 - 但主结论没有变：多数失败不是单纯 timeout。多个用户在 15 分钟窗口内仍停在 `card_agent_task` / `pkm_agent_task` 的 `processing` / `retrying`，错误集中为 `AgentExceptionCode.loopDetection` / `Maximum turns reached`。后续应优先修 agent 工具循环和终止条件，再继续扩量。
+
+### 2026-05-18 Latest-main Observability Rerun
+
+- Run：`2026-05-18-full-chain-real-replay-v2-latest-main-observability`
+- 代码基线：`upstream/main` / `origin/main` at `8b84033`，只叠加 `evals/` harness 和默认不改变产品行为的测试钩子。
+- 数据规模：沿用最新真实 replay 数据集 `full_chain_journey_real_replay_v2`，8 persona、128 record、184 operations、48 eval task，满足不小于上一轮真实实验的规模要求。
+- 真实 LLM：Mimo Anthropic-compatible endpoint，`mimo-v2-pro`，key 仅通过环境变量注入；运行前用最小 Anthropic messages 探针确认 HTTP 200。
+- 代理处理：先检查 `env | sort | rg -i 'proxy|pub|flutter|dart'` 和 `scutil --proxy`；运行 Flutter replay 时取消 `ws_proxy` / `wss_proxy` 并设置 localhost `no_proxy`，避免 `flutter_tester` WebSocket 走代理。
+- Harness 兼容最新 main：`submitInput` 重新补了可选 `createdAt` 测试钩子，以保持 replay 历史日期；`LocalTaskExecutor` 恢复测试并发覆盖钩子，正常产品路径不传参不变。
+- 容错修正：等待结果现在把 failed task 也视为未收敛；某个 operation 结束时若存在 failed task 或 active task 未清空，会停止该 case 的剩余 operations 并进入下一个 persona，避免污染后续旅程。
+- 新增观测指标：operation success / settlement、active/failed/retrying task by type、loopDetection/maxTurns、card materialization/completion、memory artifact presence、LLM calls/tokens by agent、tool diversity、operation latency by type，并在报告中按旅程执行、后台任务、产物健康、成本行为分类展示。
+- Replay 结果：Flutter test 通过，用时 1小时52分23秒；评分 198/443，pass rate 44.7%；511850 tokens、373 LLM 调用、2190 tool 调用。
+- 主要观测：8/8 case 都触发 `loopDetection`；只有第 1 个用户推进到第 13 条 record，其余多数在第 1 条 record 熔断。总计 20 条 record 被实际提交，operation settlement rate 60.0%，card materialization/completion 65.0%，memory entry 只有 1 条。
+- Agent 分布：`pkm_agent` 消耗 252 次 LLM / 340253 tokens，`card_agent` 消耗 92 次 LLM / 166764 tokens；失败任务类型集中在 `pkm_agent_task` 和 `card_agent_task`。
+- 初步结论：最新 main + 真实 LLM 下，失败集中表现为 card/pkm agent 的工具循环和终止条件问题，不是 Flutter 代理或固定 timeout 单点问题；但二次日志审计发现 `case 02-08` 混入 root 隔离问题，不能把这些 case 的 loop/maxTurns 全部直接归因于 LLM/agent 能力。下一步应先修 root 一致性与 harness invariant，再重跑同一数据集。
+
+### 2026-05-18 Post-run Log Audit: 实验方法修正
+
+对 `observations.jsonl`、`summary.json`、`trace.ndjson` 和 agent state 文件做二次审计后，发现本轮 `case 02-08` 的主要早停原因混入了测试隔离问题：多 case 在同一 Flutter test 进程中连续切换 user/data root，`submitInput` 写入的 Facts/Cards 与后续 agent 读取 root 不一致，表现为 `fact id ... not exist`、`loopDetection`、`maxTurns` 和大量 downstream pending。
+
+这类问题不能直接归因于真实 LLM 或 prompt 质量。后续真实 replay 必须先通过下面的实验框架检查，再进入大规模长跑：
+
+- 增加 root invariant preflight：每个 case 提交第一条 record 后，立即断言 `FileSystemService.instance.dataRoot` 等于当前 case 的 `data_root`，并断言 `Facts/<fact_id>` 与 `Cards/<fact_id>.yaml` 出现在当前 case root，而不是上一个 case root。
+- 增加最小双 case root-switch smoke：在真实 LLM 长跑前，用 2 个用户、2 个不同 custom root、LLM disabled 或小模型跑一次 submit/fetch/card-read，验证连续切用户不会串 root。
+- 强化 singleton reset：`MemexRouter`、`FileSystemService`、`LocalTaskExecutor`、`AppDatabase`、Search/Chat/Memory 等状态服务在 case 间必须有明确 reset 边界；如果无法证明 reset 完整，真实 replay 应改为每个 case 单独进程执行。
+- 报告分层归因：把失败分成 `harness_invariant_failure`、`environment_failure`、`project_consistency_failure`、`agent_non_convergence` 和 `downstream_blocked`。root 错位、代理、依赖缺失等不能算作 LLM/agent 能力失败。
+- 记录 dependency blocker：task snapshot 除了 `pending/processing/retrying/failed`，还要记录每个 pending task 的直接依赖 task id、依赖状态和最后错误。报告中要能直接看出 `comment_agent_task` 是被 `pkm_agent_task` 阻塞，而不是独立失败。
+- 长跑早停策略要区分系统一致性错误和慢尾：如果出现 canonical fact/card 在当前 root 不存在，应立即停止当前 case 并标记为框架/项目一致性失败，不再等待 15 分钟的 agent retry。
+- 保留可复盘证据：每个 case 完成或早停时，把当前 root 的 Facts/Cards/PKM 文件索引、关键 agent state、`status.json` 快照写入 run artifact，方便区分“没写入”“写错 root”“写了但 agent 读不到”。
+- 指标解读要谨慎：当 root invariant 未通过时，`loopDetection`、`maxTurns`、coverage 不足和 downstream pending 都只能作为二阶现象，不能直接用来评价模型、prompt 或产品链路质量。
+
+本轮可保留的真实产品信号主要来自 `case 01`：它在同一 root 内推进到第 13 条 record 后，遇到“不要写成长记忆/不要影响导出灰度”的噪声输入，`pkm_agent` 仍反复读取长期知识文件并触发 loopDetection。这部分应继续作为真实 PKM abstention/skip 能力问题跟进。

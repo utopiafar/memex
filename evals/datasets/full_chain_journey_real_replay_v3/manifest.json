@@ -1,0 +1,24 @@
+{
+  "dataset_id": "memex_full_chain_journey_real_replay_v3",
+  "version": 3,
+  "description": "真实 full-chain replay 数据集：8 个 persona，16 个 case，每 case 12 条 record，加 timeline browse、comment、schedule refresh、knowledge insight refresh、memory wait、Super Agent quick query。",
+  "created_at": "2026-05-17",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "persona_count": 8,
+  "case_count": 16,
+  "records_per_case": 12,
+  "records_per_persona": 24,
+  "record_offsets": [
+    0,
+    160
+  ],
+  "input_count": 192,
+  "operation_count": 304,
+  "eval_task_count": 96,
+  "families": [
+    "full_chain_journey_real_replay_v3"
+  ],
+  "evidence_goal": "通过 serial_full_chain_replay_test.dart 走真实 Memex 链路，再用 replay_file adapter 评分为 real_replay。"
+}

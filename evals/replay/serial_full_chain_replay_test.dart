@@ -2,6 +2,7 @@
 
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:ui' show Locale;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +10,7 @@ import 'package:memex/data/model/chat_events.dart';
 import 'package:memex/data/repositories/memex_router.dart';
 import 'package:memex/data/services/agent_activity_service.dart';
 import 'package:memex/data/services/comment_settings_service.dart';
+import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/llm_call_record_service.dart';
 import 'package:memex/data/services/local_task_executor.dart';
 import 'package:memex/db/app_database.dart';
@@ -61,24 +63,38 @@ void main() {
 
       final router = MemexRouter();
       final allCases = await _loadCases(datasetPath);
+      final caseOffset = _intFromEnv('MEMEX_EVAL_CASE_OFFSET') ?? 0;
       final caseLimit = _intFromEnv('MEMEX_EVAL_CASE_LIMIT');
-      final cases =
-          caseLimit == null ? allCases : allCases.take(caseLimit).toList();
+      if (caseOffset < 0 || caseOffset >= allCases.length) {
+        throw StateError(
+          'MEMEX_EVAL_CASE_OFFSET=$caseOffset is outside dataset range '
+          '0..${allCases.length - 1}.',
+        );
+      }
+      final offsetCases = allCases.skip(caseOffset);
+      final cases = caseLimit == null
+          ? offsetCases.toList()
+          : offsetCases.take(caseLimit).toList();
       final observations = <Map<String, dynamic>>[];
       final summaries = <Map<String, dynamic>>[];
       final suiteStartedAt = DateTime.now();
 
       stdout.writeln(
         '[serial replay] start dataset=$datasetPath cases=${cases.length} '
+        'case_offset=$caseOffset total_cases=${allCases.length} '
         'llm_enabled=$_llmEnabled task_wait_policy=$_taskWaitPolicyDescription '
         'status_interval=${_formatDuration(_statusInterval)} '
         'max_concurrency=1',
       );
 
       try {
-        for (var caseIndex = 0; caseIndex < cases.length; caseIndex++) {
-          final evalCase = cases[caseIndex];
-          final caseId = evalCase['case_id']?.toString() ?? 'case_$caseIndex';
+        for (var localCaseIndex = 0;
+            localCaseIndex < cases.length;
+            localCaseIndex++) {
+          final globalCaseIndex = caseOffset + localCaseIndex;
+          final evalCase = cases[localCaseIndex];
+          final caseId =
+              evalCase['case_id']?.toString() ?? 'case_$globalCaseIndex';
           final operations = (_list(evalCase['operations'])).map(_map).toList();
           final dataRoot = await Directory.systemTemp.createTemp(
             'memex_serial_${caseId}_',
@@ -86,7 +102,7 @@ void main() {
 
           LocalTaskExecutor.instance.stop();
           router.resetForLogout();
-          final userId = _caseUserId(evalCase, caseIndex);
+          final userId = _caseUserId(evalCase, globalCaseIndex);
           await UserStorage.saveUser(userId);
           await UserStorage.setLocale(const Locale('zh', 'CN'));
           await UserStorage.setWorkspaceStorageToCustom(userId, dataRoot.path);
@@ -98,7 +114,8 @@ void main() {
           );
 
           stdout.writeln(
-            '[serial replay] case ${caseIndex + 1}/${cases.length} '
+            '[serial replay] case ${globalCaseIndex + 1}/${allCases.length} '
+            'shard_case=${localCaseIndex + 1}/${cases.length} '
             'case_id=$caseId user_id=$userId operations=${operations.length}',
           );
 
@@ -134,39 +151,75 @@ void main() {
               );
               final factId = response['fact_id'] as String;
               submittedFactIdsByOperation[opId] = factId;
-              final waitTimeout = _taskWaitTimeoutFor(type);
-              final waitResult = await _waitForTasksToSettle(
-                minTasks: submittedRecords * 4,
-                timeout: waitTimeout,
-                runDir: runDir,
-                caseId: caseId,
-                operationId: opId,
-                startedAt: opStartedAt,
+              final rootInvariant = await _verifyRootInvariant(
+                userId: userId,
+                dataRoot: dataRoot,
+                factId: factId,
               );
-              lastTasks = waitResult.tasks;
-              lastTaskStatusCounts = _statusCounts(waitResult.tasks);
-              final card = await router.fetchTimelineCard(factId);
-              cardsByOperation[opId] = card?.toJson();
-              operationLogs.add({
-                'operation_id': opId,
-                'type': type,
-                'time': operation['time'],
-                'channel': operation['channel'] ?? 'text',
-                if (operation['journey_stage'] != null)
-                  'journey_stage': operation['journey_stage'],
-                if (operation['scenario_family'] != null)
-                  'scenario_family': operation['scenario_family'],
-                if (operation['is_correction'] == true) 'is_correction': true,
-                if (operation['is_noise'] == true) 'is_noise': true,
-                if (operation['cross_day_link'] == true) 'cross_day_link': true,
-                'fact_id': factId,
-                'tasks_settled': waitResult.settled,
-                'task_status_counts': lastTaskStatusCounts,
-                'task_wait_timeout_ms': waitTimeout.inMilliseconds,
-                'elapsed_ms':
-                    DateTime.now().difference(opStartedAt).inMilliseconds,
-              });
-              abortCase = !waitResult.settled;
+              if (!rootInvariant.passed) {
+                lastTasks =
+                    await LocalTaskExecutor.instance.getTasks(limit: 2000);
+                lastTaskStatusCounts = _statusCounts(lastTasks);
+                cardsByOperation[opId] = null;
+                operationLogs.add({
+                  'operation_id': opId,
+                  'type': type,
+                  'time': operation['time'],
+                  'channel': operation['channel'] ?? 'text',
+                  if (operation['journey_stage'] != null)
+                    'journey_stage': operation['journey_stage'],
+                  if (operation['scenario_family'] != null)
+                    'scenario_family': operation['scenario_family'],
+                  if (operation['is_correction'] == true) 'is_correction': true,
+                  if (operation['is_noise'] == true) 'is_noise': true,
+                  if (operation['cross_day_link'] == true)
+                    'cross_day_link': true,
+                  'fact_id': factId,
+                  'root_invariant': rootInvariant.toJson(),
+                  'error': 'root_invariant_failed',
+                  'tasks_settled': false,
+                  'task_status_counts': lastTaskStatusCounts,
+                  'elapsed_ms':
+                      DateTime.now().difference(opStartedAt).inMilliseconds,
+                });
+                abortCase = true;
+              } else {
+                final waitTimeout = _taskWaitTimeoutFor(type);
+                final waitResult = await _waitForTasksToSettle(
+                  minTasks: submittedRecords * 4,
+                  timeout: waitTimeout,
+                  runDir: runDir,
+                  caseId: caseId,
+                  operationId: opId,
+                  startedAt: opStartedAt,
+                );
+                lastTasks = waitResult.tasks;
+                lastTaskStatusCounts = _statusCounts(waitResult.tasks);
+                final card = await router.fetchTimelineCard(factId);
+                cardsByOperation[opId] = card?.toJson();
+                operationLogs.add({
+                  'operation_id': opId,
+                  'type': type,
+                  'time': operation['time'],
+                  'channel': operation['channel'] ?? 'text',
+                  if (operation['journey_stage'] != null)
+                    'journey_stage': operation['journey_stage'],
+                  if (operation['scenario_family'] != null)
+                    'scenario_family': operation['scenario_family'],
+                  if (operation['is_correction'] == true) 'is_correction': true,
+                  if (operation['is_noise'] == true) 'is_noise': true,
+                  if (operation['cross_day_link'] == true)
+                    'cross_day_link': true,
+                  'fact_id': factId,
+                  'root_invariant': rootInvariant.toJson(),
+                  'tasks_settled': waitResult.settled,
+                  'task_status_counts': lastTaskStatusCounts,
+                  'task_wait_timeout_ms': waitTimeout.inMilliseconds,
+                  'elapsed_ms':
+                      DateTime.now().difference(opStartedAt).inMilliseconds,
+                });
+                abortCase = !waitResult.settled;
+              }
             } else if (type == 'fetch_timeline') {
               final cards = (await router.fetchTimelineCards(
                 page: 1,
@@ -348,6 +401,14 @@ void main() {
             memoryEntries: memoryEntries,
             cardsByOperation: cardsByOperation,
           );
+          final taskObservation = _taskObservationStats(lastTasks);
+          final cardObservation = _cardObservationStats(
+            cardsByOperation: cardsByOperation,
+            submittedRecords: submittedRecords,
+          );
+          final memoryObservation = _memoryObservationStats(memoryEntries);
+          final llmObservation = _llmObservationStats(llmCalls);
+          final toolObservation = _toolObservationStats(traceEvents);
           final activeTasks = lastTasks
               .where(
                 (task) =>
@@ -395,7 +456,7 @@ void main() {
                   'active_tasks': activeTasks.map(_taskSummary).toList(),
                   'failed_tasks': failedTasks.map(_taskSummary).toList(),
                   'task_status_counts': lastTaskStatusCounts,
-                  'tasks_settled': activeTasks.isEmpty,
+                  'tasks_settled': activeTasks.isEmpty && failedTasks.isEmpty,
                   'llm_calls': llmCalls,
                   'case_elapsed_ms': elapsedMs,
                   'suite_elapsed_ms':
@@ -407,6 +468,11 @@ void main() {
                   'persona_markers': personaMarkers,
                   'memory_entry_count': memoryEntries.length,
                   'feature_triggers': featureTriggers,
+                  ...taskObservation,
+                  ...cardObservation,
+                  ...memoryObservation,
+                  ...llmObservation,
+                  ...toolObservation,
                 },
               });
             } else if (taskType == 'memory_write') {
@@ -493,11 +559,14 @@ void main() {
         }
       }
     },
-    timeout: const Timeout(Duration(minutes: 240)),
+    timeout: Timeout(Duration(minutes: _testTimeoutMinutes)),
   );
 }
 
 bool get _llmEnabled => Platform.environment['MEMEX_EVAL_ENABLE_LLM'] == '1';
+
+int get _testTimeoutMinutes =>
+    _intFromEnv('MEMEX_EVAL_TEST_TIMEOUT_MINUTES') ?? (_llmEnabled ? 720 : 240);
 
 Duration _taskWaitTimeoutFor(String? operationType) {
   final fixedSeconds = _intFromEnv('MEMEX_EVAL_TASK_TIMEOUT_SECONDS');
@@ -631,6 +700,93 @@ String _caseUserId(Map<String, dynamic> evalCase, int caseIndex) {
   return '${safeBase}_${DateTime.now().microsecondsSinceEpoch}_$caseIndex';
 }
 
+Future<_RootInvariantResult> _verifyRootInvariant({
+  required String userId,
+  required Directory dataRoot,
+  required String factId,
+}) async {
+  try {
+    final fileSystem = FileSystemService.instance;
+    final expectedRoot = p.normalize(dataRoot.path);
+    final currentRoot = p.normalize(fileSystem.dataRoot);
+    final workspacePath = p.join(expectedRoot, 'workspace', '_$userId');
+    final factMatch =
+        RegExp(r'^(\d{4})/(\d{2})/(\d{2})\.md#ts_\d+$').firstMatch(factId);
+    final expectedFactPath = factMatch == null
+        ? null
+        : p.join(
+            workspacePath,
+            'Facts',
+            factMatch.group(1)!,
+            factMatch.group(2)!,
+            '${factMatch.group(3)!}.md',
+          );
+    final currentFactPath = factMatch == null
+        ? null
+        : p.join(
+            fileSystem.getFactsPath(userId),
+            factMatch.group(1)!,
+            factMatch.group(2)!,
+            '${factMatch.group(3)!}.md',
+          );
+    String? expectedCardPath;
+    String? currentCardPath;
+    try {
+      expectedCardPath = p.join(
+        workspacePath,
+        p.relative(fileSystem.getCardPath(userId, factId),
+            from: fileSystem.getWorkspacePath(userId)),
+      );
+      currentCardPath = fileSystem.getCardPath(userId, factId);
+    } catch (_) {
+      expectedCardPath = null;
+      currentCardPath = null;
+    }
+
+    final rootMatches = currentRoot == expectedRoot;
+    final factExists =
+        expectedFactPath != null && await File(expectedFactPath).exists();
+    final factPathMatches = currentFactPath != null &&
+        expectedFactPath != null &&
+        p.normalize(currentFactPath) == p.normalize(expectedFactPath);
+    final cardPathMatches = currentCardPath != null &&
+        expectedCardPath != null &&
+        p.normalize(currentCardPath) == p.normalize(expectedCardPath);
+    final passed =
+        factMatch != null && rootMatches && factExists && factPathMatches;
+
+    return _RootInvariantResult(
+      passed: passed,
+      expectedRoot: expectedRoot,
+      currentRoot: currentRoot,
+      factId: factId,
+      expectedFactPath: expectedFactPath,
+      currentFactPath: currentFactPath,
+      factExists: factExists,
+      factPathMatches: factPathMatches,
+      expectedCardPath: expectedCardPath,
+      currentCardPath: currentCardPath,
+      cardPathMatches: cardPathMatches,
+      error: null,
+    );
+  } catch (e) {
+    return _RootInvariantResult(
+      passed: false,
+      expectedRoot: p.normalize(dataRoot.path),
+      currentRoot: null,
+      factId: factId,
+      expectedFactPath: null,
+      currentFactPath: null,
+      factExists: false,
+      factPathMatches: false,
+      expectedCardPath: null,
+      currentCardPath: null,
+      cardPathMatches: false,
+      error: e.toString(),
+    );
+  }
+}
+
 Future<_TaskWaitResult> _waitForTasksToSettle({
   required int minTasks,
   required Duration timeout,
@@ -671,7 +827,8 @@ Future<_TaskWaitResult> _waitForTasksToSettle({
       nextStatusAt = now.add(_statusInterval);
     }
     if (tasks.length >= minTasks && active.isEmpty) {
-      return _TaskWaitResult(tasks: tasks, settled: true);
+      final hasFailed = tasks.any((task) => task.status == 'failed');
+      return _TaskWaitResult(tasks: tasks, settled: !hasFailed);
     }
     await Future<void>.delayed(const Duration(milliseconds: 500));
   }
@@ -860,6 +1017,8 @@ Map<String, dynamic> _operationStats(List<Map<String, dynamic>> operationLogs) {
   final inputChannels = <String>{};
   final journeyStages = <String>{};
   final scenarioFamilies = <String>{};
+  final elapsedByType = <String, List<int>>{};
+  final settlementByType = <String, Map<String, int>>{};
   DateTime? firstTime;
   DateTime? lastTime;
   var recordOperationCount = 0;
@@ -867,6 +1026,12 @@ Map<String, dynamic> _operationStats(List<Map<String, dynamic>> operationLogs) {
   var noiseInputCount = 0;
   var crossDayLinkCount = 0;
   var followUpQueryCount = 0;
+  var successfulOperationCount = 0;
+  var erroredOperationCount = 0;
+  var taskWaitOperationCount = 0;
+  var taskWaitSettledCount = 0;
+  var rootInvariantCheckedCount = 0;
+  var rootInvariantFailureCount = 0;
 
   for (final operation in operationLogs) {
     final type = operation['type']?.toString();
@@ -874,7 +1039,29 @@ Map<String, dynamic> _operationStats(List<Map<String, dynamic>> operationLogs) {
       operationTypes.add(type);
       if (type == 'record') recordOperationCount++;
       if (type == 'ask_super_agent') followUpQueryCount++;
+      final elapsed = (operation['elapsed_ms'] as num?)?.toInt();
+      if (elapsed != null) {
+        elapsedByType.putIfAbsent(type, () => []).add(elapsed);
+      }
+      if (operation.containsKey('tasks_settled')) {
+        taskWaitOperationCount++;
+        final settled = operation['tasks_settled'] == true;
+        if (settled) taskWaitSettledCount++;
+        final bucket = settlementByType.putIfAbsent(
+          type,
+          () => {'settled': 0, 'unsettled': 0},
+        );
+        bucket[settled ? 'settled' : 'unsettled'] =
+            (bucket[settled ? 'settled' : 'unsettled'] ?? 0) + 1;
+      }
     }
+    final hasError = operation['error'] != null;
+    if (hasError) {
+      erroredOperationCount++;
+    }
+    final settledOk =
+        !operation.containsKey('tasks_settled') || operation['tasks_settled'];
+    if (!hasError && settledOk) successfulOperationCount++;
     final channel = operation['channel']?.toString();
     if (channel != null && channel.isNotEmpty) {
       inputChannels.add(channel);
@@ -890,6 +1077,12 @@ Map<String, dynamic> _operationStats(List<Map<String, dynamic>> operationLogs) {
     if (operation['is_correction'] == true) correctionOperationCount++;
     if (operation['is_noise'] == true) noiseInputCount++;
     if (operation['cross_day_link'] == true) crossDayLinkCount++;
+    if (operation.containsKey('root_invariant')) {
+      rootInvariantCheckedCount++;
+      if (_map(operation['root_invariant'])['passed'] != true) {
+        rootInvariantFailureCount++;
+      }
+    }
     final time = DateTime.tryParse(operation['time']?.toString() ?? '');
     if (time != null) {
       firstTime =
@@ -913,9 +1106,171 @@ Map<String, dynamic> _operationStats(List<Map<String, dynamic>> operationLogs) {
     'noise_input_count': noiseInputCount,
     'cross_day_link_count': crossDayLinkCount,
     'follow_up_query_count': followUpQueryCount,
+    'successful_operation_count': successfulOperationCount,
+    'errored_operation_count': erroredOperationCount,
+    'operation_success_rate': operationLogs.isEmpty
+        ? 0
+        : successfulOperationCount / operationLogs.length,
+    'task_wait_operation_count': taskWaitOperationCount,
+    'task_wait_settled_count': taskWaitSettledCount,
+    'operation_settlement_rate': taskWaitOperationCount == 0
+        ? 1
+        : taskWaitSettledCount / taskWaitOperationCount,
+    'operation_elapsed_ms_by_type': elapsedByType.map(
+      (type, values) => MapEntry(type, {
+        'count': values.length,
+        'avg_ms':
+            values.fold<int>(0, (sum, value) => sum + value) / values.length,
+        'max_ms': values.reduce(max),
+      }),
+    ),
+    'operation_settlement_by_type': settlementByType,
+    'root_invariant_checked_count': rootInvariantCheckedCount,
+    'root_invariant_failure_count': rootInvariantFailureCount,
     'journey_start_time': firstTime?.toIso8601String(),
     'journey_end_time': lastTime?.toIso8601String(),
     'journey_span_days': journeySpanDays,
+  };
+}
+
+Map<String, dynamic> _taskObservationStats(List<dynamic> tasks) {
+  final taskTypeCounts = <String, int>{};
+  final taskStatusByType = <String, Map<String, int>>{};
+  final activeTaskTypeCounts = <String, int>{};
+  final failedTaskTypeCounts = <String, int>{};
+  final retryingTaskTypeCounts = <String, int>{};
+  var activeTaskCount = 0;
+  var failedTaskCount = 0;
+  var retryingTaskCount = 0;
+  var loopDetectionTaskCount = 0;
+  var maxTurnsTaskCount = 0;
+  var maxRetryCount = 0;
+
+  for (final task in tasks) {
+    final type = task.type?.toString() ?? 'unknown';
+    final status = task.status?.toString() ?? 'unknown';
+    final error = task.error?.toString() ?? '';
+    final retryCount = (task.retryCount as int?) ?? 0;
+    taskTypeCounts[type] = (taskTypeCounts[type] ?? 0) + 1;
+    final statusCounts = taskStatusByType.putIfAbsent(type, () => {});
+    statusCounts[status] = (statusCounts[status] ?? 0) + 1;
+    if (['pending', 'processing', 'retrying'].contains(status)) {
+      activeTaskCount++;
+      activeTaskTypeCounts[type] = (activeTaskTypeCounts[type] ?? 0) + 1;
+    }
+    if (status == 'failed') {
+      failedTaskCount++;
+      failedTaskTypeCounts[type] = (failedTaskTypeCounts[type] ?? 0) + 1;
+    }
+    if (status == 'retrying') {
+      retryingTaskCount++;
+      retryingTaskTypeCounts[type] = (retryingTaskTypeCounts[type] ?? 0) + 1;
+    }
+    if (_contains(error, 'loopDetection') ||
+        _contains(error, 'Loop detected')) {
+      loopDetectionTaskCount++;
+    }
+    if (_contains(error, 'Maximum turns reached')) {
+      maxTurnsTaskCount++;
+    }
+    if (retryCount > maxRetryCount) maxRetryCount = retryCount;
+  }
+
+  return {
+    'task_type_counts': taskTypeCounts,
+    'task_status_counts_by_type': taskStatusByType,
+    'active_task_count': activeTaskCount,
+    'failed_task_count': failedTaskCount,
+    'retrying_task_count': retryingTaskCount,
+    'active_task_type_counts': activeTaskTypeCounts,
+    'failed_task_type_counts': failedTaskTypeCounts,
+    'retrying_task_type_counts': retryingTaskTypeCounts,
+    'loop_detection_task_count': loopDetectionTaskCount,
+    'max_turns_task_count': maxTurnsTaskCount,
+    'max_retry_count': maxRetryCount,
+  };
+}
+
+Map<String, dynamic> _cardObservationStats({
+  required Map<String, dynamic> cardsByOperation,
+  required int submittedRecords,
+}) {
+  final statusCounts = <String, int>{};
+  var resolvedCardCount = 0;
+  var completedCardCount = 0;
+  var titledCardCount = 0;
+  for (final rawCard in cardsByOperation.values) {
+    final card = _map(rawCard);
+    if (card.isEmpty) continue;
+    resolvedCardCount++;
+    final status = card['status']?.toString() ?? 'unknown';
+    statusCounts[status] = (statusCounts[status] ?? 0) + 1;
+    if (status == 'completed') completedCardCount++;
+    final title = card['title']?.toString() ?? '';
+    if (title.trim().isNotEmpty) titledCardCount++;
+  }
+  final denominator = max(1, submittedRecords);
+  return {
+    'submitted_record_count': submittedRecords,
+    'resolved_card_count': resolvedCardCount,
+    'completed_card_count': completedCardCount,
+    'titled_card_count': titledCardCount,
+    'missing_card_count': max(0, submittedRecords - resolvedCardCount),
+    'card_status_counts': statusCounts,
+    'card_materialization_rate': resolvedCardCount / denominator,
+    'card_completed_rate': completedCardCount / denominator,
+  };
+}
+
+Map<String, dynamic> _memoryObservationStats(
+  List<Map<String, dynamic>> memoryEntries,
+) {
+  final sourceLinkedEntries =
+      memoryEntries.where((entry) => _strings(entry['source_ids']).isNotEmpty);
+  final contentChars = memoryEntries.fold<int>(
+    0,
+    (sum, entry) => sum + (entry['content']?.toString().length ?? 0),
+  );
+  return {
+    'memory_source_linked_entry_count': sourceLinkedEntries.length,
+    'memory_content_chars': contentChars,
+  };
+}
+
+Map<String, dynamic> _llmObservationStats(List<Map<String, dynamic>> llmCalls) {
+  final callsByAgent = <String, int>{};
+  final tokensByAgent = <String, int>{};
+  var cachedTokens = 0;
+  var thoughtTokens = 0;
+  for (final call in llmCalls) {
+    final agent = call['agent_name']?.toString() ?? 'unknown';
+    callsByAgent[agent] = (callsByAgent[agent] ?? 0) + 1;
+    tokensByAgent[agent] =
+        (tokensByAgent[agent] ?? 0) + _intValue(call['total_tokens']);
+    cachedTokens += _intValue(call['cached_tokens']);
+    thoughtTokens += _intValue(call['thought_tokens']);
+  }
+  return {
+    'llm_calls_by_agent': callsByAgent,
+    'llm_tokens_by_agent': tokensByAgent,
+    'llm_agent_count': callsByAgent.length,
+    'cached_token_count': cachedTokens,
+    'thought_token_count': thoughtTokens,
+  };
+}
+
+Map<String, dynamic> _toolObservationStats(
+  List<Map<String, dynamic>> traceEvents,
+) {
+  final countsByName = <String, int>{};
+  for (final event in traceEvents) {
+    if (event['event_type'] != 'tool_call') continue;
+    final name = event['tool_name']?.toString() ?? 'unknown_tool';
+    countsByName[name] = (countsByName[name] ?? 0) + 1;
+  }
+  return {
+    'tool_call_counts_by_name': countsByName,
+    'tool_diversity_count': countsByName.length,
   };
 }
 
@@ -1190,6 +1545,51 @@ class _TaskWaitResult {
   const _TaskWaitResult({required this.tasks, required this.settled});
   final List<dynamic> tasks;
   final bool settled;
+}
+
+class _RootInvariantResult {
+  const _RootInvariantResult({
+    required this.passed,
+    required this.expectedRoot,
+    required this.currentRoot,
+    required this.factId,
+    required this.expectedFactPath,
+    required this.currentFactPath,
+    required this.factExists,
+    required this.factPathMatches,
+    required this.expectedCardPath,
+    required this.currentCardPath,
+    required this.cardPathMatches,
+    required this.error,
+  });
+
+  final bool passed;
+  final String expectedRoot;
+  final String? currentRoot;
+  final String factId;
+  final String? expectedFactPath;
+  final String? currentFactPath;
+  final bool factExists;
+  final bool factPathMatches;
+  final String? expectedCardPath;
+  final String? currentCardPath;
+  final bool cardPathMatches;
+  final String? error;
+
+  Map<String, dynamic> toJson() => {
+        'passed': passed,
+        'expected_root': expectedRoot,
+        'current_root': currentRoot,
+        'fact_id': factId,
+        'expected_fact_path': expectedFactPath,
+        'current_fact_path': currentFactPath,
+        'fact_exists': factExists,
+        'fact_path_matches': factPathMatches,
+        'expected_card_path': expectedCardPath,
+        'current_card_path': currentCardPath,
+        'card_path_matches': cardPathMatches,
+        if (error != null) 'error': error,
+      };
 }
 
 class _MemoryWaitResult {

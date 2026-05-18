@@ -33,6 +33,7 @@ LLM judge 只用于语义质量，例如 groundedness、completeness、unsupport
 | 成本与稳定性 | Cost / Trace | 长输入、多轮输入、低价值闲聊、工具失败重试、模型慢响应、任务队列积压 | total token budget、p95 latency、tool call budget、task completion status、retry rate、failed task rate、queue idle time |
 | 单用户多天使用 | Full-chain replay | 1 个 persona 连续几十到几百条输入，覆盖工作/生活/临时情绪/咨询/纠正/追问 | journey pass rate、state consistency、memory carryover、retrieval after write、answer after conflict、cost per input、end-to-end latency |
 | App 行为仿真 | Realistic replay | record、timeline browse、comment、schedule refresh、insight refresh、wait memory、Super Agent quick query 串行组合 | record operation coverage、journey time span coverage、app operation sequence completeness、input channel diversity、feature trigger coverage、journey stage coverage、scenario family coverage、cross-day continuity coverage、correction/noise/follow-up coverage |
+| 长跑观测与容错 | Real replay observability | 多小时真实 LLM replay，按用户旅程串行推进，遇到不收敛 case 要保留 active task、失败类型和产物健康摘要 | operation success rate、operation settlement rate、card materialization/completion rate、memory artifact presence、active/failed/retrying task by type、loopDetection/maxTurns absence、LLM calls/tokens by agent、tool diversity |
 
 `production_like_retrieval_v3` 是当前 Retrieval QA 扩充样板：24 个用户、150 条输入、94 个任务，覆盖多来源答案、旧记录/新记录、相似实体干扰、隐私/安全边界和证据不足拒答。v3 证明 retrieval fixture 可以规模化到更丰富的报告指标，但也暴露出 input naturalness 会随扩量下降；后续扩展 Memory、PKM、Super Agent 时，应沿用“按职业场景单独设计 source 结构和噪声”的方式，而不是批量模板替换。
 
@@ -113,6 +114,8 @@ Schedule router 要用 confusion matrix 看：
 - 追问：用 Super Agent quick query 检查 memory / card / PKM 写入后的可用性。
 
 优先指标：record operation coverage、journey time span coverage、app operation sequence completeness、input channel diversity、feature trigger coverage、journey stage coverage、scenario family coverage、persona specificity coverage、cross-day continuity coverage、correction operation coverage、noise resilience coverage、follow-up query coverage。
+
+长跑真实 LLM 实验还要单独看观测与容错指标：operation success/settlement、active/failed/retrying task by type、loopDetection/maxTurns、card materialization/completion、memory artifact presence、LLM calls/tokens by agent、tool diversity。它们不替代业务质量分，但能解释失败到底来自“用户旅程没有跑到那一步”、后台任务未收敛、产物缺失，还是回答质量本身不达标。
 
 ### 8. 用户旅程细化
 
