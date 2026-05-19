@@ -12,6 +12,39 @@ Harness 的目标不是把分数做漂亮，而是让每次实验的假设、数
 - 原始 `debug_log.json`、`outputs.jsonl`、`trace.ndjson` 放到 `evals/runs/<run-id>/`，实验目录只保留 `report.md` 和 `metrics.json`。
 - 外部模型 key 只能通过环境变量或本地忽略文件传入，不能进入数据集、报告、trace 或 README。
 
+## 2026-05-19 V4 Scale-up Prep
+
+本轮准备下一次真实 LLM 全链路实验，目标不是继续只看“有没有跑完”，而是把 Super Agent、召回工具、Memory、PKM、Schedule 等场景拆成“场景完成 / 工具使用 / 工具产物质量”三层指标。
+
+新增指标口径已写入 `METRICS.md`：
+
+- 检索召回和排序：`retrieval_hit_at_1/3/5`、`retrieval_precision_at_1/3/5`、`retrieval_mrr`、`retrieval_recall_at_5`。
+- 引用质量：`citation_precision`、`citation_recall`、`answer_source_citation`。
+- Super Agent：最终回答要同时看 `answer_must_include`、`grounded_answer_rate`、`unsupported_claim_absence`、`super_agent_read_only_compliance`。
+- No-op / 澄清 / 循环：后续要单独观察 `noop_completion_rate`、`clarification_completion_rate`、`redundant_tool_call_rate`，避免“该停时停不下来”只在 `loopDetection` 时才暴露。
+
+数据规模按用户要求扩大：
+
+- 上一轮 v3：8 用户，每用户 24 条真实 replay record，总计 16 case、192 record、304 operations、96 eval task。
+- 下一轮 v4：12 用户，每用户 36 条真实 replay record，总计 36 case、432 record、684 operations、216 eval task。
+- 增幅：用户数 +50%，每用户输入 +50%，总 record 约为上一轮 2.25 倍。
+
+数据多样性扩展：
+
+- 新增 4 个 persona：产品设计师、独立开发者、咖啡店主理人、公益项目协调人。
+- 新增输入渠道：`meeting_note`、`browser_clip`、`bank_sms`、`calendar_clip`、`receipt_scan`。
+- 新增场景族：`product_research`、`vendor_ops`、`privacy_security`、`creative_brief`、`career_growth`、`community`。
+- 保留上一轮容易触发真实问题的组合：相对时间提醒、项目冲突检查、不要长期化/no-op、来源不足、跨域边界、最新偏好覆盖。
+
+运行建议：
+
+- v4 单次全量预计接近上一轮 2.25 倍耗时，建议先用 `MEMEX_EVAL_CASE_LIMIT=12` 分 3 个 shard 跑。
+- Shard 1：`MEMEX_EVAL_CASE_OFFSET=0 MEMEX_EVAL_CASE_LIMIT=12`
+- Shard 2：`MEMEX_EVAL_CASE_OFFSET=12 MEMEX_EVAL_CASE_LIMIT=12`
+- Shard 3：`MEMEX_EVAL_CASE_OFFSET=24 MEMEX_EVAL_CASE_LIMIT=12`
+- 每个 shard 单独 run dir，最后用 `replay_file` adapter 汇总 observations 评分。
+- 继续沿用 Flutter 代理规避：取消 `ws_proxy` / `wss_proxy`，设置 localhost `no_proxy` / `NO_PROXY`。
+
 ## 2026-05-18 Real Replay v3 长跑续跑修正
 
 ### 问题

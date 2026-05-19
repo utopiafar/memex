@@ -37,6 +37,74 @@ LLM judge 只用于语义质量，例如 groundedness、completeness、unsupport
 
 `production_like_retrieval_v3` 是当前 Retrieval QA 扩充样板：24 个用户、150 条输入、94 个任务，覆盖多来源答案、旧记录/新记录、相似实体干扰、隐私/安全边界和证据不足拒答。v3 证明 retrieval fixture 可以规模化到更丰富的报告指标，但也暴露出 input naturalness 会随扩量下降；后续扩展 Memory、PKM、Super Agent 时，应沿用“按职业场景单独设计 source 结构和噪声”的方式，而不是批量模板替换。
 
+## 场景 × 工具 × 产物质量分层
+
+下一轮真实 replay 不只问“最终 case 有没有跑完”，还要把指标拆成三层：
+
+1. 场景完成：用户在该旅程里想完成什么，例如记录、回看、追问、纠错、提醒、洞察。
+2. 工具使用：Agent 有没有选对工具、传对参数、遵守只读/写入边界、避免重复调用。
+3. 工具产物质量：工具返回或写入的 card、memory、PKM、retrieval result、citation 是否真的支持最终答案。
+
+这三层要分开看。比如 Super Agent 最终回答包含关键词，不代表检索链路健康；它可能没有召回正确卡片，只是碰巧从 prompt 上下文里答对。反过来，检索召回正确但回答没有引用或曲解证据，也不能算通过。
+
+### Super Agent 问答
+
+| 层级 | 指标 | 说明 |
+| --- | --- | --- |
+| 检索召回 | `retrieval_hit_at_1/3/5` | 期望证据是否出现在 top k。 |
+| 检索排序 | `retrieval_mrr` | 第一个正确证据的排名倒数，越靠前越高。 |
+| 检索精度 | `retrieval_precision_at_1/3/5` | top k 中有多少是真的相关证据，用来发现“召回到了但夹杂大量噪声”。 |
+| 多证据覆盖 | `retrieval_recall_at_5` / `evidence_coverage` | 一个问题需要多条 card/memory/PKM 时，是否都找到了。 |
+| 引用质量 | `citation_precision` / `citation_recall` | 回答引用的来源是否都相关，以及该引用的关键来源是否漏掉。 |
+| 答案质量 | `answer_must_include` / `grounded_answer_rate` | 最终答案是否完整、是否由来源支撑。 |
+| 幻觉控制 | `unsupported_claim_absence` | 答案是否没有无证据断言或被禁止结论。 |
+| 行为边界 | `super_agent_read_only_compliance` | 只读问答是否没有调用写入类工具。 |
+
+### 召回类工具
+
+对 `search_memory`、card search、PKM search、hybrid retrieval 这类工具，统一记录 query、filters、ranked results 和 gold evidence：
+
+```json
+{
+  "tool": "search_memory",
+  "query": "导出灰度 负责人 提醒偏好",
+  "filters": {"user_id": "scale_u_001"},
+  "results": [
+    {"id": "memory_project_owner", "rank": 1, "score": 0.82},
+    {"id": "card_family_noise", "rank": 2, "score": 0.66}
+  ],
+  "gold_evidence": ["memory_project_owner", "memory_latest_preference"]
+}
+```
+
+可计算：
+
+- `hit@k = 1`：top k 中至少有一个 gold evidence。
+- `precision@k = top k 中相关结果数 / top k 结果数`。
+- `recall@k = top k 中相关结果数 / gold evidence 数`。
+- `MRR = 1 / 第一个相关结果排名`。
+- `filter_accuracy`：是否正确应用 user、时间、类型、项目等过滤条件。
+
+### Card / Memory / PKM 产物
+
+| 场景 | 产物质量指标 |
+| --- | --- |
+| Card | `card_type_accuracy`、`field_extraction_f1`、`title_relevance`、`card_materialization_rate`、`hallucinated_field_absence` |
+| Memory | `must_write_recall`、`must_not_write_precision`、`conflict_update_accuracy`、`memory_duplicate_rate`、`memory_source_grounding` |
+| PKM | `pkm_target_path_accuracy`、`pkm_update_precision`、`pkm_noop_accuracy`、`pkm_conflict_resolution_accuracy`、`redundant_read_rate` |
+| Schedule | `time_parse_accuracy`、`reminder_creation_accuracy`、`schedule_skip_accuracy`、`clarification_needed_accuracy` |
+| Insight | `insight_grounding_rate`、`insight_novelty`、`insight_actionability`、`duplicate_insight_rate` |
+
+### No-op / 澄清 / 循环控制
+
+最近几轮真实 replay 的失败说明：Agent 不只是“不会写”会失败，“该停时停不下来”也会失败。下一轮需要把这些单独成类：
+
+- `noop_completion_rate`：明确不要长期化、一次性状态、低价值噪声是否能完成 no-op。
+- `clarification_completion_rate`：信息不足时，创建澄清请求后是否能把当前 task 标记 completed。
+- `unnecessary_clarification_rate`：证据足够时是否过度追问。
+- `redundant_tool_call_rate`：同一 task 内重复读取同一路径、重复检索同 query、重复创建同类澄清的比例。
+- `loop_detection_absence` / `max_turns_absence`：兜底稳定性指标，仍保留为 hard signal。
+
 ## 场景扩充建议
 
 ### 1. 随手记录

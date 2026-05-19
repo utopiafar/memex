@@ -1,0 +1,31 @@
+{
+  "dataset_id": "memex_full_chain_journey_real_replay_v4",
+  "version": 4,
+  "description": "真实 full-chain replay 数据集：12 个 persona，36 个 case，每 case 12 条 record，加 timeline browse、comment、schedule refresh、knowledge insight refresh、memory wait、Super Agent quick query。",
+  "created_at": "2026-05-19",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "persona_count": 12,
+  "case_count": 36,
+  "records_per_case": 12,
+  "records_per_persona": 36,
+  "record_offsets": [
+    0,
+    160,
+    320
+  ],
+  "input_count": 432,
+  "operation_count": 684,
+  "eval_task_count": 216,
+  "families": [
+    "full_chain_journey_real_replay_v4"
+  ],
+  "evidence_goal": "通过 serial_full_chain_replay_test.dart 走真实 Memex 链路，再用 replay_file adapter 评分为 real_replay。",
+  "scaleup_notes": [
+    "相对 v3：用户数从 8 增加到 12，增加 50%。",
+    "相对 v3：每用户 replay record 从 24 增加到 36，增加 50%。",
+    "为了控制单 case 时长，仍使用 12-record case 窗口，改为每用户 3 个窗口。",
+    "建议按 12 case 一组分片运行：offset 0、12、24。"
+  ]
+}

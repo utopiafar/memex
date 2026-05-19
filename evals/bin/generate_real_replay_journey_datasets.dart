@@ -26,6 +26,16 @@ Future<void> main() async {
     recordOffsets: const [0, 160],
     round: 3,
   );
+  await _writeVariant(
+    id: 'full_chain_journey_real_replay_v4',
+    sourcePath: 'evals/datasets/full_chain_journey_scale_v3/cases.jsonl',
+    outputDir: 'evals/datasets/full_chain_journey_real_replay_v4',
+    recordLimit: 12,
+    recordOffsets: const [0, 160, 320],
+    round: 4,
+    sourceCaseLimit: 12,
+    createdAt: '2026-05-19',
+  );
 }
 
 Future<void> _writeVariant({
@@ -34,10 +44,12 @@ Future<void> _writeVariant({
   required String outputDir,
   required int recordLimit,
   required int round,
+  int sourceCaseLimit = 8,
+  String createdAt = '2026-05-17',
   List<int> recordOffsets = const [0],
 }) async {
   final cases = await _loadCases(sourcePath);
-  final sourceCases = cases.take(8).toList();
+  final sourceCases = cases.take(sourceCaseLimit).toList();
   final replayCases = <JsonMap>[];
   for (final evalCase in sourceCases) {
     for (var windowIndex = 0;
@@ -81,7 +93,7 @@ Future<void> _writeVariant({
     'version': round,
     'description':
         '真实 full-chain replay 数据集：${sourceCases.length} 个 persona，${replayCases.length} 个 case，每 case $recordLimit 条 record，加 timeline browse、comment、schedule refresh、knowledge insight refresh、memory wait、Super Agent quick query。',
-    'created_at': '2026-05-17',
+    'created_at': createdAt,
     'language': 'zh-CN',
     'locale': 'zh-CN',
     'case_file': 'cases.jsonl',
@@ -96,6 +108,13 @@ Future<void> _writeVariant({
     'families': [id],
     'evidence_goal':
         '通过 serial_full_chain_replay_test.dart 走真实 Memex 链路，再用 replay_file adapter 评分为 real_replay。',
+    if (round >= 4)
+      'scaleup_notes': [
+        '相对 v3：用户数从 8 增加到 12，增加 50%。',
+        '相对 v3：每用户 replay record 从 24 增加到 36，增加 50%。',
+        '为了控制单 case 时长，仍使用 12-record case 窗口，改为每用户 3 个窗口。',
+        '建议按 12 case 一组分片运行：offset 0、12、24。',
+      ],
   };
 
   await File('$outputDir/manifest.json').writeAsString(

@@ -1089,8 +1089,10 @@ class TaskGrader {
 
     if (expectedSources.isNotEmpty) {
       for (final k in [1, 3, 5]) {
-        final topK = retrievedSources.take(k).toSet();
-        final hit = expectedSources.any(topK.contains);
+        final topKList = retrievedSources.take(k).toList();
+        final topK = topKList.toSet();
+        final relevantCount = expectedSources.where(topK.contains).length;
+        final hit = relevantCount > 0;
         assertions.add(
           AssertionResult.fromBool(
             evalCase: evalCase,
@@ -1099,6 +1101,19 @@ class TaskGrader {
             passed: hit,
             score: hit ? 1 : 0,
             message: 'hit@$k=$hit; topK=${topK.join(', ')}.',
+          ),
+        );
+        final denominator = topKList.isEmpty ? k : topKList.length;
+        final precisionAtK =
+            denominator == 0 ? 0.0 : relevantCount / denominator;
+        assertions.add(
+          AssertionResult.fromBool(
+            evalCase: evalCase,
+            task: task,
+            metric: 'retrieval_precision_at_$k',
+            passed: precisionAtK > 0,
+            score: precisionAtK,
+            message: 'precision@$k=${precisionAtK.toStringAsFixed(3)}.',
           ),
         );
       }
@@ -1216,15 +1231,40 @@ class TaskGrader {
 
     final citedSources = _sourceIds(observed['cited_sources']);
     if (expectedSources.isNotEmpty) {
+      final citedRelevantCount =
+          expectedSources.where(citedSources.contains).length;
+      final citationRecall = citedRelevantCount / expectedSources.length;
+      final citationPrecision =
+          citedSources.isEmpty ? 0.0 : citedRelevantCount / citedSources.length;
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'citation_recall',
+          passed: citationRecall >= 0.999,
+          score: citationRecall,
+          message: 'citation_recall=${citationRecall.toStringAsFixed(3)}.',
+        ),
+      );
+      assertions.add(
+        AssertionResult.fromBool(
+          evalCase: evalCase,
+          task: task,
+          metric: 'citation_precision',
+          passed: citationPrecision >= 0.999,
+          score: citationPrecision,
+          message:
+              'citation_precision=${citationPrecision.toStringAsFixed(3)}.',
+        ),
+      );
       final citedAll = expectedSources.every(citedSources.contains);
-      final citedCount = expectedSources.where(citedSources.contains).length;
       assertions.add(
         AssertionResult.fromBool(
           evalCase: evalCase,
           task: task,
           metric: 'answer_source_citation',
           passed: citedAll,
-          score: citedCount / expectedSources.length,
+          score: citationRecall,
           message: citedSources.isEmpty
               ? 'No cited sources found; expected ${expectedSources.join(', ')}.'
               : 'Cited sources: ${citedSources.join(', ')}.',
@@ -3879,6 +3919,7 @@ String _metricScenario(String metric) {
     return '记忆写入';
   }
   if (metric.startsWith('retrieval_') ||
+      metric.startsWith('citation_') ||
       metric.startsWith('answer_') ||
       metric == 'grounded_answer_rate' ||
       metric == 'abstention_accuracy' ||
@@ -3986,6 +4027,9 @@ String _metricCategory(String metric) {
     case 'retrieval_hit_at_1':
     case 'retrieval_hit_at_3':
     case 'retrieval_hit_at_5':
+    case 'retrieval_precision_at_1':
+    case 'retrieval_precision_at_3':
+    case 'retrieval_precision_at_5':
     case 'retrieval_mrr':
     case 'retrieval_recall_at_5':
       return '召回排序';
@@ -3997,6 +4041,8 @@ String _metricCategory(String metric) {
     case 'cost_answer_must_include':
       return '答案完整性';
     case 'answer_source_citation':
+    case 'citation_precision':
+    case 'citation_recall':
     case 'llm_grounded_answer_score':
     case 'grounded_answer_rate':
       return '证据支撑';
@@ -4141,6 +4187,12 @@ String _metricDescription(String metric) {
       return 'Top 3 结果中是否命中任一正确来源。';
     case 'retrieval_hit_at_5':
       return 'Top 5 结果中是否命中任一正确来源。';
+    case 'retrieval_precision_at_1':
+      return 'Top 1 结果中有多少比例是真的相关来源。';
+    case 'retrieval_precision_at_3':
+      return 'Top 3 结果中有多少比例是真的相关来源。';
+    case 'retrieval_precision_at_5':
+      return 'Top 5 结果中有多少比例是真的相关来源。';
     case 'retrieval_mrr':
       return '第一个正确来源排名的倒数，越高越好。';
     case 'retrieval_recall_at_5':
@@ -4157,6 +4209,10 @@ String _metricDescription(String metric) {
       return '证据不足时是否正确表达不确定，证据充分时是否不乱拒答。';
     case 'answer_source_citation':
       return '答案引用的来源是否覆盖期望来源。';
+    case 'citation_precision':
+      return '答案引用的来源中有多少确实属于期望证据。';
+    case 'citation_recall':
+      return '答案是否引用了所有应该引用的关键证据。';
     case 'grounded_answer_rate':
       return '答案是否同时满足来源引用和无无证据断言。';
     case 'llm_grounded_answer_score':
