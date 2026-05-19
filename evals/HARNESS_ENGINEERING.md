@@ -45,6 +45,40 @@ Harness 的目标不是把分数做漂亮，而是让每次实验的假设、数
 - 每个 shard 单独 run dir，最后用 `replay_file` adapter 汇总 observations 评分。
 - 继续沿用 Flutter 代理规避：取消 `ws_proxy` / `wss_proxy`，设置 localhost `no_proxy` / `NO_PROXY`。
 
+## 2026-05-19 V4 Real Replay Full Run
+
+### 实验结果
+
+- 实验目录：`evals/experiments/2026-05-19-full-chain-real-replay-v4`
+- 数据集：`evals/datasets/full_chain_journey_real_replay_v4`
+- 运行方式：3 个真实 LLM shard，每个 shard 12 case，最后合并 216 条 observation 评分。
+- 数据规模：12 persona、36 case、432 条 record、684 个计划操作、216 个 eval task。
+- 评分结果：1563/2013，pass rate 77.6%，平均分 0.738。
+- 成本：3,245,437 tokens、3,260 次 LLM 调用、19,650 次 tool 调用。
+- 任务健康：active/failed/retrying = 0/12/0；唯一 hard failed task type 是 `pkm_agent_task`。
+- 关键指标：`task_completion_status` 24/36，`operation_settlement_rate` 24/36，`loop_detection_absence` 16/36，`max_turns_absence` 28/36。
+- 产物健康：`root_invariant_absence` 36/36，`card_materialization_rate` 36/36，`card_completed_rate` 36/36。
+
+### 主要发现
+
+这轮把 v3 的单点 PKM 问题放大成了更清楚的场景族问题：PKM agent 对“找得到上下文但没有唯一写入动作”的输入缺少稳定 terminal path。12 个 hard fail 覆盖协作复盘、项目联系人、纠错覆盖、社区协作、合规/隐私边界、提醒与项目冲突等场景，最终都表现为重复 `Read` / `Grep` / `BatchRead` 同一上下文并触发 `loopDetection`。
+
+已提 upstream issue `memex-lab/memex#163`。建议后续把 PKM 的终止动作做成结构化路径，而不是继续依赖 generic loopDetection：`write_rule` / `update_project` / `noop` / `clarify` / `delegate_to_schedule` 必须能被 task handler 接受为 completed 证据。
+
+### 测试方法和框架避坑
+
+- 磁盘空间是长跑前置条件。本轮第一次 shard 尝试时本机磁盘满，表现为 `tee: No space left on device` 和 SQLite `unable to open database file`。该尝试已丢弃重跑。后续真实 replay 长跑前预留至少 25-30GB 空间，并把磁盘不足归为 environment failure，不计入 Agent 能力。
+- 清理缓存后可能丢失 `.dart_tool/package_config.json`。如果用 `flutter test --no-pub`，需要先在代理规避环境下跑 `flutter pub get --offline` 恢复 package config。
+- Flutter 代理规避仍然要保留：外部 LLM 可以继续走 HTTP(S) 代理，但运行 Flutter test 时取消 `ws_proxy` / `wss_proxy`，并设置 `no_proxy` / `NO_PROXY=localhost,127.0.0.1,::1`。
+- `status.json` 是运行中快照，不是最终结论来源。suite 完成后以各 shard 的 `summary.json`、合并后的 `metrics.json`、`outputs.jsonl` 为准。
+- 长跑期间 upstream main 可能继续前进。报告必须记录实际执行实验的代码基线；如果长跑后合入了无关 main 增量，不要把它写成实验运行基线。
+
+### 指标解读
+
+- Coverage 类失败在 hard fail case 中多为下游现象。例如某个 case 在第 2/12 条 record 早停，后续 `ask_super_agent`、`fetch_timeline`、`post_comment` 没执行，`app_operation_sequence_completeness` 和 `follow_up_query_coverage` 失败是必然的。
+- Memory recall 本轮很低：`memory_must_write_recall` 6/87，`memory_artifact_presence` 9/36；但 hard fail 的直接根因仍是 PKM failed task。下一轮应把 memory 评分拆成“长期事实是否写入”“source 是否链接”“语义 paraphrase 是否命中”三类，避免把 scorer 严格匹配和真实写入缺口混在一起。
+- 可恢复 retry 也要保留：8 个 Knowledge Insight case 出现 `Maximum turns reached` retry 后完成，`12_c` 有一次 PKM retry 后完成。它们不是 hard fail，但应进入 `recoverable_retry_count_by_agent`、`max_turns_by_agent`、`loop_detection_by_agent` 指标。
+
 ## 2026-05-18 Real Replay v3 长跑续跑修正
 
 ### 问题
