@@ -11,11 +11,19 @@ import 'package:memex/utils/toast_helper.dart';
 import 'package:memex/ui/core/widgets/searchable_dropdown.dart';
 import 'package:memex/config/app_config.dart';
 import 'package:memex/ui/core/themes/app_colors.dart';
+import 'package:memex/ui/settings/widgets/memex_auth_section.dart';
 
 class ModelConfigEditPage extends StatefulWidget {
   final LLMConfig? config;
+  final LLMConfig? duplicateSource;
+  final bool isDefaultConfig;
 
-  const ModelConfigEditPage({super.key, this.config});
+  const ModelConfigEditPage({
+    super.key,
+    this.config,
+    this.duplicateSource,
+    this.isDefaultConfig = false,
+  });
 
   @override
   State<ModelConfigEditPage> createState() => _ModelConfigEditPageState();
@@ -57,7 +65,7 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    final config = widget.config;
+    final config = widget.config ?? widget.duplicateSource;
     _keyController = TextEditingController(text: config?.key ?? '');
     _modelIdController = TextEditingController(text: config?.modelId ?? '');
     _apiKeyController = TextEditingController(text: config?.apiKey ?? '');
@@ -115,6 +123,11 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage>
       vsync: this,
       duration: const Duration(milliseconds: 800),
     );
+
+    if (widget.duplicateSource != null) {
+      _hasChanges = true;
+      _animationController.repeat(reverse: true);
+    }
 
     _keyController.addListener(_checkChanges);
     _modelIdController.addListener(_checkChanges);
@@ -526,6 +539,7 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage>
         _ProviderEntry(LLMConfig.typeGeminiOauth, l10n.providerGeminiOauth),
       ],
       l10n.providerGroupOthers: [
+        const _ProviderEntry(LLMConfig.typeMemex, 'Memex AI'),
         _ProviderEntry(LLMConfig.typeKimi, l10n.providerKimi),
         _ProviderEntry(LLMConfig.typeQwen, l10n.providerQwen),
         _ProviderEntry(LLMConfig.typeSeed, l10n.providerSeed),
@@ -787,14 +801,14 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage>
       }
     }
 
-    if (widget.config != null) {
+    if (widget.config != null && widget.duplicateSource == null) {
       // Update
       final index = configs.indexWhere((c) => c.key == widget.config!.key);
       if (index != -1) {
         configs[index] = newConfig;
       }
     } else {
-      // Add
+      // Add (new or duplicate)
       configs.add(newConfig);
     }
 
@@ -910,7 +924,8 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage>
 
   @override
   Widget build(BuildContext context) {
-    final isDefault = widget.config?.isDefault ?? false;
+    final isBuiltInDefault = widget.config?.isDefault ?? false;
+    final locksKey = isBuiltInDefault || widget.isDefaultConfig;
 
     return PopScope(
       canPop: !_hasChanges,
@@ -927,11 +942,13 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage>
           surfaceTintColor: AppColors.background,
           title: Text(
             widget.config == null
-                ? UserStorage.l10n.addConfiguration
+                ? (widget.duplicateSource != null
+                    ? UserStorage.l10n.duplicateConfiguration
+                    : UserStorage.l10n.addConfiguration)
                 : UserStorage.l10n.editConfiguration,
           ),
           actions: [
-            if (isDefault)
+            if (isBuiltInDefault)
               IconButton(
                 icon: const Icon(Icons.restore),
                 tooltip: UserStorage.l10n.resetToDefaults,
@@ -1002,7 +1019,7 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage>
                   helperText: UserStorage.l10n.keyIdHelper,
                   border: const OutlineInputBorder(),
                 ),
-                enabled: !isDefault, // Default keys cannot be changed
+                enabled: !locksKey,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return UserStorage.l10n.required;
@@ -1077,7 +1094,8 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage>
               // Base URL (before API key — needed for model fetching)
               if (_selectedType != LLMConfig.typeBedrockClaude &&
                   _selectedType != LLMConfig.typeOpenAiOauth &&
-                  _selectedType != LLMConfig.typeGeminiOauth) ...[
+                  _selectedType != LLMConfig.typeGeminiOauth &&
+                  _selectedType != LLMConfig.typeMemex) ...[
                 TextFormField(
                   controller: _baseUrlController,
                   decoration: InputDecoration(
@@ -1100,6 +1118,56 @@ class _ModelConfigEditPageState extends State<ModelConfigEditPage>
                 const SizedBox(height: 16),
               ] else if (_selectedType == LLMConfig.typeGeminiOauth) ...[
                 _buildGeminiAuthSection(),
+                const SizedBox(height: 16),
+              ] else if (_selectedType == LLMConfig.typeMemex) ...[
+                MemexAuthSection(
+                  onCredentialsReady: (baseUrl, apiKey, models) {
+                    setState(() {
+                      _baseUrlController.text = baseUrl;
+                      _apiKeyController.text = apiKey;
+                      if (models.isNotEmpty) {
+                        _fetchedModels = models;
+                        _modelIdController.text = models.first;
+                        _modelDropdownKey.currentState?.setText(models.first);
+                      }
+                    });
+                    _checkChanges();
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _baseUrlController,
+                  decoration: InputDecoration(
+                    labelText: UserStorage.l10n.baseUrlLabel,
+                    border: const OutlineInputBorder(),
+                  ),
+                  onChanged: (_) {
+                    _checkChanges();
+                    setState(() {});
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _apiKeyController,
+                  decoration: InputDecoration(
+                    labelText: UserStorage.l10n.apiKeyLabel,
+                    border: const OutlineInputBorder(),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isObscureApiKey
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () =>
+                          setState(() => _isObscureApiKey = !_isObscureApiKey),
+                    ),
+                  ),
+                  obscureText: _isObscureApiKey,
+                  onChanged: (_) {
+                    _checkChanges();
+                    setState(() {});
+                  },
+                ),
                 const SizedBox(height: 16),
               ] else if (_selectedType == LLMConfig.typeBedrockClaude) ...[
                 // Bedrock-specific fields

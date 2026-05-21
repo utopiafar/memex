@@ -29,6 +29,24 @@ class ClarificationResponseType {
   static const shortText = 'short_text';
 }
 
+class ClarificationRequestCreateResult {
+  const ClarificationRequestCreateResult({
+    required this.id,
+    required this.created,
+    this.dedupeKey,
+  });
+
+  final String id;
+  final bool created;
+  final String? dedupeKey;
+
+  Map<String, dynamic> toJson() => {
+        'request_id': id,
+        'created': created,
+        if (dedupeKey != null) 'dedupe_key': dedupeKey,
+      };
+}
+
 class ClarificationRequestService {
   static final ClarificationRequestService instance =
       ClarificationRequestService._internal();
@@ -91,6 +109,21 @@ class ClarificationRequestService {
     ClarificationRequest request,
   ) async {
     try {
+      // Optimistic claim: atomically set a placeholder factId so concurrent
+      // invocations for the same request will not proceed.
+      final claimed = await (_db.update(_db.clarificationRequests)
+            ..where((t) =>
+                t.id.equals(request.id) &
+                (t.factId.isNull() | t.factId.equals(''))))
+          .write(ClarificationRequestsCompanion(
+        factId: const Value('_claiming'),
+        updatedAt: Value(DateTime.now().millisecondsSinceEpoch ~/ 1000),
+      ));
+      if (claimed == 0) {
+        // Another invocation already claimed this request.
+        return;
+      }
+
       final now = DateTime.now();
       final timestampSec = now.millisecondsSinceEpoch ~/ 1000;
       final dateStr = DateFormat('yyyy/MM/dd').format(now);
@@ -180,6 +213,45 @@ class ClarificationRequestService {
     String? factId,
     int? expiresAt,
   }) async {
+    final result = await createRequestWithResult(
+      id: id,
+      question: question,
+      responseType: responseType,
+      options: options,
+      entityType: entityType,
+      entityLabel: entityLabel,
+      evidenceFactIds: evidenceFactIds,
+      reason: reason,
+      impact: impact,
+      confidence: confidence,
+      proposedMemory: proposedMemory,
+      resolutionTarget: resolutionTarget,
+      sourceAgent: sourceAgent,
+      dedupeKey: dedupeKey,
+      factId: factId,
+      expiresAt: expiresAt,
+    );
+    return result.id;
+  }
+
+  Future<ClarificationRequestCreateResult> createRequestWithResult({
+    String? id,
+    required String question,
+    required String responseType,
+    List<Map<String, dynamic>>? options,
+    String? entityType,
+    String? entityLabel,
+    List<String>? evidenceFactIds,
+    String? reason,
+    String? impact,
+    double? confidence,
+    String? proposedMemory,
+    String? resolutionTarget,
+    String? sourceAgent,
+    String? dedupeKey,
+    String? factId,
+    int? expiresAt,
+  }) async {
     final trimmedDedupeKey = dedupeKey?.trim();
     if (trimmedDedupeKey != null && trimmedDedupeKey.isNotEmpty) {
       final existing = await (_db.select(_db.clarificationRequests)
@@ -195,7 +267,11 @@ class ClarificationRequestService {
       if (existing != null) {
         _logger.info(
             'Reusing active clarification request ${existing.id} for $trimmedDedupeKey');
-        return existing.id;
+        return ClarificationRequestCreateResult(
+          id: existing.id,
+          created: false,
+          dedupeKey: trimmedDedupeKey,
+        );
       }
     }
 
@@ -232,7 +308,11 @@ class ClarificationRequestService {
         );
 
     _logger.info('Created clarification request $requestId');
-    return requestId;
+    return ClarificationRequestCreateResult(
+      id: requestId,
+      created: true,
+      dedupeKey: trimmedDedupeKey,
+    );
   }
 
   Stream<List<ClarificationRequest>> watchPending() {
@@ -247,6 +327,25 @@ class ClarificationRequestService {
       ..where((t) => t.status.equals(ClarificationRequestStatus.pending))
       ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]);
     return query.get();
+  }
+
+  /// Dismiss all pending clarification requests (batch operation).
+  Future<int> dismissAllPending() async {
+    try {
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final count = await (_db.update(_db.clarificationRequests)
+            ..where((t) => t.status.equals(ClarificationRequestStatus.pending)))
+          .write(ClarificationRequestsCompanion(
+        status: const Value(ClarificationRequestStatus.dismissed),
+        updatedAt: Value(now),
+      ));
+      _logger
+          .info('Dismissed all pending clarification requests (count=$count)');
+      return count;
+    } catch (e) {
+      _logger.severe('Failed to dismiss all pending requests: $e');
+      return 0;
+    }
   }
 
   Future<List<ClarificationRequest>> getVisibleForFact(String factId) async {

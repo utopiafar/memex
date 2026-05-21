@@ -131,6 +131,23 @@ class AppLocalizationsEn extends AppLocalizations {
       'Only the Facts directory (raw input) will be kept. All other workspace directories (Cards, Discoveries, KnowledgeInsights, PKM, _System, etc.) will be deleted.\n\nThis action cannot be undone!';
 
   @override
+  String get clearFailedAgentContexts => 'Clear failed conversation context';
+
+  @override
+  String get confirmClearFailedAgentContextsMessage =>
+      'Clear the saved conversation context for Insight and Schedule agents? This is useful after changing models when previous agent messages are no longer compatible. Facts, cards, knowledge, memories, and model settings will not be deleted.';
+
+  @override
+  String failedAgentContextsCleared(Object count) {
+    return 'Cleared $count saved conversation context(s)';
+  }
+
+  @override
+  String clearFailedAgentContextsFailed(Object error) {
+    return 'Failed to clear conversation context: $error';
+  }
+
+  @override
   String get dataClearedSuccess => 'Data cleared successfully';
 
   @override
@@ -193,6 +210,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get all => 'All';
 
   @override
+  String get schedule => 'Schedule';
+
+  @override
   String loadStatsFailed(Object error) {
     return 'Failed to load stats: $error';
   }
@@ -204,16 +224,89 @@ class AppLocalizationsEn extends AppLocalizations {
   String get daily => 'Daily';
 
   @override
+  String get modelStatsByAgent => 'By agent';
+
+  @override
   String get detail => 'Detail';
 
   @override
   String get date => 'Date';
 
   @override
+  String get agent => 'Agent';
+
+  @override
   String get noData => 'No data';
 
   @override
   String get totalCalls => 'Total calls';
+
+  @override
+  String get calls => 'Calls';
+
+  @override
+  String callsCount(Object count) {
+    return '$count calls';
+  }
+
+  @override
+  String get selectDateRange => 'Select date range';
+
+  @override
+  String get totalTokens => 'Total tokens';
+
+  @override
+  String get cacheRate => 'Cache rate';
+
+  @override
+  String get promptTokens => 'Prompt tokens';
+
+  @override
+  String get completionTokens => 'Completion tokens';
+
+  @override
+  String get cachedTokens => 'Cached tokens';
+
+  @override
+  String get thoughtTokens => 'Thought tokens';
+
+  @override
+  String get prompt => 'Prompt';
+
+  @override
+  String get completion => 'Completion';
+
+  @override
+  String get cached => 'Cached';
+
+  @override
+  String get thought => 'Thought';
+
+  @override
+  String get model => 'Model';
+
+  @override
+  String get scene => 'Scene';
+
+  @override
+  String get sceneId => 'Scene ID';
+
+  @override
+  String get tokenUsage => 'Token usage';
+
+  @override
+  String get handler => 'Handler';
+
+  @override
+  String get modelBreakdown => 'Model breakdown';
+
+  @override
+  String get callDetails => 'Call details';
+
+  @override
+  String recordDetailsTitle(Object scene) {
+    return 'Record details: $scene';
+  }
 
   @override
   String saveLlmConfigFailed(Object error) {
@@ -941,6 +1034,84 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noKnowledgeInsight => 'No knowledge insight';
 
   @override
+  String insightProcessingBacklogMessage(Object count) {
+    return '$count background tasks are still processing. Insights may update after they finish.';
+  }
+
+  @override
+  String get insightUnavailableMessage =>
+      'This insight is still being generated or was updated. Refresh insights and try again later.';
+
+  @override
+  String get scheduleAggregation => 'Schedule aggregation';
+
+  @override
+  String get noScheduleAggregation => 'No schedule aggregation';
+
+  @override
+  String get scheduleAggregationEmptyHint =>
+      'Tap Update to organize schedules and todos from real temporal cards.';
+
+  @override
+  String get scheduleAggregationDirtyReason =>
+      'New schedule-related content is available. Tap Update to reorganize.';
+
+  @override
+  String get scheduleAggregationLoadFailed => 'Failed to load schedule data';
+
+  @override
+  String get scheduleAggregationRefreshFailed =>
+      'Failed to refresh schedule data';
+
+  @override
+  String get scheduleTaskUpdateFailed => 'Failed to update task';
+
+  @override
+  String get scheduleFeatured => 'Featured';
+
+  @override
+  String get scheduleThisWeek => 'This week';
+
+  @override
+  String get scheduleDone => 'Done';
+
+  @override
+  String get scheduleTbd => 'TBD';
+
+  @override
+  String get scheduleWeekOverview => 'This week';
+
+  @override
+  String get scheduleImportant => 'Important';
+
+  @override
+  String get scheduleBriefingTitle => 'Schedule briefing';
+
+  @override
+  String get scheduleBriefingNeedsUpdate => 'Needs update';
+
+  @override
+  String get scheduleBriefingOpen => 'Open';
+
+  @override
+  String get scheduleBriefingNoData => 'No schedule briefing yet';
+
+  @override
+  String scheduleBriefingUpdated(Object time) {
+    return 'Updated $time';
+  }
+
+  @override
+  String scheduleBriefingDoneCount(Object count) {
+    return '$count done';
+  }
+
+  @override
+  String scheduleBriefingConflictCount(Object count) {
+    return '$count conflicts';
+  }
+
+  @override
   String get updating => 'Updating...';
 
   @override
@@ -1191,6 +1362,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get relatedRecords => 'Related records';
 
   @override
+  String get reply => 'Reply';
+
+  @override
   String get replySent => 'Reply sent';
 
   @override
@@ -1319,6 +1493,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get defaultLabel => 'Default';
 
   @override
+  String get setAsDefault => 'Set as default';
+
+  @override
   String get missingApiKey => 'Missing API Key';
 
   @override
@@ -1343,6 +1520,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get editConfiguration => 'Edit Configuration';
+
+  @override
+  String get duplicateConfiguration => 'Duplicate Configuration';
+
+  @override
+  String get duplicate => 'Duplicate';
 
   @override
   String get keyIdLabel => 'Key (ID)';
@@ -1426,6 +1609,87 @@ class AppLocalizationsEn extends AppLocalizations {
   String get providerMimo => 'Xiaomi MIMO';
 
   @override
+  String get providerMemex => 'Memex AI';
+
+  @override
+  String get memexSignIn => 'Sign In';
+
+  @override
+  String get memexCreateAccount => 'Create Account';
+
+  @override
+  String get memexSignInToMemex => 'Sign in to Memex AI';
+
+  @override
+  String get memexCreateMemexAccount => 'Create Memex AI account';
+
+  @override
+  String get memexUsername => 'Username';
+
+  @override
+  String get memexPassword => 'Password';
+
+  @override
+  String get memexCreateAccountLink => 'Create account';
+
+  @override
+  String get memexSignInLink => 'Sign in instead';
+
+  @override
+  String get memexTopUp => 'Top up to start using Memex AI';
+
+  @override
+  String get memexApplyCredentials => 'Apply Credentials';
+
+  @override
+  String get memexCredentialsApplied => 'Credentials applied';
+
+  @override
+  String get memexTopUpSuccess => 'Top up successful!';
+
+  @override
+  String get memexFillAllFields => 'Please fill in all fields';
+
+  @override
+  String get memexUsernameTooShort => 'Username must be at least 6 characters';
+
+  @override
+  String get memexAuthFailed => 'Authentication failed';
+
+  @override
+  String get memexPaymentFailed => 'Failed to create payment';
+
+  @override
+  String get memexLogout => 'Logout';
+
+  @override
+  String memexPricingInfo(Object ratio) {
+    return 'Pay-as-you-go · Official API pricing × $ratio';
+  }
+
+  @override
+  String get memexCustomAmount => 'Custom Amount';
+
+  @override
+  String get memexViewHistory => 'Usage History';
+
+  @override
+  String memexBalanceLabel(Object amount) {
+    return 'Balance: $amount';
+  }
+
+  @override
+  String get memexConfirmPassword => 'Confirm Password';
+
+  @override
+  String get memexPasswordMismatch => 'Passwords do not match';
+
+  @override
+  String memexPayAmount(Object amount) {
+    return 'Pay $amount';
+  }
+
+  @override
   String get modelIdLabel => 'Model ID';
 
   @override
@@ -1483,11 +1747,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get discardChangesTitle => 'Discard unsaved changes?';
+  String get discardChangesTitle => 'Leave this page?';
 
   @override
   String get discardChangesMessage =>
-      'You have unsaved changes. Are you sure you want to leave without saving?';
+      'If you made any changes, please save them before leaving.';
 
   @override
   String get discardButton => 'Discard';
@@ -1617,6 +1881,143 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get invalidBackupFile =>
       'Invalid backup file. Please select a .memex file.';
+
+  @override
+  String get automaticBackup => 'Automatic Backup';
+
+  @override
+  String get autoBackupDescription =>
+      'When enabled, Memex creates at most one local snapshot per day after startup or when returning to the foreground.';
+
+  @override
+  String get backupSensitiveSettingsHint =>
+      'Backups include settings and model provider keys. Keep backup files somewhere you trust.';
+
+  @override
+  String get backupLocation => 'Location';
+
+  @override
+  String get backupLocationDetails => 'Location details';
+
+  @override
+  String get backupLocationSummary => 'Shown in app';
+
+  @override
+  String get backupLocationFullPath => 'Full path';
+
+  @override
+  String get backupLocationUri => 'Folder access URI';
+
+  @override
+  String get copyBackupLocationPath => 'Copy path';
+
+  @override
+  String get backupLocationCopied => 'Backup location copied';
+
+  @override
+  String androidBackupLocationSelected(Object folderName) {
+    return 'Selected folder: $folderName';
+  }
+
+  @override
+  String get iosICloudBackupLocation => 'iCloud Drive > Memex > Backups';
+
+  @override
+  String get iosAppDocumentsBackupLocation =>
+      'Files > On My iPhone > Memex > Backups';
+
+  @override
+  String get autoBackupStatus => 'Status';
+
+  @override
+  String get noAutoBackupYet => 'No automatic backup yet';
+
+  @override
+  String lastBackupAt(Object time) {
+    return 'Last backup: $time';
+  }
+
+  @override
+  String get createSnapshotNow => 'Back up now';
+
+  @override
+  String get backupLocationMenu => 'Change location';
+
+  @override
+  String get defaultBackupLocation => 'Default backup folder';
+
+  @override
+  String get defaultBackupLocationAndroidDesc =>
+      'Use Memex\'s app-specific external files folder. No storage permission needed.';
+
+  @override
+  String get chooseBackupLocation => 'Choose backup folder';
+
+  @override
+  String get chooseBackupLocationAndroidDesc =>
+      'Pick a folder with Android\'s system picker and grant Memex persistent access.';
+
+  @override
+  String get storedBackups => 'Stored Backups';
+
+  @override
+  String get noStoredBackups =>
+      'Automatic backups will appear here after the first snapshot.';
+
+  @override
+  String get refresh => 'Refresh';
+
+  @override
+  String get restoreThisBackup => 'Restore this backup';
+
+  @override
+  String get deleteThisBackup => 'Delete this backup';
+
+  @override
+  String get confirmDeleteBackup => 'Delete backup?';
+
+  @override
+  String confirmDeleteBackupMessage(Object fileName) {
+    return 'Delete $fileName? This removes the stored backup file and cannot be undone.';
+  }
+
+  @override
+  String backupDeleted(Object fileName) {
+    return 'Backup deleted: $fileName';
+  }
+
+  @override
+  String backupDeleteFailed(Object error) {
+    return 'Could not delete backup: $error';
+  }
+
+  @override
+  String get creatingSafetySnapshot => 'Creating safety snapshot...';
+
+  @override
+  String autoBackupCreated(Object fileName) {
+    return 'Snapshot created: $fileName';
+  }
+
+  @override
+  String backupLocationFailed(Object error) {
+    return 'Could not update backup location: $error';
+  }
+
+  @override
+  String get backupImportCreatedAt => 'Created';
+
+  @override
+  String get backupImportSourceVersion => 'Source version';
+
+  @override
+  String get backupImportFlavor => 'Build';
+
+  @override
+  String get backupLegacyFormat => 'Legacy backup (no manifest)';
+
+  @override
+  String get restoreInProgress => 'Restoring backup...';
 
   @override
   String get dataStorage => 'Data Storage';
@@ -2107,6 +2508,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get switchCompanion => 'Switch companion';
 
   @override
+  String get personaChatInputHint => 'Type a message...';
+
+  @override
+  String get personaChatEmptyHint =>
+      'Send the first message to begin this companion chat';
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get tomorrow => 'Tomorrow';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
   String get showInsightTextTitle => 'Show Memex insight comment';
 
   @override
@@ -2145,8 +2562,492 @@ class AppLocalizationsEn extends AppLocalizations {
   String get untitledCard => 'Untitled card';
 
   @override
+  String get locationContextTitle => 'Location Context';
+
+  @override
+  String get locationContextDescription =>
+      'Current city and neighborhood context for agent chat';
+
+  @override
+  String get locationContextAttachTitle => 'Attach current location to chat';
+
+  @override
+  String get locationContextAttachDesc =>
+      'Uses device GPS and reverse geocoding to provide city, district, and neighborhood context to the agent.';
+
+  @override
+  String get reverseGeocodingProvider => 'Reverse geocoding provider';
+
+  @override
+  String get amapProviderName => 'Amap';
+
+  @override
+  String get amapApiKey => 'Amap API Key';
+
+  @override
+  String get amapGcj02Note =>
+      'Amap uses GCJ-02 coordinates. Device GPS is converted before reverse geocoding.';
+
+  @override
+  String get contextGranularity => 'Context granularity';
+
+  @override
+  String get granularityCity => 'City';
+
+  @override
+  String get granularityDistrict => 'District';
+
+  @override
+  String get granularityNeighborhood => 'Neighborhood';
+
+  @override
+  String get granularityStreet => 'Street';
+
+  @override
+  String get granularityFullAddress => 'Full address candidate';
+
+  @override
+  String get locationFreshness => 'Location freshness';
+
+  @override
+  String minutesShort(int minutes) {
+    return '$minutes minutes';
+  }
+
+  @override
+  String get oneHour => '1 hour';
+
+  @override
+  String get testCurrentLocation => 'Test current location';
+
+  @override
+  String get locationUnavailable => 'location unavailable';
+
+  @override
+  String locationTestFailed(String error) {
+    return 'Failed: $error';
+  }
+
+  @override
+  String get locationDebugGps => 'GPS';
+
+  @override
+  String get locationDebugReverseGeocode => 'Reverse geocode';
+
+  @override
+  String get locationDebugProvider => 'Provider';
+
+  @override
+  String get locationDebugAgentContext => 'Agent context';
+
+  @override
+  String get locationDebugSource => 'Source';
+
+  @override
+  String get locationDebugAddressSummary => 'Address summary';
+
+  @override
+  String get locationDebugFullAddress => 'Full address';
+
+  @override
+  String get locationDebugCoordinates => 'Coordinates';
+
+  @override
+  String get locationDebugAccuracy => 'Accuracy';
+
+  @override
+  String get locationDebugReason => 'Reason';
+
+  @override
+  String get locationDebugOk => 'OK';
+
+  @override
+  String get locationDebugUnavailable => 'unavailable';
+
+  @override
+  String get locationDebugInjected => 'injected';
+
+  @override
+  String get locationDebugNotInjected => 'not injected';
+
+  @override
+  String get locationStatusUpdatedAt => 'Updated';
+
+  @override
+  String get locationStatusSuccessTitle => 'Current location is ready';
+
+  @override
+  String get locationStatusSuccessBody =>
+      'Memex can attach this location summary when location context is relevant.';
+
+  @override
+  String get locationStatusApproximateTitle => 'Approximate location only';
+
+  @override
+  String get locationStatusApproximateBody =>
+      'Accuracy looks city or area level. You can keep using it, or enable Precise Location in system settings for a tighter context.';
+
+  @override
+  String get locationStatusServiceDisabledTitle => 'System location is off';
+
+  @override
+  String get locationStatusServiceDisabledBody =>
+      'Memex only uses device GPS and will not infer location from network or IP. On Android, open Location settings; on iOS, enable Settings > Privacy & Security > Location Services.';
+
+  @override
+  String get locationStatusPermissionDeniedTitle =>
+      'Location permission is needed';
+
+  @override
+  String get locationStatusPermissionDeniedBody =>
+      'Allow Memex to use location while testing or when location context is needed. Always access is not requested.';
+
+  @override
+  String get locationStatusPermissionForeverTitle =>
+      'Location permission is blocked';
+
+  @override
+  String get locationStatusPermissionForeverBody =>
+      'Open app settings and allow location for Memex. On iOS, While Using the App is enough.';
+
+  @override
+  String get locationStatusDisabledTitle => 'Location Context is off';
+
+  @override
+  String get locationStatusDisabledBody =>
+      'Turn on the switch above and save when you want Memex to attach device location to agent context.';
+
+  @override
+  String get locationStatusGeocodeUnavailableTitle =>
+      'GPS works, address lookup failed';
+
+  @override
+  String get locationStatusGeocodeUnavailableBody =>
+      'Memex has coordinates but will not inject GPS-only context into the agent. Check the reverse geocoding provider and try again.';
+
+  @override
+  String get locationStatusUnavailableTitle => 'Location unavailable';
+
+  @override
+  String get locationStatusUnavailableBody =>
+      'Check system location services and app permission, then test again.';
+
+  @override
+  String get allowLocationPermissionButton => 'Allow location permission';
+
+  @override
+  String get openAppSettingsButton => 'Open app settings';
+
+  @override
+  String get openLocationSettingsButton => 'Open location settings';
+
+  @override
+  String get locationSettingsOpenFailed => 'Could not open system settings.';
+
+  @override
+  String locationActionFailed(String error) {
+    return 'Location action failed: $error';
+  }
+
+  @override
   String get settingsSearchPlaceholder => 'Search settings...';
 
   @override
   String get settingsSearchEmpty => 'No matching settings found';
+
+  @override
+  String get importCharacterCard => 'Import Character Card';
+
+  @override
+  String get firstMessageLabel => 'First Message';
+
+  @override
+  String get firstMessageHint =>
+      'Greeting sent on first conversation (optional)';
+
+  @override
+  String get systemPromptOverrideLabel => 'System Prompt Override';
+
+  @override
+  String get systemPromptOverrideHint =>
+      'Override default system prompt (advanced, optional)';
+
+  @override
+  String get postHistoryInstructionsLabel => 'Post-History Instructions';
+
+  @override
+  String get postHistoryInstructionsHint =>
+      'Instructions injected after chat history, before reply (optional)';
+
+  @override
+  String get mesExampleLabel => 'Message Examples';
+
+  @override
+  String get mesExampleHint =>
+      'Example dialogues showing character style (optional)';
+
+  @override
+  String get worldBookTitle => 'World Book';
+
+  @override
+  String get worldBookSubtitle =>
+      'Background knowledge injected when keywords are triggered';
+
+  @override
+  String get characterMemoryTitle => 'Character Memory';
+
+  @override
+  String get characterMemorySubtitle =>
+      'Relationship dynamics and interaction memories between character and user';
+
+  @override
+  String get addTooltip => 'Add';
+
+  @override
+  String get constantBadge => 'Constant';
+
+  @override
+  String worldEntryFallbackName(Object index) {
+    return 'Entry $index';
+  }
+
+  @override
+  String keywordsPrefix(Object keys) {
+    return 'Keywords: $keys';
+  }
+
+  @override
+  String memoryFallbackName(Object index) {
+    return 'Memory $index';
+  }
+
+  @override
+  String get addWorldEntry => 'Add World Book Entry';
+
+  @override
+  String get editWorldEntry => 'Edit World Book Entry';
+
+  @override
+  String get commentTitleLabel => 'Comment / Title';
+
+  @override
+  String get entryDescriptionHint => 'Entry description (optional)';
+
+  @override
+  String get triggerKeywordsLabel => 'Trigger Keywords';
+
+  @override
+  String get triggerKeywordsHint => 'Comma-separated, e.g.: magic, spell';
+
+  @override
+  String get contentLabel => 'Content';
+
+  @override
+  String get worldEntryContentHint =>
+      'Background knowledge injected when keywords trigger';
+
+  @override
+  String get enabledCheckbox => 'Enabled';
+
+  @override
+  String get addMemory => 'Add Memory';
+
+  @override
+  String get editMemory => 'Edit Memory';
+
+  @override
+  String get memoryLabelField => 'Label';
+
+  @override
+  String get memoryLabelHint => 'Unique identifier, e.g.: name preference';
+
+  @override
+  String get memoryContentHint => 'Memory content';
+
+  @override
+  String get salienceLabel => 'Salience: ';
+
+  @override
+  String get labelCannotBeEmpty => 'Label cannot be empty';
+
+  @override
+  String importSuccess(Object name) {
+    return '$name imported successfully';
+  }
+
+  @override
+  String importFailed(Object error) {
+    return 'Import failed: $error';
+  }
+
+  @override
+  String get supportedFormats => 'Supported Formats';
+
+  @override
+  String get tavernImportDescription =>
+      '• SillyTavern V2 character cards (.json)\n• PNG images with embedded cards (.png)\n\nFields like persona, world book, etc. will be automatically mapped to Memex character format.';
+
+  @override
+  String get pickCharacterFile => 'Pick Character File';
+
+  @override
+  String get repickFile => 'Pick Another File';
+
+  @override
+  String get personaSettingSection => 'Persona';
+
+  @override
+  String get systemPromptSection => 'System Prompt';
+
+  @override
+  String worldEntriesCount(Object count) {
+    return 'World Book: $count entries';
+  }
+
+  @override
+  String fileLabel(Object filename) {
+    return 'File: $filename';
+  }
+
+  @override
+  String conflictWarning(Object names) {
+    return 'Character with same name already exists: $names. Importing will create a new character without overwriting existing ones.';
+  }
+
+  @override
+  String get setPrimaryCompanionTitle => 'Set as Primary Companion';
+
+  @override
+  String get setPrimaryCompanionSubtitle =>
+      'Automatically set as your primary companion after import';
+
+  @override
+  String get confirmImport => 'Confirm Import';
+
+  @override
+  String get chatBackground => 'Chat Background';
+
+  @override
+  String get chooseChatBackgroundImage => 'Choose background image';
+
+  @override
+  String get earlyUpdateSettingsTitle => 'Early access updates';
+
+  @override
+  String get earlyUpdateSettingsDesc =>
+      'Check GitHub pre-releases for the matching Early APK, download it, and hand it to Android\'s installer.';
+
+  @override
+  String get earlyUpdateUnsupported =>
+      'Early updates are only available in the Android Early build.';
+
+  @override
+  String get earlyUpdateAutoCheckTitle => 'Auto check for updates';
+
+  @override
+  String get earlyUpdateAutoCheckDesc =>
+      'Check at startup at most once every 12 hours.';
+
+  @override
+  String get earlyUpdateWifiOnlyTitle => 'Download on Wi-Fi only';
+
+  @override
+  String get earlyUpdateWifiOnlyDesc =>
+      'Skip update downloads while using mobile data.';
+
+  @override
+  String get earlyUpdateAutoInstallTitle => 'Auto download and install';
+
+  @override
+  String get earlyUpdateAutoInstallDesc =>
+      'When a new build is found, download it and open the Android installer automatically.';
+
+  @override
+  String get earlyUpdateCheckNow => 'Check now';
+
+  @override
+  String get earlyUpdateChecking => 'Checking GitHub pre-releases...';
+
+  @override
+  String get earlyUpdateSkippedMobile =>
+      'Skipped because Wi-Fi-only downloads are enabled.';
+
+  @override
+  String get earlyUpdateNoUpdate =>
+      'You are already on the latest Early build.';
+
+  @override
+  String earlyUpdateFound(Object version, Object build) {
+    return 'Early build $version+$build is available.';
+  }
+
+  @override
+  String get earlyUpdateDownloadAndInstall => 'Download and install';
+
+  @override
+  String earlyUpdateDownloadingPercent(Object percent) {
+    return 'Downloading update: $percent%';
+  }
+
+  @override
+  String get earlyUpdateInstallDownloadedPackage =>
+      'Install downloaded package';
+
+  @override
+  String get earlyUpdateClearDownloadedPackage => 'Clear downloaded package';
+
+  @override
+  String get earlyUpdateClearDownloadedPackageSuccess =>
+      'Downloaded update package cleared.';
+
+  @override
+  String get earlyUpdateInstallStarted => 'Android installer opened.';
+
+  @override
+  String get earlyUpdateInstallPermissionRequired =>
+      'Allow Memex to install unknown apps, then tap download and install again.';
+
+  @override
+  String earlyUpdateLastChecked(Object time) {
+    return 'Last checked: $time';
+  }
+
+  @override
+  String earlyUpdateCheckFailed(Object error) {
+    return 'Update check failed: $error';
+  }
+
+  @override
+  String get earlyUpdateDialogTitle => 'Early update available';
+
+  @override
+  String get earlyUpdateReleaseNotes => 'Release notes';
+
+  @override
+  String get dismissAllNotifications => 'Clear all';
+
+  @override
+  String get dismissByType => 'Clear by type';
+
+  @override
+  String get dismissTypeSystemAction => 'Reminders & events';
+
+  @override
+  String get dismissTypeClarification => 'Clarifications';
+
+  @override
+  String get dismissTypeCardUpdate => 'Card updates';
+
+  @override
+  String get dismissAllConfirm => 'Clear all notifications?';
+
+  @override
+  String dismissTypeConfirm(Object type) {
+    return 'Clear all $type notifications?';
+  }
+
+  @override
+  String dismissedCount(Object count) {
+    return '$count cleared';
+  }
 }

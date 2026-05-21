@@ -15,7 +15,8 @@ import 'package:memex/ui/settings/widgets/settings_search_screen.dart';
 import 'package:memex/ui/settings/view_models/settings_search_viewmodel.dart';
 import 'package:memex/utils/permission_utils.dart';
 import 'package:memex/ui/core/widgets/avatar_picker.dart';
-import 'package:memex/ui/core/widgets/dicebear_avatar.dart';
+import 'package:memex/ui/core/widgets/character_avatar.dart';
+import 'package:memex/data/services/media_service.dart';
 
 /// Personal center screen
 class PersonalCenterScreen extends StatefulWidget {
@@ -35,6 +36,7 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
   bool _isReprocessingComments = false;
   bool _isReprocessingKnowledgeBase = false;
   bool _isRebuildingSearchIndex = false;
+  bool _isClearingFailedAgentContexts = false;
   bool _showAuthBadge = false;
   String? _userAvatar;
 
@@ -54,7 +56,7 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
 
   Future<void> _loadUserInfo() async {
     final userId = await UserStorage.getUserId();
-    final avatar = await UserStorage.getUserAvatar();
+    final avatar = await _memexRouter.getUserAvatar();
     if (mounted) {
       setState(() {
         _userId = userId ?? UserStorage.l10n.notSet;
@@ -68,11 +70,28 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
     final picked = await showAvatarPicker(
       context,
       _userAvatar ?? UserStorage.defaultAvatarSeed,
+      onPickGallery: _pickUserAvatarFromGallery,
     );
     if (picked != null && mounted) {
-      await UserStorage.saveUserAvatar(picked);
-      setState(() => _userAvatar = picked);
+      await _memexRouter.updateUserAvatar(picked);
+      final resolvedAvatar = await _memexRouter.getUserAvatar();
+      if (!mounted) return;
+      setState(() => _userAvatar = resolvedAvatar);
     }
+  }
+
+  Future<String?> _pickUserAvatarFromGallery() async {
+    final userId = await UserStorage.getUserId();
+    if (userId == null) return null;
+
+    final pickedPath = await pickAvatarImageFromGallery();
+    if (pickedPath == null) return null;
+
+    final imported = await MediaService.instance.importImage(
+      userId: userId,
+      sourcePath: pickedPath,
+    );
+    return imported.relativePath;
   }
 
   Future<void> _clearToken() async {
@@ -201,12 +220,8 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   value: reanalyzeAssets,
-                  title: Text(
-                    UserStorage.l10n.reanalyzeMediaAssets,
-                  ),
-                  subtitle: Text(
-                    UserStorage.l10n.reanalyzeMediaAssetsDesc,
-                  ),
+                  title: Text(UserStorage.l10n.reanalyzeMediaAssets),
+                  subtitle: Text(UserStorage.l10n.reanalyzeMediaAssetsDesc),
                   onChanged: (value) {
                     setDialogState(() {
                       reanalyzeAssets = value;
@@ -648,6 +663,53 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
     }
   }
 
+  Future<void> _clearFailedAgentContexts() async {
+    if (_isClearingFailedAgentContexts) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(UserStorage.l10n.clearFailedAgentContexts),
+        content: Text(UserStorage.l10n.confirmClearFailedAgentContextsMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(UserStorage.l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(UserStorage.l10n.confirmClear),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => _isClearingFailedAgentContexts = true);
+    try {
+      final deletedCount =
+          await _memexRouter.clearFailedAgentConversationContexts();
+      if (!mounted) return;
+      ToastHelper.showSuccessWithKey(
+        _scaffoldMessengerKey,
+        UserStorage.l10n.failedAgentContextsCleared(deletedCount),
+      );
+    } catch (e) {
+      _logger.severe('Error clearing failed agent contexts: $e', e);
+      if (!mounted) return;
+      ToastHelper.showErrorWithKey(
+        _scaffoldMessengerKey,
+        UserStorage.l10n.clearFailedAgentContextsFailed(e),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isClearingFailedAgentContexts = false);
+      }
+    }
+  }
+
   Future<void> _clearData() async {
     if (_isClearingData) return;
 
@@ -761,7 +823,9 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 14, vertical: 8),
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF1F5F9),
                                 borderRadius: BorderRadius.circular(20),
@@ -769,8 +833,11 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Icon(Icons.search,
-                                      color: Color(0xFF94A3B8), size: 16),
+                                  const Icon(
+                                    Icons.search,
+                                    color: Color(0xFF94A3B8),
+                                    size: 16,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     UserStorage.l10n.settingsSearchPlaceholder,
@@ -810,9 +877,10 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                                   color: Color(0xFFEEF2FF),
                                   shape: BoxShape.circle,
                                 ),
-                                child: DiceBearAvatar(
-                                  seed: _userAvatar ??
+                                child: CharacterAvatar(
+                                  avatar: _userAvatar ??
                                       UserStorage.defaultAvatarSeed,
+                                  name: _userId ?? '',
                                   size: 80,
                                 ),
                               ),
@@ -890,7 +958,6 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                             },
                           ),
                           const SizedBox(height: 12),
-                          const SizedBox(height: 12),
                           _buildFunctionTab(
                             icon: Icons.settings_input_component_outlined,
                             title: UserStorage.l10n.modelConfig,
@@ -958,6 +1025,8 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                                   builder: (context) => DebugSettingsPage(
                                     onClearToken: () async => _clearToken(),
                                     onClearData: () async => _clearData(),
+                                    onClearFailedAgentContexts: () async =>
+                                        _clearFailedAgentContexts(),
                                     onReprocessCards: () async =>
                                         _reprocessCards(),
                                     onReprocessComments: () async =>
@@ -972,6 +1041,8 @@ class _PersonalCenterScreenState extends State<PersonalCenterScreen> {
                                         _isReprocessingComments,
                                     isReprocessingKnowledgeBase:
                                         _isReprocessingKnowledgeBase,
+                                    isClearingFailedAgentContexts:
+                                        _isClearingFailedAgentContexts,
                                     isRebuildingSearchIndex:
                                         _isRebuildingSearchIndex,
                                   ),

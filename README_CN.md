@@ -15,6 +15,7 @@
   <a href="https://github.com/memex-lab/memex/releases"><img src="https://img.shields.io/github/v/release/memex-lab/memex?style=flat-square&label=release" alt="Release"></a>
   <a href="https://discord.gg/TJGpXwn85F"><img src="https://img.shields.io/badge/discord-join-5865F2?style=flat-square&logo=discord&logoColor=white" alt="Discord"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPL--3.0-blue?style=flat-square" alt="License"></a>
+  <a href="https://github.com/memex-lab/memex/stargazers"><img src="https://img.shields.io/github/stars/memex-lab/memex?style=flat-square&color=f5a623" alt="Stars"></a>
 </p>
 
 <p align="center">
@@ -26,32 +27,33 @@
 
 ## Memex 是什么？
 
-Memex 是一款开源、本地优先的 AI 日记应用，支持 iOS 和 Android。它和传统日记应用的思路完全不同 — 不要求你坐下来写长篇日记，而是让你随手记录生活碎片（文字、照片、语音），通过多 Agent 协作的 AI 系统自动整理为结构化的时间线卡片，提取知识，并生成跨记录的洞察。
-
-Memex 的多 Agent 智能底座是一套完全开放的自定义 Agent 系统 — 你可以基于这个系统编排和运行自己的 Agent，如果你对在手机上构建自主化工作流感兴趣，可以直接[跳转到详细介绍](#-自定义-agent-系统)。
+Memex 是一款开源、本地优先的 AI 日记应用，支持 iOS 和 Android。它和传统日记应用的思路完全不同 — 不要求你坐下来写长篇日记，而是让你随手记录生活碎片（文字、照片、语音），通过多 Agent 协作的 AI 系统自动整理为结构化卡片，构建知识库，发现洞察，并通过 AI 角色提供陪伴。
 
 **这里说的"本地优先"是指：** 你的记录、卡片和知识都保存在你的设备上。没有 Memex 账号，也没有 Memex 服务器存储你的日记。你自带大模型服务商（OpenAI、Claude、Gemini 等），你的请求直接从手机发送到那个服务商 — 我们永远看不到你的数据。
 
-<div align="center">
-  <img src="https://github.com/user-attachments/assets/e39566a6-4eb4-4e49-b1ec-fb25ff6ec070" width="300" />
-</div>
+> [!IMPORTANT]
+> **Star 关注我们** — 第一时间收到 GitHub 新版本通知 ⭐
+>
+> [![Star Us](https://github.com/user-attachments/assets/5af4e4ac-f6dd-4f51-aec7-3c14c781f651)](https://github.com/memex-lab/memex)
 
 ## 功能
 
-### 🎙️ 多模态记录
-- 文字、图片、语音一站式记录
-- 长按录音，松手即发送
-- 自动提取照片 EXIF 信息（时间、GPS 位置）
-- 端侧 OCR 文字识别与图像标签分析（Google ML Kit）
-
 ### 🤖 AI 自动整理
-- 多 Agent 架构：记录整理、卡片生成、洞察分析、评论、记忆摘要、媒体分析等各司其职
+- 多 Agent 架构：记录整理、卡片生成、洞察分析、评论、记忆摘要、媒体分析、陪伴聊天、日程聚合等各司其职
+
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/45e03f95-18b3-4cf1-8833-205447ac36ae" width="800" />
+</div>
+
 - 自动识别记录内容，生成最匹配的卡片形式：
   - 生活与效率（任务、习惯、事件、时长、进度）— 记录待办、习惯打卡、日程与目标
   - 知识与媒体（文章、片段、引用、链接、对话）— 记录笔记、参考资料与对话内容
   - 人物与地点（联系人、地点）— 记录人际关系与位置信息，支持地图预览
   - 数据与指标（指标、评分、交易、规格表）— 记录测量数据、评价与消费
   - 视觉（图集）— 用图片留存珍贵时刻
+
+https://github.com/user-attachments/assets/c26437c1-bef4-4da6-8c91-8b68adedac4b
+
 - 自动打标签、实体提取、关联关系链接
 - AI 对话助手，可针对任意卡片或主题展开讨论
 
@@ -62,6 +64,15 @@ Memex 的多 Agent 智能底座是一套完全开放的自定义 Agent 系统 �
   - 叙事类（高亮、对比、总结）— 提炼关键结论、呈现前后变化、生成周期性回顾
   - 时空类（地图、路线、时间线）— 还原事件发生的地点与时间脉络
   - 图集 — 以照片形式唤起视觉记忆
+
+https://github.com/user-attachments/assets/37e59089-9f94-44dc-8265-269045ce982f
+
+### 🤝 AI 陪伴
+- 创建拥有独特个性的 AI 角色，陪伴你的日记生活
+- **自动评论**：角色会对你的新时间线卡片做出反应 — 像一个一直关注你的朋友
+- **1v1 聊天**：和角色进行真实对话，它能从你的卡片和知识库中了解你的生活
+- **持久记忆**：角色在评论和聊天两个场景中维护长期记忆 — 它会和你一起成长
+- **兼容 SillyTavern**：支持导入角色卡（V2 JSON + PNG），包含人设、世界书和示例对话
 
 ### 📝 纯文本与数据自由
 - **一键文档入库**：AI 自动整理后，所有的记录都会形成一系列相互关联的 Markdown 文件，自动帮你一键完成日记与文档的入库操作。
@@ -112,6 +123,24 @@ Memex 需要 LLM API Key 来驱动 AI 功能。首次启动后：
 3. 填入 API Key 和 Base URL
 4. 不同 Agent 可以独立配置不同的模型
 
+### 配置位置上下文
+
+Memex 可以选择性地把当前城市、区县和街区上下文附加给 Agent 对话。该能力只使用设备 GPS，不使用 IP 定位。
+
+1. 打开「个人中心」→「设置」→「定位」。
+2. 开启「为对话附加当前位置」。
+3. 选择逆地理编码服务商：
+   - OpenStreetMap / Nominatim 不需要 API Key。
+   - 高德地图需要 API Key。
+4. 如需使用高德地图，请在[高德开放平台](https://lbs.amap.com/)创建应用，开通 Web 服务 API，复制 Key，并填写到「高德地图 API Key」中。
+5. 按需选择上下文粒度和位置新鲜度。
+
+本地运行高德逆地理编码 live test 时，请通过环境变量传入 Key，不要提交到仓库：
+
+```bash
+AMAP_GEOCODING_TEST_KEY=your_key flutter test test/data/services/geocoding_service_test.dart
+```
+
 ## 🧩 自定义 Agent 系统
 
 Memex 不只是一个记录应用 — 它是一个让你能够在手机上构建自己 AI Agent 的平台。
@@ -132,25 +161,9 @@ Memex 内置的每一个 Agent（知识提取、卡片生成、洞察发现…�
 - 🔁 **自动重试与可配置上限** — 异步 Agent 在失败时自动重试，重试次数可配置。
 
 <div align="center">
-  <img src="https://github.com/user-attachments/assets/371573d0-9fa8-405d-8932-aff6a03d7a5b" width="300" />
-  <p><em>Agent 配置界面</em></p>
+  <img src="https://github.com/user-attachments/assets/f96394a9-a97f-44f6-9af1-f971e213de57" width="800" />
+  <p><em>自定义 Agent 系统</em></p>
 </div>
-
-### 工作原理
-
-```
-系统事件（用户输入、卡片创建、洞察生成……）
-    ↓
-事件总线分发给已订阅的 Agent
-    ↓
-Agent 加载 SKILL.md + 系统提示词
-    ↓
-LLM 处理事件，调用可用工具
-    ↓
-Agent 执行操作（文件读写、JavaScript、fetch……）
-    ↓
-继续执行依赖的下游 Agent 并展示结果给用户
-```
 
 你创建的每一个 Agent 都是一等公民 — 它接入同一个事件总线，使用同一套工具系统，拥有与内置 Agent 完全相同的能力。唯一的限制是你的想象力。
 
@@ -200,8 +213,10 @@ cd ios && pod install && cd ..
 ### 运行
 
 ```bash
-flutter run
+flutter run --flavor globalDev
 ```
+
+Android 本地开发优先使用 `globalDev` / `cnDev`，它们有独立包名和应用数据。`global` / `cn` 是 Stable 构建，`globalEarly` / `cnEarly` 是 Android Early 构建。
 
 </details>
 
