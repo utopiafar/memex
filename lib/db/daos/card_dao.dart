@@ -81,4 +81,46 @@ class CardDao extends DatabaseAccessor<AppDatabase> with _$CardDaoMixin {
 
     return await query.get();
   }
+
+  /// Query lightweight card metadata for fast-scroll indexing.
+  ///
+  /// This intentionally returns cache rows without hydrating full cards so the
+  /// timeline scrubber can know the complete date range up front.
+  Future<List<CardCacheData>> getCardIndex({
+    List<String>? tags,
+    DateTime? dateFrom,
+    DateTime? dateTo,
+  }) async {
+    final query = select(cardCache);
+
+    if (dateFrom != null) {
+      final fromTs = DateTime(dateFrom.year, dateFrom.month, dateFrom.day)
+              .millisecondsSinceEpoch ~/
+          1000;
+      query.where((tbl) => tbl.timestamp.isBiggerOrEqualValue(fromTs));
+    }
+    if (dateTo != null) {
+      final toDate = DateTime(dateTo.year, dateTo.month, dateTo.day)
+          .add(const Duration(days: 1))
+          .subtract(const Duration(seconds: 1));
+      final toTs = toDate.millisecondsSinceEpoch ~/ 1000;
+      query.where((tbl) => tbl.timestamp.isSmallerOrEqualValue(toTs));
+    }
+
+    if (tags != null && tags.isNotEmpty) {
+      final tagConditions = tags.map((t) => cardCache.tags.like('%"$t"%'));
+      var combinedCondition = tagConditions.first;
+      for (var i = 1; i < tagConditions.length; i++) {
+        combinedCondition = combinedCondition | tagConditions.elementAt(i);
+      }
+      query.where((tbl) => combinedCondition);
+    }
+
+    query.orderBy([
+      (t) => OrderingTerm(expression: t.timestamp, mode: OrderingMode.desc),
+      (t) => OrderingTerm(expression: t.factId, mode: OrderingMode.desc),
+    ]);
+
+    return await query.get();
+  }
 }

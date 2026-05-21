@@ -376,6 +376,176 @@ void main() {
       expect(loadMoreCalls, 1);
     });
 
+    testWidgets('uses the full timeline index before all cards are loaded', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      final loadedCards = _cardsWithDates(
+        20,
+        (index) => DateTime(2026, 12, 31).subtract(Duration(days: index)),
+      );
+      final fullTimelineTimestamps = _dates(
+        240,
+        (index) => DateTime(2026, 12, 31).subtract(Duration(days: index * 14)),
+      );
+
+      await _pumpScrubber(
+        tester,
+        controller: controller,
+        cards: loadedCards,
+        timelineTimestamps: fullTimelineTimestamps,
+        hasMore: true,
+        onLoadToIndex: (_) async {},
+      );
+      await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
+
+      final gestureArea = tester.getRect(
+        find.byKey(timelineDateScrubberGestureKey),
+      );
+      await tester.tapAt(gestureArea.bottomCenter - const Offset(0, 8));
+      await tester.pump();
+
+      expect(find.text('2017'), findsOneWidget);
+    });
+
+    testWidgets('normal scrolling labels the loaded slice of the full index', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      final loadedCards = _cardsWithDates(
+        20,
+        (index) => DateTime(2026, 12, 31).subtract(Duration(days: index)),
+      );
+      final fullTimelineTimestamps = _dates(
+        120,
+        (index) => DateTime(2026, 12, 31).subtract(Duration(days: index * 30)),
+      );
+
+      await _pumpScrubber(
+        tester,
+        controller: controller,
+        cards: loadedCards,
+        timelineTimestamps: fullTimelineTimestamps,
+        hasMore: true,
+      );
+      await _revealScrubber(tester);
+      controller.jumpTo(controller.position.maxScrollExtent);
+      await tester.pump();
+
+      expect(find.text('2025'), findsOneWidget);
+      expect(find.text('2017'), findsNothing);
+    });
+
+    testWidgets('requests a target index from the full timeline index', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      final fullTimelineTimestamps = _dates(
+        100,
+        (index) => DateTime(2026, 12, 31).subtract(Duration(days: index)),
+      );
+      int? requestedIndex;
+
+      await _pumpScrubber(
+        tester,
+        controller: controller,
+        cards: _cards(20),
+        timelineTimestamps: fullTimelineTimestamps,
+        hasMore: true,
+        onLoadToIndex: (targetIndex) async {
+          requestedIndex = targetIndex;
+        },
+      );
+      await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
+
+      final gestureArea = tester.getRect(
+        find.byKey(timelineDateScrubberGestureKey),
+      );
+      await tester.tapAt(gestureArea.bottomCenter - const Offset(0, 8));
+      await tester.pump();
+
+      expect(requestedIndex, 99);
+    });
+
+    testWidgets('keeps bottom target aligned after async bulk loading', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      final fullTimelineTimestamps = _dates(
+        100,
+        (index) => DateTime(2026, 12, 31).subtract(Duration(days: index)),
+      );
+      final allCards = _cardsWithDates(
+        100,
+        (index) => DateTime(2026, 12, 31).subtract(Duration(days: index)),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: _LazyScrubberHarness(
+              controller: controller,
+              allCards: allCards,
+              timelineTimestamps: fullTimelineTimestamps,
+              initialLoadedCount: 20,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
+
+      final gestureArea = tester.getRect(
+        find.byKey(timelineDateScrubberGestureKey),
+      );
+      await tester.tapAt(gestureArea.bottomCenter - const Offset(0, 8));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        controller.offset,
+        greaterThan(controller.position.maxScrollExtent * 0.95),
+      );
+      expect(find.text('card-99'), findsOneWidget);
+    });
+
+    testWidgets(
+      'does not bulk load when the target index is already visible',
+      (tester) async {
+        final controller = ScrollController();
+        final fullTimelineTimestamps = _dates(
+          100,
+          (index) => DateTime(2026, 12, 31).subtract(Duration(days: index)),
+        );
+        var loadToIndexCalls = 0;
+
+        await _pumpScrubber(
+          tester,
+          controller: controller,
+          cards: _cards(40),
+          timelineTimestamps: fullTimelineTimestamps,
+          hasMore: true,
+          onLoadToIndex: (_) async {
+            loadToIndexCalls++;
+          },
+        );
+        await _revealScrubber(tester);
+        await _settleScrubberEntrance(tester);
+
+        final gestureArea = tester.getRect(
+          find.byKey(timelineDateScrubberGestureKey),
+        );
+        await tester.tapAt(gestureArea.topCenter + const Offset(0, 80));
+        await tester.pump();
+
+        expect(loadToIndexCalls, 0);
+      },
+    );
+
     testWidgets('recovers if loadMore fails while scrubbing at the bottom', (
       tester,
     ) async {
@@ -595,8 +765,10 @@ Future<void> _pumpScrubber(
   WidgetTester tester, {
   required ScrollController controller,
   required List<TimelineCardModel> cards,
+  List<DateTime> timelineTimestamps = const [],
   bool hasMore = false,
   Future<void> Function()? onLoadMore,
+  Future<void> Function(int targetIndex)? onLoadToIndex,
   String localeName = 'en',
   bool enabled = true,
   double width = 390,
@@ -612,8 +784,10 @@ Future<void> _pumpScrubber(
           child: TimelineDateScrubber(
             cards: cards,
             scrollController: controller,
+            timelineTimestamps: timelineTimestamps,
             hasMore: hasMore,
             onLoadMore: onLoadMore,
+            onLoadToIndex: onLoadToIndex,
             localeName: localeName,
             enabled: enabled,
             trackInsets: const EdgeInsets.symmetric(vertical: 20),
@@ -669,6 +843,11 @@ List<TimelineCardModel> _cardsWithDates(
   });
 }
 
+List<DateTime> _dates(
+    int count, DateTime Function(int index) timestampForIndex) {
+  return List.generate(count, timestampForIndex);
+}
+
 TimelineCardModel _card(int index, {DateTime? timestamp}) {
   return TimelineCardModel(
     id: 'card-$index',
@@ -679,4 +858,60 @@ TimelineCardModel _card(int index, {DateTime? timestamp}) {
     title: 'Card $index',
     uiConfigs: const [],
   );
+}
+
+class _LazyScrubberHarness extends StatefulWidget {
+  const _LazyScrubberHarness({
+    required this.controller,
+    required this.allCards,
+    required this.timelineTimestamps,
+    required this.initialLoadedCount,
+  });
+
+  final ScrollController controller;
+  final List<TimelineCardModel> allCards;
+  final List<DateTime> timelineTimestamps;
+  final int initialLoadedCount;
+
+  @override
+  State<_LazyScrubberHarness> createState() => _LazyScrubberHarnessState();
+}
+
+class _LazyScrubberHarnessState extends State<_LazyScrubberHarness> {
+  late int _loadedCount = widget.initialLoadedCount;
+
+  Future<void> _loadToIndex(int targetIndex) async {
+    setState(() {
+      _loadedCount = (targetIndex + 1).clamp(0, widget.allCards.length);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cards = widget.allCards.take(_loadedCount).toList(growable: false);
+    return SizedBox(
+      width: 390,
+      height: 640,
+      child: TimelineDateScrubber(
+        cards: cards,
+        scrollController: widget.controller,
+        timelineTimestamps: widget.timelineTimestamps,
+        hasMore: _loadedCount < widget.allCards.length,
+        onLoadToIndex: _loadToIndex,
+        localeName: 'en',
+        trackInsets: const EdgeInsets.symmetric(vertical: 20),
+        child: ListView.builder(
+          controller: widget.controller,
+          itemExtent: 72,
+          itemCount: cards.length,
+          itemBuilder: (context, index) {
+            return ListTile(
+              title: Text(cards[index].id),
+              subtitle: Text(cards[index].timestamp.toIso8601String()),
+            );
+          },
+        ),
+      ),
+    );
+  }
 }

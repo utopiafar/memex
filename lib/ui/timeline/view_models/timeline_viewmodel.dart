@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:logging/logging.dart';
 
@@ -91,6 +92,9 @@ class TimelineViewModel extends ChangeNotifier {
   int _currentPage = 1;
   String? errorMessage;
   bool isSubmitting = false;
+  List<DateTime> scrubberTimestamps = const [];
+  Future<void>? _loadToIndexFuture;
+  int? _pendingLoadToIndex;
 
   // Card attachments (system actions, clarification requests, etc.)
   // Keyed by factId.
@@ -109,11 +113,23 @@ class TimelineViewModel extends ChangeNotifier {
   late final Command0<void> load = Command0<void>(_loadInitial)..execute();
 
   Future<Result<void>> _loadInitial() async {
+    final filterTags = activeFilter == 'all' ? null : [activeFilter];
     final cardsResult = await _router.fetchTimelineCards(
       page: 1,
       limit: pageLimit,
-      tags: activeFilter == 'all' ? null : [activeFilter],
+      tags: filterTags,
     );
+    final scrubberIndexResult = await _router.fetchTimelineScrubberIndex(
+      tags: filterTags,
+    );
+    scrubberTimestamps = scrubberIndexResult.when(
+      onOk: (index) => index.timestamps,
+      onError: (error, stackTrace) {
+        _logger.warning('Failed to load timeline scrubber index: $error');
+        return const <DateTime>[];
+      },
+    );
+
     return cardsResult.when(
       onOk: (list) async {
         _currentPage = 1;
@@ -187,6 +203,7 @@ class TimelineViewModel extends ChangeNotifier {
       );
       addCard(newCard);
       fetchTags();
+      unawaited(_refreshScrubberIndex());
     }
   }
 
@@ -214,6 +231,7 @@ class TimelineViewModel extends ChangeNotifier {
       );
       updateCard(updatedCard);
       fetchTags();
+      unawaited(_refreshScrubberIndex());
     }
   }
 
@@ -325,6 +343,7 @@ class TimelineViewModel extends ChangeNotifier {
 
   void removeCardById(String cardId) {
     cards.removeWhere((c) => c.id == cardId);
+    unawaited(_refreshScrubberIndex());
     _checkAndStopPollingIfNeeded();
     notifyListeners();
   }
@@ -368,6 +387,87 @@ class TimelineViewModel extends ChangeNotifier {
       onError: (_, __) {},
     );
     isLoading = false;
+    notifyListeners();
+  }
+
+  int get loadedTimelineCardCount =>
+      cards.where((card) => card.id != scheduleBriefingCardId).length;
+
+  Future<void> loadToTimelineIndex(int targetIndex) {
+    if (targetIndex < loadedTimelineCardCount || !hasMore) {
+      return Future.value();
+    }
+
+    _pendingLoadToIndex = math.max(_pendingLoadToIndex ?? 0, targetIndex);
+    _loadToIndexFuture ??= _drainLoadToTimelineIndex();
+    return _loadToIndexFuture!;
+  }
+
+  Future<void> _drainLoadToTimelineIndex() async {
+    try {
+      while (_pendingLoadToIndex != null) {
+        final targetIndex = _pendingLoadToIndex!;
+        _pendingLoadToIndex = null;
+        await _loadToTimelineIndexOnce(targetIndex);
+      }
+    } finally {
+      _loadToIndexFuture = null;
+    }
+  }
+
+  Future<void> _loadToTimelineIndexOnce(int targetIndex) async {
+    while (isLoading) {
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+    }
+    if (!hasMore) return;
+
+    final totalCount = scrubberTimestamps.length;
+    final clampedTargetIndex = totalCount > 0
+        ? targetIndex.clamp(0, totalCount - 1)
+        : math.max(0, targetIndex);
+    if (clampedTargetIndex < loadedTimelineCardCount) return;
+
+    final targetPage = clampedTargetIndex ~/ pageLimit + 1;
+    final targetLimit = targetPage * pageLimit;
+    final filterTags = activeFilter == 'all' ? null : [activeFilter];
+
+    isLoading = true;
+    notifyListeners();
+    final result = await _router.fetchTimelineCards(
+      page: 1,
+      limit: targetLimit,
+      tags: filterTags,
+    );
+    await result.when(
+      onOk: (loadedCards) async {
+        final loadedCount = loadedCards.length;
+        _currentPage =
+            loadedCount == 0 ? 1 : ((loadedCount - 1) ~/ pageLimit) + 1;
+        final loadedHasMore = totalCount > 0
+            ? loadedCount < totalCount
+            : loadedCount >= targetLimit;
+        cards = await _withScheduleBriefingCard(
+          loadedCards,
+          hasMoreAfterList: loadedHasMore,
+        );
+        hasMore = loadedHasMore;
+        _startPollingIfNeeded();
+        await _loadAttachmentsForCards(loadedCards);
+      },
+      onError: (_, __) async {},
+    );
+    isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> _refreshScrubberIndex() async {
+    final result = await _router.fetchTimelineScrubberIndex(
+      tags: activeFilter == 'all' ? null : [activeFilter],
+    );
+    scrubberTimestamps = result.when(
+      onOk: (index) => index.timestamps,
+      onError: (_, __) => scrubberTimestamps,
+    );
     notifyListeners();
   }
 

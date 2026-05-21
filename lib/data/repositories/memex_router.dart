@@ -26,6 +26,7 @@ import 'package:logging/logging.dart';
 import 'package:memex/data/services/card_renderer.dart';
 import 'package:memex/data/services/event_handlers/schedule_dirty_on_card_update_handler.dart';
 import 'package:memex/domain/models/timeline_card_model.dart';
+import 'package:memex/domain/models/timeline_scrubber_index_model.dart';
 import 'package:memex/domain/models/card_model.dart';
 import 'package:memex/domain/models/card_detail_model.dart';
 import 'package:memex/domain/models/tag_model.dart';
@@ -56,6 +57,7 @@ import 'package:memex/data/services/task_handlers/custom_agent_task_handler.dart
 import 'package:memex/data/services/custom_agent_config_service.dart';
 import 'package:memex/data/repositories/get_tags.dart';
 import 'package:memex/data/repositories/get_timeline_cards.dart';
+import 'package:memex/data/repositories/get_timeline_scrubber_index.dart';
 import 'package:memex/data/repositories/get_aggregated_timeline.dart';
 import 'package:memex/data/repositories/get_cards_by_ids.dart';
 import 'package:memex/data/repositories/get_calendar_data.dart';
@@ -581,6 +583,24 @@ class MemexRouter {
       return getTimelineCards(
         page: page,
         limit: limit,
+        tags: tags,
+        dateFrom: dateFrom,
+        dateTo: dateTo,
+      );
+    });
+  }
+
+  Future<Result<TimelineScrubberIndexModel>> fetchTimelineScrubberIndex({
+    List<String>? tags,
+    DateTime? dateFrom,
+    DateTime? dateTo,
+  }) async {
+    return runResult(() async {
+      await _ensureInitialized();
+      _logger.info(
+        'LocalMode: fetchTimelineScrubberIndex called: tags=$tags, dateFrom=$dateFrom, dateTo=$dateTo',
+      );
+      return getTimelineScrubberIndex(
         tags: tags,
         dateFrom: dateFrom,
         dateTo: dateTo,

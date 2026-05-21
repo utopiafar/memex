@@ -35,8 +35,10 @@ class TimelineDateScrubber extends StatefulWidget {
     required this.child,
     required this.cards,
     required this.scrollController,
+    this.timelineTimestamps = const [],
     this.hasMore = false,
     this.onLoadMore,
+    this.onLoadToIndex,
     this.localeName,
     this.enabled = true,
     this.trackInsets = const EdgeInsets.only(top: 16, bottom: 104),
@@ -45,8 +47,10 @@ class TimelineDateScrubber extends StatefulWidget {
   final Widget child;
   final List<TimelineCardModel> cards;
   final ScrollController scrollController;
+  final List<DateTime> timelineTimestamps;
   final bool hasMore;
   final Future<void> Function()? onLoadMore;
+  final Future<void> Function(int targetIndex)? onLoadToIndex;
   final String? localeName;
   final bool enabled;
   final EdgeInsets trackInsets;
@@ -56,7 +60,8 @@ class TimelineDateScrubber extends StatefulWidget {
 }
 
 class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
-  static const double _gestureWidth = 56;
+  static const double _gestureHitWidth = 88;
+  static const double _visualGestureWidth = 56;
   static const double _handleWidth = 32;
   static const double _handleHeight = 52;
   static const double _bubbleWidth = 98;
@@ -73,9 +78,16 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   bool _loadMoreInFlight = false;
   double _fraction = 0;
   double _dragFraction = 0;
+  int? _pendingLoadTargetIndex;
+  double? _pendingLoadTargetFraction;
   List<int> _timelineYears = const [];
 
-  bool get _hasEnoughCards => widget.enabled && widget.cards.length > 1;
+  List<DateTime> get _scrubberTimestamps {
+    if (widget.timelineTimestamps.isNotEmpty) return widget.timelineTimestamps;
+    return widget.cards.map((card) => card.timestamp).toList(growable: false);
+  }
+
+  bool get _hasEnoughCards => widget.enabled && _scrubberTimestamps.length > 1;
 
   bool get _hasScrollableMetrics {
     if (!_hasEnoughCards || !widget.scrollController.hasClients) {
@@ -107,7 +119,8 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
         if (mounted) _syncFractionFromScroll();
       });
     }
-    if (oldWidget.cards != widget.cards) {
+    if (oldWidget.cards != widget.cards ||
+        oldWidget.timelineTimestamps != widget.timelineTimestamps) {
       _syncTimelineYears();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _syncFractionFromScroll();
@@ -135,11 +148,24 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
       return;
     }
 
+    final pendingTargetFraction = _pendingLoadTargetFraction;
+    if (_isDragging || pendingTargetFraction != null) {
+      final nextFraction = pendingTargetFraction ?? _fraction;
+      if (!_isScrollable || (nextFraction - _fraction).abs() >= 0.002) {
+        setState(() {
+          _isScrollable = true;
+          _fraction = nextFraction;
+        });
+      }
+      return;
+    }
+
     final position = widget.scrollController.position;
-    final nextFraction = (position.pixels / position.maxScrollExtent).clamp(
+    final scrollFraction = (position.pixels / position.maxScrollExtent).clamp(
       0.0,
       1.0,
     );
+    final nextFraction = _fractionForLoadedScroll(scrollFraction);
     if (_isScrollable && (nextFraction - _fraction).abs() < 0.002) return;
     setState(() {
       _isScrollable = true;
@@ -199,7 +225,7 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     final trackHeight = _trackHeight(height);
     if (trackHeight <= 0) return;
 
-    final distanceFromRight = _gestureWidth - details.localPosition.dx;
+    final distanceFromRight = _gestureHitWidth - details.localPosition.dx;
     final slowdown = ((distanceFromRight - _handleWidth) / 180).clamp(0.0, 1.0);
     final sensitivity = lerpDouble(1.0, 0.28, slowdown) ?? 1.0;
     final nextFraction =
@@ -234,29 +260,125 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   }
 
   void _jumpToFraction(double fraction) {
+    final targetIndex = _indexForFraction(fraction);
+    if (_shouldLoadToTarget(targetIndex)) {
+      _rememberPendingLoadTarget(targetIndex, fraction);
+    }
+    _jumpWithinLoadedExtent(targetIndex: targetIndex, fraction: fraction);
+    unawaited(_maybeLoadForTarget(targetIndex, fraction));
+  }
+
+  double _fractionForLoadedScroll(double scrollFraction) {
+    if (widget.timelineTimestamps.isEmpty || widget.cards.isEmpty) {
+      return scrollFraction;
+    }
+
+    final loadedIndex = ((widget.cards.length - 1) * scrollFraction)
+        .round()
+        .clamp(0, widget.timelineTimestamps.length - 1);
+    return loadedIndex / math.max(1, widget.timelineTimestamps.length - 1);
+  }
+
+  void _jumpWithinLoadedExtent({
+    required int targetIndex,
+    required double fraction,
+  }) {
     final position = widget.scrollController.position;
-    final target = (position.maxScrollExtent * fraction).clamp(
+    final loadedFraction = widget.timelineTimestamps.isNotEmpty
+        ? (targetIndex / math.max(1, widget.cards.length - 1)).clamp(0.0, 1.0)
+        : fraction;
+    final target = (position.maxScrollExtent * loadedFraction).clamp(
       position.minScrollExtent,
       position.maxScrollExtent,
     );
     widget.scrollController.jumpTo(target);
-    _maybeLoadMore(fraction);
   }
 
-  Future<void> _maybeLoadMore(double fraction) async {
-    if (!widget.hasMore ||
-        widget.onLoadMore == null ||
-        fraction < 0.92 ||
-        _loadMoreInFlight) {
+  bool _shouldLoadToTarget(int targetIndex) {
+    return widget.hasMore &&
+        widget.timelineTimestamps.isNotEmpty &&
+        widget.onLoadToIndex != null &&
+        targetIndex >= math.max(0, widget.cards.length - 1);
+  }
+
+  void _rememberPendingLoadTarget(int targetIndex, double fraction) {
+    _pendingLoadTargetIndex = targetIndex;
+    _pendingLoadTargetFraction = fraction;
+  }
+
+  void _clearPendingLoadTarget() {
+    _pendingLoadTargetIndex = null;
+    _pendingLoadTargetFraction = null;
+  }
+
+  void _restoreTargetAfterLoad({
+    required int targetIndex,
+    required double fraction,
+  }) {
+    if (!mounted || !widget.scrollController.hasClients) return;
+
+    setState(() {
+      _fraction = fraction;
+      _dragFraction = fraction;
+    });
+    _jumpWithinLoadedExtent(targetIndex: targetIndex, fraction: fraction);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.scrollController.hasClients) return;
+      _jumpWithinLoadedExtent(targetIndex: targetIndex, fraction: fraction);
+    });
+  }
+
+  Future<void> _maybeLoadForTarget(int targetIndex, double fraction) async {
+    if (!widget.hasMore) {
       return;
     }
+
+    final shouldLoadToTarget = _shouldLoadToTarget(targetIndex);
+    final shouldLoadNextPage =
+        !shouldLoadToTarget && widget.onLoadMore != null && _fraction >= 0.92;
+
+    if (!shouldLoadToTarget && !shouldLoadNextPage) return;
+
+    if (_loadMoreInFlight) {
+      if (shouldLoadToTarget) {
+        _rememberPendingLoadTarget(targetIndex, fraction);
+        unawaited(widget.onLoadToIndex!.call(targetIndex));
+      }
+      return;
+    }
+
+    if (shouldLoadToTarget) {
+      _rememberPendingLoadTarget(targetIndex, fraction);
+    }
+
     _loadMoreInFlight = true;
     try {
-      await widget.onLoadMore!.call();
+      if (shouldLoadToTarget) {
+        await widget.onLoadToIndex!.call(targetIndex);
+      } else {
+        await widget.onLoadMore!.call();
+      }
+      if (mounted && widget.scrollController.hasClients) {
+        if (shouldLoadToTarget) {
+          _restoreTargetAfterLoad(
+            targetIndex: _pendingLoadTargetIndex ?? targetIndex,
+            fraction: _pendingLoadTargetFraction ?? fraction,
+          );
+        } else {
+          _jumpWithinLoadedExtent(
+            targetIndex: _indexForFraction(_fraction),
+            fraction: _fraction,
+          );
+        }
+      }
     } catch (e, st) {
       _logger.warning('Failed to load more cards from date scrubber', e, st);
     } finally {
-      if (mounted) _loadMoreInFlight = false;
+      if (mounted) {
+        _loadMoreInFlight = false;
+        _clearPendingLoadTarget();
+      }
     }
   }
 
@@ -299,18 +421,23 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     return value.clamp(top, maxTop).toDouble();
   }
 
-  TimelineCardModel? _cardForFraction(double fraction) {
-    if (widget.cards.isEmpty) return null;
-    final index = ((widget.cards.length - 1) * fraction).round().clamp(
+  int _indexForFraction(double fraction) {
+    final timestamps = _scrubberTimestamps;
+    if (timestamps.isEmpty) return 0;
+    return ((timestamps.length - 1) * fraction).round().clamp(
           0,
-          widget.cards.length - 1,
+          timestamps.length - 1,
         );
-    return widget.cards[index];
+  }
+
+  DateTime? _timestampForFraction(double fraction) {
+    final timestamps = _scrubberTimestamps;
+    if (timestamps.isEmpty) return null;
+    return timestamps[_indexForFraction(fraction)];
   }
 
   _ScrubberDateLabel _dateLabelForFraction(double fraction) {
-    final card = _cardForFraction(fraction);
-    final timestamp = card?.timestamp ?? DateTime.now();
+    final timestamp = _timestampForFraction(fraction) ?? DateTime.now();
     return _ScrubberDateLabel(
       year: _formatDate(timestamp, (locale) => DateFormat.y(locale)),
       day: _formatDate(timestamp, (locale) => DateFormat.MMMd(locale)),
@@ -330,8 +457,8 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
 
   void _syncTimelineYears() {
     final years = <int>{};
-    for (final card in widget.cards) {
-      years.add(card.timestamp.year);
+    for (final timestamp in _scrubberTimestamps) {
+      years.add(timestamp.year);
     }
     final sortedYears = years.toList()..sort((a, b) => b.compareTo(a));
     _timelineYears = sortedYears;
@@ -382,7 +509,10 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
                           top: 0,
                           right: 0,
                           bottom: 0,
-                          width: math.min(_gestureWidth, constraints.maxWidth),
+                          width: math.min(
+                            _gestureHitWidth,
+                            constraints.maxWidth,
+                          ),
                           child: IgnorePointer(
                             ignoring: !_isVisible && !_isDragging,
                             child: GestureDetector(
@@ -438,7 +568,7 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
       extent: _bubbleHeight,
     );
     final label = _dateLabelForFraction(_fraction);
-    final visualGestureWidth = math.min(_gestureWidth, width);
+    final visualGestureWidth = math.min(_visualGestureWidth, width);
     final visualHandleWidth = math.min(_handleWidth, visualGestureWidth);
     final bubbleWidth = math.min(
       _bubbleWidth,
@@ -455,7 +585,7 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
       _maxYearRailRows,
       math.max(2, ((trackHeight - 12) / _yearRailRowHeight).floor()),
     );
-    final activeYear = _cardForFraction(_fraction)?.timestamp.year;
+    final activeYear = _timestampForFraction(_fraction)?.year;
     final showYearRail = _isDragging &&
         activeYear != null &&
         _timelineYears.length > 1 &&

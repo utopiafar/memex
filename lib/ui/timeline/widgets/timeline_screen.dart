@@ -1027,8 +1027,10 @@ class TimelineScreenState extends State<TimelineScreen> {
       child: TimelineDateScrubber(
         cards: vm.cards,
         scrollController: _scrollController,
+        timelineTimestamps: vm.scrubberTimestamps,
         hasMore: vm.hasMore,
         onLoadMore: vm.loadMore,
+        onLoadToIndex: vm.loadToTimelineIndex,
         localeName: UserStorage.l10n.localeName,
         child: ListView.builder(
           controller: _scrollController,
