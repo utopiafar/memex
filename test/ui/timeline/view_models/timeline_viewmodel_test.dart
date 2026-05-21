@@ -125,6 +125,30 @@ void main() {
         );
       },
     );
+
+    test('target loads continue from the first unloaded page', () {
+      expect(
+        nextTimelinePageToLoad(
+          loadedTimelineCardCount: 0,
+          currentPage: 1,
+        ),
+        1,
+      );
+      expect(
+        nextTimelinePageToLoad(
+          loadedTimelineCardCount: 60,
+          currentPage: 2,
+        ),
+        4,
+      );
+      expect(
+        nextTimelinePageToLoad(
+          loadedTimelineCardCount: 60,
+          currentPage: 8,
+        ),
+        8,
+      );
+    });
   });
 }
 

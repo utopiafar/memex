@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:intl/intl.dart';
 import 'package:memex/domain/models/timeline_card_model.dart';
 import 'package:memex/utils/logger.dart';
@@ -70,17 +71,25 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   static const double _yearRailRowHeight = 26;
   static const int _maxYearRailRows = 7;
   static const Duration _hideDelay = Duration(milliseconds: 900);
+  static const Duration _targetLoadDebounce = Duration(milliseconds: 180);
 
   Timer? _hideTimer;
+  Timer? _targetLoadTimer;
   bool _isVisible = false;
   bool _isDragging = false;
   bool _isScrollable = false;
   bool _loadMoreInFlight = false;
   double _fraction = 0;
   double _dragFraction = 0;
+  int? _queuedLoadTargetIndex;
+  double? _queuedLoadTargetFraction;
   int? _pendingLoadTargetIndex;
   double? _pendingLoadTargetFraction;
+  bool _jumpFrameScheduled = false;
+  int? _queuedJumpTargetIndex;
+  double? _queuedJumpFraction;
   List<int> _timelineYears = const [];
+  final Map<int, _ScrubberDateLabel> _dateLabelCache = {};
 
   List<DateTime> get _scrubberTimestamps {
     if (widget.timelineTimestamps.isNotEmpty) return widget.timelineTimestamps;
@@ -122,15 +131,20 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     if (oldWidget.cards != widget.cards ||
         oldWidget.timelineTimestamps != widget.timelineTimestamps) {
       _syncTimelineYears();
+      _clearDateLabelCache();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _syncFractionFromScroll();
       });
+    }
+    if (oldWidget.localeName != widget.localeName) {
+      _clearDateLabelCache();
     }
   }
 
   @override
   void dispose() {
     _hideTimer?.cancel();
+    _targetLoadTimer?.cancel();
     widget.scrollController.removeListener(_syncFractionFromScroll);
     super.dispose();
   }
@@ -239,12 +253,18 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
       _isVisible = true;
       _fraction = nextFraction;
     });
-    _jumpToFraction(nextFraction);
+    _jumpToFraction(
+      nextFraction,
+      loadImmediately: false,
+      jumpImmediately: false,
+    );
   }
 
   void _endDrag() {
     if (!_isDragging) return;
     setState(() => _isDragging = false);
+    _flushQueuedJump();
+    _flushQueuedTargetLoad();
     _scheduleHide();
   }
 
@@ -255,17 +275,30 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
       _isVisible = true;
       _fraction = nextFraction;
     });
-    _jumpToFraction(nextFraction);
+    _jumpToFraction(nextFraction, loadImmediately: true);
     _scheduleHide();
   }
 
-  void _jumpToFraction(double fraction) {
+  void _jumpToFraction(
+    double fraction, {
+    required bool loadImmediately,
+    bool jumpImmediately = true,
+  }) {
     final targetIndex = _indexForFraction(fraction);
     if (_shouldLoadToTarget(targetIndex)) {
       _rememberPendingLoadTarget(targetIndex, fraction);
     }
-    _jumpWithinLoadedExtent(targetIndex: targetIndex, fraction: fraction);
-    unawaited(_maybeLoadForTarget(targetIndex, fraction));
+    if (jumpImmediately) {
+      _jumpWithinLoadedExtent(targetIndex: targetIndex, fraction: fraction);
+    } else {
+      _queueJumpWithinLoadedExtent(
+          targetIndex: targetIndex, fraction: fraction);
+    }
+    if (loadImmediately) {
+      unawaited(_maybeLoadForTarget(targetIndex, fraction));
+    } else {
+      _queueLoadForTarget(targetIndex, fraction);
+    }
   }
 
   double _fractionForLoadedScroll(double scrollFraction) {
@@ -294,11 +327,72 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     widget.scrollController.jumpTo(target);
   }
 
+  void _queueJumpWithinLoadedExtent({
+    required int targetIndex,
+    required double fraction,
+  }) {
+    _queuedJumpTargetIndex = targetIndex;
+    _queuedJumpFraction = fraction;
+    if (_jumpFrameScheduled) return;
+
+    _jumpFrameScheduled = true;
+    SchedulerBinding.instance.scheduleFrameCallback((_) {
+      _jumpFrameScheduled = false;
+      _flushQueuedJump();
+    });
+  }
+
+  void _flushQueuedJump() {
+    final targetIndex = _queuedJumpTargetIndex;
+    final fraction = _queuedJumpFraction;
+    _queuedJumpTargetIndex = null;
+    _queuedJumpFraction = null;
+    if (!mounted ||
+        targetIndex == null ||
+        fraction == null ||
+        !widget.scrollController.hasClients) {
+      return;
+    }
+
+    _jumpWithinLoadedExtent(targetIndex: targetIndex, fraction: fraction);
+  }
+
   bool _shouldLoadToTarget(int targetIndex) {
     return widget.hasMore &&
         widget.timelineTimestamps.isNotEmpty &&
         widget.onLoadToIndex != null &&
         targetIndex >= math.max(0, widget.cards.length - 1);
+  }
+
+  bool _shouldLoadNextPage() {
+    return widget.hasMore &&
+        widget.timelineTimestamps.isEmpty &&
+        widget.onLoadMore != null &&
+        _fraction >= 0.92;
+  }
+
+  void _queueLoadForTarget(int targetIndex, double fraction) {
+    if (!_shouldLoadToTarget(targetIndex) && !_shouldLoadNextPage()) {
+      return;
+    }
+
+    _queuedLoadTargetIndex = targetIndex;
+    _queuedLoadTargetFraction = fraction;
+    _targetLoadTimer?.cancel();
+    _targetLoadTimer = Timer(_targetLoadDebounce, _flushQueuedTargetLoad);
+  }
+
+  void _flushQueuedTargetLoad() {
+    _targetLoadTimer?.cancel();
+    _targetLoadTimer = null;
+
+    final targetIndex = _queuedLoadTargetIndex;
+    final fraction = _queuedLoadTargetFraction;
+    _queuedLoadTargetIndex = null;
+    _queuedLoadTargetFraction = null;
+
+    if (targetIndex == null || fraction == null) return;
+    unawaited(_maybeLoadForTarget(targetIndex, fraction));
   }
 
   void _rememberPendingLoadTarget(int targetIndex, double fraction) {
@@ -335,15 +429,15 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     }
 
     final shouldLoadToTarget = _shouldLoadToTarget(targetIndex);
-    final shouldLoadNextPage =
-        !shouldLoadToTarget && widget.onLoadMore != null && _fraction >= 0.92;
+    final shouldLoadNextPage = !shouldLoadToTarget && _shouldLoadNextPage();
 
     if (!shouldLoadToTarget && !shouldLoadNextPage) return;
 
     if (_loadMoreInFlight) {
       if (shouldLoadToTarget) {
         _rememberPendingLoadTarget(targetIndex, fraction);
-        unawaited(widget.onLoadToIndex!.call(targetIndex));
+        _queuedLoadTargetIndex = targetIndex;
+        _queuedLoadTargetFraction = fraction;
       }
       return;
     }
@@ -378,6 +472,13 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
       if (mounted) {
         _loadMoreInFlight = false;
         _clearPendingLoadTarget();
+        final queuedTargetIndex = _queuedLoadTargetIndex;
+        final queuedFraction = _queuedLoadTargetFraction;
+        _queuedLoadTargetIndex = null;
+        _queuedLoadTargetFraction = null;
+        if (queuedTargetIndex != null && queuedFraction != null) {
+          unawaited(_maybeLoadForTarget(queuedTargetIndex, queuedFraction));
+        }
       }
     }
   }
@@ -437,11 +538,24 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   }
 
   _ScrubberDateLabel _dateLabelForFraction(double fraction) {
-    final timestamp = _timestampForFraction(fraction) ?? DateTime.now();
+    final timestamps = _scrubberTimestamps;
+    if (timestamps.isEmpty) {
+      return _formatDateLabel(DateTime.now());
+    }
+
+    final index = _indexForFraction(fraction);
+    return _dateLabelCache[index] ??= _formatDateLabel(timestamps[index]);
+  }
+
+  _ScrubberDateLabel _formatDateLabel(DateTime timestamp) {
     return _ScrubberDateLabel(
       year: _formatDate(timestamp, (locale) => DateFormat.y(locale)),
       day: _formatDate(timestamp, (locale) => DateFormat.MMMd(locale)),
     );
+  }
+
+  void _clearDateLabelCache() {
+    _dateLabelCache.clear();
   }
 
   String _formatDate(

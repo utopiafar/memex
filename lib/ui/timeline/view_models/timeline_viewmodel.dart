@@ -73,6 +73,19 @@ List<TimelineCardModel> dedupeTimelineCardsById(List<TimelineCardModel> cards) {
   return next;
 }
 
+@visibleForTesting
+int nextTimelinePageToLoad({
+  required int loadedTimelineCardCount,
+  required int currentPage,
+  int pageLimit = TimelineViewModel.pageLimit,
+}) {
+  var nextPage = math.max(1, currentPage);
+  if (loadedTimelineCardCount <= 0) return nextPage;
+
+  final nextPageFromLoaded = ((loadedTimelineCardCount - 1) ~/ pageLimit) + 2;
+  return math.max(nextPage, nextPageFromLoaded);
+}
+
 /// ViewModel for the Timeline page. Holds cards, tags, loading state, and
 /// delegates data access to [MemexRouter]. Call [init] once after creation.
 class TimelineViewModel extends ChangeNotifier {
@@ -428,36 +441,55 @@ class TimelineViewModel extends ChangeNotifier {
     if (clampedTargetIndex < loadedTimelineCardCount) return;
 
     final targetPage = clampedTargetIndex ~/ pageLimit + 1;
-    final targetLimit = targetPage * pageLimit;
     final filterTags = activeFilter == 'all' ? null : [activeFilter];
+    var nextPage = nextTimelinePageToLoad(
+      loadedTimelineCardCount: loadedTimelineCardCount,
+      currentPage: _currentPage,
+    );
 
     isLoading = true;
     notifyListeners();
-    final result = await _router.fetchTimelineCards(
-      page: 1,
-      limit: targetLimit,
-      tags: filterTags,
-    );
-    await result.when(
-      onOk: (loadedCards) async {
-        final loadedCount = loadedCards.length;
-        _currentPage =
-            loadedCount == 0 ? 1 : ((loadedCount - 1) ~/ pageLimit) + 1;
-        final loadedHasMore = totalCount > 0
-            ? loadedCount < totalCount
-            : loadedCount >= targetLimit;
-        cards = await _withScheduleBriefingCard(
-          loadedCards,
-          hasMoreAfterList: loadedHasMore,
+    try {
+      while (hasMore &&
+          loadedTimelineCardCount <= clampedTargetIndex &&
+          nextPage <= targetPage) {
+        final result = await _router.fetchTimelineCards(
+          page: nextPage,
+          limit: pageLimit,
+          tags: filterTags,
         );
-        hasMore = loadedHasMore;
-        _startPollingIfNeeded();
-        await _loadAttachmentsForCards(loadedCards);
-      },
-      onError: (_, __) async {},
-    );
-    isLoading = false;
-    notifyListeners();
+        var loadedAnyCards = false;
+
+        await result.when(
+          onOk: (newCards) async {
+            loadedAnyCards = newCards.isNotEmpty;
+            final loadedHasMore = totalCount > 0
+                ? nextPage * pageLimit < totalCount
+                : newCards.length >= pageLimit;
+            final timelineCards = cards
+                .where((card) => card.id != scheduleBriefingCardId)
+                .toList();
+            cards = await _withScheduleBriefingCard(
+              [...timelineCards, ...newCards],
+              hasMoreAfterList: loadedHasMore,
+            );
+            hasMore = loadedHasMore;
+            _currentPage = nextPage + 1;
+            _startPollingIfNeeded();
+            await _loadAttachmentsForCards(newCards);
+          },
+          onError: (_, __) async {},
+        );
+
+        notifyListeners();
+        if (!loadedAnyCards) break;
+        nextPage++;
+        await Future<void>.delayed(Duration.zero);
+      }
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
 
   Future<void> _refreshScrubberIndex() async {
