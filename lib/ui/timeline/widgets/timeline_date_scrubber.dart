@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -72,6 +71,9 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   static const int _maxYearRailRows = 7;
   static const Duration _hideDelay = Duration(milliseconds: 900);
   static const Duration _targetLoadDebounce = Duration(milliseconds: 180);
+  static const Duration _visibilityTransitionDuration = Duration(
+    milliseconds: 140,
+  );
 
   Timer? _hideTimer;
   Timer? _targetLoadTimer;
@@ -80,16 +82,24 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   bool _isScrollable = false;
   bool _loadMoreInFlight = false;
   double _fraction = 0;
-  double _dragFraction = 0;
+  double _dragHandleOffset = 0;
   int? _queuedLoadTargetIndex;
   double? _queuedLoadTargetFraction;
   int? _pendingLoadTargetIndex;
   double? _pendingLoadTargetFraction;
+  int? _activePointer;
   bool _jumpFrameScheduled = false;
   int? _queuedJumpTargetIndex;
   double? _queuedJumpFraction;
   List<int> _timelineYears = const [];
   final Map<int, _ScrubberDateLabel> _dateLabelCache = {};
+  late final ValueNotifier<_ScrubberVisualState> _visualState = ValueNotifier(
+    _ScrubberVisualState(
+      visible: _isVisible,
+      dragging: _isDragging,
+      fraction: _fraction,
+    ),
+  );
 
   List<DateTime> get _scrubberTimestamps {
     if (widget.timelineTimestamps.isNotEmpty) return widget.timelineTimestamps;
@@ -146,7 +156,19 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     _hideTimer?.cancel();
     _targetLoadTimer?.cancel();
     widget.scrollController.removeListener(_syncFractionFromScroll);
+    _visualState.dispose();
     super.dispose();
+  }
+
+  void _publishVisualState() {
+    final next = _ScrubberVisualState(
+      visible: _isVisible,
+      dragging: _isDragging,
+      fraction: _fraction,
+    );
+    if (_visualState.value != next) {
+      _visualState.value = next;
+    }
   }
 
   void _syncFractionFromScroll() {
@@ -158,6 +180,7 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
           _isVisible = false;
           _fraction = 0;
         });
+        _publishVisualState();
       }
       return;
     }
@@ -165,11 +188,17 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     final pendingTargetFraction = _pendingLoadTargetFraction;
     if (_isDragging || pendingTargetFraction != null) {
       final nextFraction = pendingTargetFraction ?? _fraction;
-      if (!_isScrollable || (nextFraction - _fraction).abs() >= 0.002) {
+      final scrollableChanged = !_isScrollable;
+      final fractionChanged = (nextFraction - _fraction).abs() >= 0.002;
+      if (scrollableChanged) {
         setState(() {
           _isScrollable = true;
           _fraction = nextFraction;
         });
+        _publishVisualState();
+      } else if (fractionChanged) {
+        _fraction = nextFraction;
+        _publishVisualState();
       }
       return;
     }
@@ -181,10 +210,15 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     );
     final nextFraction = _fractionForLoadedScroll(scrollFraction);
     if (_isScrollable && (nextFraction - _fraction).abs() < 0.002) return;
-    setState(() {
-      _isScrollable = true;
+    if (!_isScrollable) {
+      setState(() {
+        _isScrollable = true;
+        _fraction = nextFraction;
+      });
+    } else {
       _fraction = nextFraction;
-    });
+    }
+    _publishVisualState();
   }
 
   bool _handleScrollNotification(ScrollNotification notification) {
@@ -211,7 +245,8 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     if (!_canScrub) return;
     _hideTimer?.cancel();
     if (!_isVisible) {
-      setState(() => _isVisible = true);
+      _isVisible = true;
+      _publishVisualState();
     }
     if (!_isDragging) _scheduleHide();
   }
@@ -220,39 +255,55 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     _hideTimer?.cancel();
     _hideTimer = Timer(_hideDelay, () {
       if (!mounted || _isDragging) return;
-      setState(() => _isVisible = false);
+      _isVisible = false;
+      _publishVisualState();
     });
   }
 
-  void _beginDrag(DragStartDetails details, double height) {
-    if (!_canScrub) return;
-    _hideTimer?.cancel();
-    _isDragging = true;
-    _dragFraction = _fraction;
-    setState(() {
-      _isVisible = true;
-    });
-  }
-
-  void _updateDrag(DragUpdateDetails details, double height) {
-    if (!_canScrub) return;
+  void _handlePointerDown(PointerDownEvent event, double height) {
+    if (!_canScrub || _activePointer != null) return;
     final trackHeight = _trackHeight(height);
     if (trackHeight <= 0) return;
 
-    final distanceFromRight = _gestureHitWidth - details.localPosition.dx;
-    final slowdown = ((distanceFromRight - _handleWidth) / 180).clamp(0.0, 1.0);
-    final sensitivity = lerpDouble(1.0, 0.28, slowdown) ?? 1.0;
-    final nextFraction =
-        (_dragFraction + details.delta.dy / trackHeight * sensitivity).clamp(
-      0.0,
-      1.0,
+    _activePointer = event.pointer;
+    _hideTimer?.cancel();
+    _isDragging = true;
+    _isVisible = true;
+
+    final trackCenterY = _trackCenterYForFraction(_fraction, height);
+    final handleCenterY = _handleCenterYForFraction(_fraction, height);
+    final touchesHandle =
+        (event.localPosition.dy - handleCenterY).abs() <= _handleHeight / 2;
+    final handleIsClamped = (handleCenterY - trackCenterY).abs() > 0.5;
+    final rawGrabOffset = event.localPosition.dy - trackCenterY;
+    _dragHandleOffset = touchesHandle &&
+            !handleIsClamped &&
+            rawGrabOffset.abs() <= _handleHeight / 2
+        ? rawGrabOffset
+        : 0;
+
+    if (!touchesHandle) {
+      _fraction = _fractionForLocalY(event.localPosition.dy, height);
+    }
+    _publishVisualState();
+    if (!touchesHandle) {
+      _jumpToFraction(_fraction, loadImmediately: true);
+    }
+  }
+
+  void _handlePointerMove(PointerMoveEvent event, double height) {
+    if (event.pointer != _activePointer || !_canScrub) return;
+    final trackHeight = _trackHeight(height);
+    if (trackHeight <= 0) return;
+
+    final nextFraction = _fractionForLocalY(
+      event.localPosition.dy - _dragHandleOffset,
+      height,
     );
 
-    _dragFraction = nextFraction;
-    setState(() {
-      _isVisible = true;
-      _fraction = nextFraction;
-    });
+    _isVisible = true;
+    _fraction = nextFraction;
+    _publishVisualState();
     _jumpToFraction(
       nextFraction,
       loadImmediately: false,
@@ -260,22 +311,18 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     );
   }
 
-  void _endDrag() {
-    if (!_isDragging) return;
-    setState(() => _isDragging = false);
-    _flushQueuedJump();
-    _flushQueuedTargetLoad();
-    _scheduleHide();
+  void _handlePointerEnd(PointerEvent event) {
+    if (event.pointer != _activePointer) return;
+    _activePointer = null;
+    _endDrag();
   }
 
-  void _handleTapDown(TapDownDetails details, double height) {
-    if (!_canScrub) return;
-    final nextFraction = _fractionForLocalY(details.localPosition.dy, height);
-    setState(() {
-      _isVisible = true;
-      _fraction = nextFraction;
-    });
-    _jumpToFraction(nextFraction, loadImmediately: true);
+  void _endDrag() {
+    if (!_isDragging) return;
+    _isDragging = false;
+    _publishVisualState();
+    _flushQueuedJump();
+    _flushQueuedTargetLoad();
     _scheduleHide();
   }
 
@@ -411,10 +458,8 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   }) {
     if (!mounted || !widget.scrollController.hasClients) return;
 
-    setState(() {
-      _fraction = fraction;
-      _dragFraction = fraction;
-    });
+    _fraction = fraction;
+    _publishVisualState();
     _jumpWithinLoadedExtent(targetIndex: targetIndex, fraction: fraction);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -488,6 +533,23 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     final trackHeight = _trackHeight(height);
     if (trackHeight <= 0) return 0;
     return ((localY - top) / trackHeight).clamp(0.0, 1.0);
+  }
+
+  double _trackCenterYForFraction(double fraction, double height) {
+    return _trackTop(height) + _trackHeight(height) * fraction;
+  }
+
+  double _handleCenterYForFraction(double fraction, double height) {
+    final top = _trackTop(height);
+    final bottom = _trackBottom(height);
+    final handleTop = _clampIntoTrack(
+      value: _trackCenterYForFraction(fraction, height) - _handleHeight / 2,
+      top: top,
+      bottom: bottom,
+      height: height,
+      extent: _handleHeight,
+    );
+    return handleTop + _handleHeight / 2;
   }
 
   double _trackTop(double height) {
@@ -610,45 +672,48 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
               Positioned.fill(
                 child: LayoutBuilder(
                   builder: (context, constraints) {
-                    return Stack(
-                      children: [
-                        IgnorePointer(
-                          child: _buildScrubberVisuals(
-                            width: constraints.maxWidth,
-                            height: constraints.maxHeight,
-                          ),
-                        ),
-                        Positioned(
-                          key: timelineDateScrubberGestureKey,
-                          top: 0,
-                          right: 0,
-                          bottom: 0,
-                          width: math.min(
-                            _gestureHitWidth,
-                            constraints.maxWidth,
-                          ),
-                          child: IgnorePointer(
-                            ignoring: !_isVisible && !_isDragging,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.translucent,
-                              onTapDown: (details) => _handleTapDown(
-                                details,
-                                constraints.maxHeight,
+                    return ValueListenableBuilder<_ScrubberVisualState>(
+                      valueListenable: _visualState,
+                      builder: (context, visualState, _) {
+                        return Stack(
+                          children: [
+                            IgnorePointer(
+                              child: _buildScrubberVisuals(
+                                width: constraints.maxWidth,
+                                height: constraints.maxHeight,
+                                visualState: visualState,
                               ),
-                              onVerticalDragStart: (details) => _beginDrag(
-                                details,
-                                constraints.maxHeight,
-                              ),
-                              onVerticalDragUpdate: (details) => _updateDrag(
-                                details,
-                                constraints.maxHeight,
-                              ),
-                              onVerticalDragEnd: (_) => _endDrag(),
-                              onVerticalDragCancel: _endDrag,
                             ),
-                          ),
-                        ),
-                      ],
+                            Positioned(
+                              key: timelineDateScrubberGestureKey,
+                              top: 0,
+                              right: 0,
+                              bottom: 0,
+                              width: math.min(
+                                _gestureHitWidth,
+                                constraints.maxWidth,
+                              ),
+                              child: IgnorePointer(
+                                ignoring: !visualState.visible &&
+                                    !visualState.dragging,
+                                child: Listener(
+                                  behavior: HitTestBehavior.translucent,
+                                  onPointerDown: (event) => _handlePointerDown(
+                                    event,
+                                    constraints.maxHeight,
+                                  ),
+                                  onPointerMove: (event) => _handlePointerMove(
+                                    event,
+                                    constraints.maxHeight,
+                                  ),
+                                  onPointerUp: _handlePointerEnd,
+                                  onPointerCancel: _handlePointerEnd,
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     );
                   },
                 ),
@@ -662,11 +727,13 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   Widget _buildScrubberVisuals({
     required double width,
     required double height,
+    required _ScrubberVisualState visualState,
   }) {
     final top = _trackTop(height);
     final bottom = _trackBottom(height);
     final trackHeight = _trackHeight(height);
-    final centerY = top + trackHeight * _fraction;
+    final fraction = visualState.fraction;
+    final centerY = top + trackHeight * fraction;
     final handleTop = _clampIntoTrack(
       value: centerY - _handleHeight / 2,
       top: top,
@@ -681,7 +748,7 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
       height: height,
       extent: _bubbleHeight,
     );
-    final label = _dateLabelForFraction(_fraction);
+    final label = _dateLabelForFraction(fraction);
     final visualGestureWidth = math.min(_visualGestureWidth, width);
     final visualHandleWidth = math.min(_handleWidth, visualGestureWidth);
     final bubbleWidth = math.min(
@@ -699,8 +766,8 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
       _maxYearRailRows,
       math.max(2, ((trackHeight - 12) / _yearRailRowHeight).floor()),
     );
-    final activeYear = _timestampForFraction(_fraction)?.year;
-    final showYearRail = _isDragging &&
+    final activeYear = _timestampForFraction(fraction)?.year;
+    final showYearRail = visualState.dragging &&
         activeYear != null &&
         _timelineYears.length > 1 &&
         maxYearRows >= 2 &&
@@ -719,13 +786,16 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     );
 
     return AnimatedSlide(
-      offset: _isVisible ? Offset.zero : const Offset(0.18, 0),
-      duration: const Duration(milliseconds: 140),
+      offset: visualState.visible ? Offset.zero : const Offset(0.18, 0),
+      duration:
+          visualState.dragging ? Duration.zero : _visibilityTransitionDuration,
       curve: Curves.easeOutCubic,
       child: AnimatedOpacity(
         key: timelineDateScrubberOverlayKey,
-        opacity: _isVisible ? 1 : 0,
-        duration: const Duration(milliseconds: 140),
+        opacity: visualState.visible ? 1 : 0,
+        duration: visualState.dragging
+            ? Duration.zero
+            : _visibilityTransitionDuration,
         curve: Curves.easeOutCubic,
         child: Semantics(
           label: 'Timeline date scrubber',
@@ -904,6 +974,30 @@ class _ScrubberDateLabel {
   final String day;
 }
 
+class _ScrubberVisualState {
+  const _ScrubberVisualState({
+    required this.visible,
+    required this.dragging,
+    required this.fraction,
+  });
+
+  final bool visible;
+  final bool dragging;
+  final double fraction;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is _ScrubberVisualState &&
+            other.visible == visible &&
+            other.dragging == dragging &&
+            other.fraction == fraction;
+  }
+
+  @override
+  int get hashCode => Object.hash(visible, dragging, fraction);
+}
+
 class _YearRailLabel extends StatelessWidget {
   const _YearRailLabel({required this.year, required this.active});
 
@@ -915,10 +1009,9 @@ class _YearRailLabel extends StatelessWidget {
     return SizedBox(
       height: _TimelineDateScrubberState._yearRailRowHeight,
       child: Center(
-        child: AnimatedScale(
+        child: Transform.scale(
           scale: active ? 1 : 0.88,
-          duration: const Duration(milliseconds: 90),
-          curve: Curves.easeOutCubic,
+          alignment: Alignment.center,
           child: Text(
             '$year',
             key: active ? timelineDateScrubberActiveYearKey : null,

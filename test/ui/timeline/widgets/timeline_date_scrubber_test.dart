@@ -186,39 +186,29 @@ void main() {
       expect(_overlayOpacity(tester), 0);
     });
 
-    testWidgets('moving the drag left slows vertical scrubbing', (
+    testWidgets('keeps handle aligned after fast drag with horizontal drift', (
       tester,
     ) async {
       final controller = ScrollController();
 
       await _pumpScrubber(tester, controller: controller, cards: _cards(180));
       await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
 
-      final start = tester
-          .getRect(find.byKey(timelineDateScrubberGestureKey))
-          .topRight
-          .translate(-20, 32);
-
-      final fastGesture = await tester.startGesture(start);
-      await fastGesture.moveBy(const Offset(0, 20));
-      await fastGesture.moveBy(const Offset(0, 220));
-      await fastGesture.up();
-      await tester.pump();
-      final fastOffset = controller.offset;
-
-      controller.jumpTo(0);
+      final start =
+          tester.getRect(find.byKey(timelineDateScrubberHandleKey)).center;
+      final gesture = await tester.startGesture(start);
+      await gesture.moveBy(const Offset(-220, 0));
+      await gesture.moveBy(const Offset(0, 220));
       await tester.pump();
 
-      final slowGesture = await tester.startGesture(start);
-      await slowGesture.moveBy(const Offset(0, 20));
-      await slowGesture.moveBy(const Offset(-220, 0));
-      await slowGesture.moveBy(const Offset(0, 220));
-      await slowGesture.up();
-      await tester.pump();
-      final slowOffset = controller.offset;
+      final handleCenter =
+          tester.getRect(find.byKey(timelineDateScrubberHandleKey)).center;
 
-      expect(slowOffset, lessThan(fastOffset * 0.6));
-      expect(slowOffset, greaterThan(0));
+      expect(handleCenter.dy, closeTo(start.dy + 220, 2));
+      expect(controller.offset, greaterThan(0));
+
+      await gesture.up();
     });
 
     testWidgets('coalesces drag jumps until the next frame', (tester) async {
@@ -250,6 +240,38 @@ void main() {
 
       await tester.pump();
       expect(controller.offset, greaterThan(firstFrameOffset));
+
+      await gesture.up();
+    });
+
+    testWidgets('dragging the handle does not rebuild the timeline child', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      var childBuilds = 0;
+
+      await _pumpScrubber(
+        tester,
+        controller: controller,
+        cards: _cards(180),
+        onChildBuild: () {
+          childBuilds++;
+        },
+      );
+      await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
+
+      final buildsBeforeDrag = childBuilds;
+      final start =
+          tester.getRect(find.byKey(timelineDateScrubberHandleKey)).center;
+      final gesture = await tester.startGesture(start);
+      await gesture.moveBy(const Offset(0, 80));
+      await tester.pump();
+      await gesture.moveBy(const Offset(0, 80));
+      await tester.pump();
+
+      expect(childBuilds, buildsBeforeDrag);
+      expect(controller.offset, greaterThan(0));
 
       await gesture.up();
     });
@@ -891,7 +913,20 @@ Future<void> _pumpScrubber(
   double width = 390,
   double height = 640,
   double itemExtent = 72,
+  VoidCallback? onChildBuild,
 }) async {
+  final listView = ListView.builder(
+    controller: controller,
+    itemExtent: itemExtent,
+    itemCount: cards.length,
+    itemBuilder: (context, index) {
+      return ListTile(
+        title: Text(cards[index].id),
+        subtitle: Text(cards[index].timestamp.toIso8601String()),
+      );
+    },
+  );
+
   await tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
@@ -908,23 +943,28 @@ Future<void> _pumpScrubber(
             localeName: localeName,
             enabled: enabled,
             trackInsets: const EdgeInsets.symmetric(vertical: 20),
-            child: ListView.builder(
-              controller: controller,
-              itemExtent: itemExtent,
-              itemCount: cards.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(cards[index].id),
-                  subtitle: Text(cards[index].timestamp.toIso8601String()),
-                );
-              },
-            ),
+            child: onChildBuild == null
+                ? listView
+                : _BuildCounter(onBuild: onChildBuild, child: listView),
           ),
         ),
       ),
     ),
   );
   await tester.pump();
+}
+
+class _BuildCounter extends StatelessWidget {
+  const _BuildCounter({required this.onBuild, required this.child});
+
+  final VoidCallback onBuild;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    onBuild();
+    return child;
+  }
 }
 
 Future<void> _revealScrubber(WidgetTester tester) async {
