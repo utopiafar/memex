@@ -667,55 +667,59 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            widget.child,
+            RepaintBoundary(child: widget.child),
             if (_hasEnoughCards && _isScrollable)
               Positioned.fill(
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    return ValueListenableBuilder<_ScrubberVisualState>(
-                      valueListenable: _visualState,
-                      builder: (context, visualState, _) {
-                        return Stack(
-                          children: [
-                            IgnorePointer(
-                              child: _buildScrubberVisuals(
-                                width: constraints.maxWidth,
-                                height: constraints.maxHeight,
-                                visualState: visualState,
-                              ),
-                            ),
-                            Positioned(
-                              key: timelineDateScrubberGestureKey,
-                              top: 0,
-                              right: 0,
-                              bottom: 0,
-                              width: math.min(
-                                _gestureHitWidth,
-                                constraints.maxWidth,
-                              ),
-                              child: IgnorePointer(
-                                ignoring: !visualState.visible &&
-                                    !visualState.dragging,
-                                child: Listener(
-                                  behavior: HitTestBehavior.translucent,
-                                  onPointerDown: (event) => _handlePointerDown(
-                                    event,
-                                    constraints.maxHeight,
-                                  ),
-                                  onPointerMove: (event) => _handlePointerMove(
-                                    event,
-                                    constraints.maxHeight,
-                                  ),
-                                  onPointerUp: _handlePointerEnd,
-                                  onPointerCancel: _handlePointerEnd,
+                child: RepaintBoundary(
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return ValueListenableBuilder<_ScrubberVisualState>(
+                        valueListenable: _visualState,
+                        builder: (context, visualState, _) {
+                          return Stack(
+                            children: [
+                              IgnorePointer(
+                                child: _buildScrubberVisuals(
+                                  width: constraints.maxWidth,
+                                  height: constraints.maxHeight,
+                                  visualState: visualState,
                                 ),
                               ),
-                            ),
-                          ],
-                        );
-                      },
-                    );
-                  },
+                              Positioned(
+                                key: timelineDateScrubberGestureKey,
+                                top: 0,
+                                right: 0,
+                                bottom: 0,
+                                width: math.min(
+                                  _gestureHitWidth,
+                                  constraints.maxWidth,
+                                ),
+                                child: IgnorePointer(
+                                  ignoring: !visualState.visible &&
+                                      !visualState.dragging,
+                                  child: Listener(
+                                    behavior: HitTestBehavior.opaque,
+                                    onPointerDown: (event) =>
+                                        _handlePointerDown(
+                                      event,
+                                      constraints.maxHeight,
+                                    ),
+                                    onPointerMove: (event) =>
+                                        _handlePointerMove(
+                                      event,
+                                      constraints.maxHeight,
+                                    ),
+                                    onPointerUp: _handlePointerEnd,
+                                    onPointerCancel: _handlePointerEnd,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
               ),
           ],

@@ -276,6 +276,36 @@ void main() {
       await gesture.up();
     });
 
+    testWidgets('visible drag layer blocks pointer moves from the child', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      var childPointerMoves = 0;
+
+      await _pumpScrubber(
+        tester,
+        controller: controller,
+        cards: _cards(180),
+        onChildPointerMove: () {
+          childPointerMoves++;
+        },
+      );
+      await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
+      childPointerMoves = 0;
+
+      final start =
+          tester.getRect(find.byKey(timelineDateScrubberHandleKey)).center;
+      final gesture = await tester.startGesture(start);
+      await gesture.moveBy(const Offset(0, 120));
+      await tester.pump();
+
+      expect(childPointerMoves, 0);
+      expect(controller.offset, greaterThan(0));
+
+      await gesture.up();
+    });
+
     testWidgets('shows year rail while dragging across multiple years', (
       tester,
     ) async {
@@ -914,6 +944,7 @@ Future<void> _pumpScrubber(
   double height = 640,
   double itemExtent = 72,
   VoidCallback? onChildBuild,
+  VoidCallback? onChildPointerMove,
 }) async {
   final listView = ListView.builder(
     controller: controller,
@@ -926,6 +957,19 @@ Future<void> _pumpScrubber(
       );
     },
   );
+  Widget child = listView;
+
+  if (onChildPointerMove != null) {
+    child = Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerMove: (_) => onChildPointerMove(),
+      child: child,
+    );
+  }
+
+  if (onChildBuild != null) {
+    child = _BuildCounter(onBuild: onChildBuild, child: child);
+  }
 
   await tester.pumpWidget(
     MaterialApp(
@@ -943,9 +987,7 @@ Future<void> _pumpScrubber(
             localeName: localeName,
             enabled: enabled,
             trackInsets: const EdgeInsets.symmetric(vertical: 20),
-            child: onChildBuild == null
-                ? listView
-                : _BuildCounter(onBuild: onChildBuild, child: listView),
+            child: child,
           ),
         ),
       ),
