@@ -239,6 +239,8 @@ void main() {
 
       await tester.pump();
       expect(controller.offset, 0);
+      expect(find.byKey(timelineDateScrubberPreviewKey), findsOneWidget);
+      expect(find.byKey(timelineDateScrubberPreviewCardKey(0)), findsOneWidget);
 
       await gesture.moveBy(const Offset(0, 120));
       await tester.pump();
@@ -247,6 +249,7 @@ void main() {
       await gesture.up();
       await tester.pump();
 
+      expect(find.byKey(timelineDateScrubberPreviewKey), findsNothing);
       expect(controller.offset, greaterThan(0));
     });
 
@@ -538,6 +541,51 @@ void main() {
       await tester.pump();
 
       expect(find.text('2017'), findsOneWidget);
+    });
+
+    testWidgets('placeholder preview uses the full timeline date range', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      final loadedCards = _cardsWithDates(
+        20,
+        (index) => DateTime(2026, 12, 31).subtract(Duration(days: index)),
+      );
+      final fullTimelineTimestamps = _dates(
+        240,
+        (index) => DateTime(2026, 12, 31).subtract(Duration(days: index * 14)),
+      );
+      var loadToIndexCalls = 0;
+
+      await _pumpScrubber(
+        tester,
+        controller: controller,
+        cards: loadedCards,
+        timelineTimestamps: fullTimelineTimestamps,
+        hasMore: true,
+        onLoadToIndex: (_) async {
+          loadToIndexCalls++;
+        },
+      );
+      await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
+
+      final gestureArea = tester.getRect(
+        find.byKey(timelineDateScrubberGestureKey),
+      );
+      final gesture = await tester.startGesture(
+        gestureArea.topCenter + const Offset(0, 24),
+      );
+      await gesture.moveBy(Offset(0, gestureArea.height));
+      await tester.pump();
+
+      final previewHeader = tester.widget<Text>(
+        find.byKey(timelineDateScrubberPreviewHeaderKey),
+      );
+      expect(previewHeader.data, contains('2017'));
+      expect(loadToIndexCalls, 0);
+
+      await gesture.up();
     });
 
     testWidgets('normal scrolling labels the loaded slice of the full index', (
@@ -917,6 +965,33 @@ void main() {
 
       expect(controller.offset, greaterThan(0));
       expect(find.byKey(timelineDateScrubberBubbleKey), findsOneWidget);
+    });
+
+    testWidgets('keeps placeholder preview stable in compact landscape', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+
+      await _pumpScrubber(
+        tester,
+        controller: controller,
+        cards: _cards(120),
+        width: 844,
+        height: 390,
+      );
+      await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
+
+      final start =
+          tester.getRect(find.byKey(timelineDateScrubberHandleKey)).center;
+      final gesture = await tester.startGesture(start);
+      await gesture.moveBy(const Offset(0, 160));
+      await tester.pump();
+
+      expect(find.byKey(timelineDateScrubberPreviewKey), findsOneWidget);
+      expect(find.byKey(timelineDateScrubberPreviewCardKey(0)), findsOneWidget);
+
+      await gesture.up();
     });
 
     testWidgets('keeps scrubbing usable on a tablet viewport', (tester) async {

@@ -27,6 +27,16 @@ const timelineDateScrubberYearRailKey = ValueKey<String>(
 const timelineDateScrubberActiveYearKey = ValueKey<String>(
   'timeline_date_scrubber_active_year',
 );
+const timelineDateScrubberPreviewKey = ValueKey<String>(
+  'timeline_date_scrubber_preview',
+);
+const timelineDateScrubberPreviewHeaderKey = ValueKey<String>(
+  'timeline_date_scrubber_preview_header',
+);
+
+Key timelineDateScrubberPreviewCardKey(int slot) {
+  return ValueKey<String>('timeline_date_scrubber_preview_card_$slot');
+}
 
 class TimelineDateScrubber extends StatefulWidget {
   const TimelineDateScrubber({
@@ -67,6 +77,7 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   static const double _bubbleHeight = 58;
   static const double _yearRailWidth = 64;
   static const double _yearRailRowHeight = 26;
+  static const double _previewCardSpacing = 10;
   static const int _maxYearRailRows = 7;
   static const Duration _hideDelay = Duration(milliseconds: 900);
   static const Duration _visibilityTransitionDuration = Duration(
@@ -509,10 +520,19 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   int _indexForFraction(double fraction) {
     final timestamps = _scrubberTimestamps;
     if (timestamps.isEmpty) return 0;
-    return ((timestamps.length - 1) * fraction).round().clamp(
+    return _floatingIndexForFraction(fraction).round().clamp(
           0,
           timestamps.length - 1,
         );
+  }
+
+  double _floatingIndexForFraction(double fraction) {
+    final timestamps = _scrubberTimestamps;
+    if (timestamps.isEmpty) return 0;
+    return ((timestamps.length - 1) * fraction).clamp(
+      0.0,
+      (timestamps.length - 1).toDouble(),
+    );
   }
 
   DateTime? _timestampForFraction(double fraction) {
@@ -527,8 +547,19 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
       return _formatDateLabel(DateTime.now());
     }
 
-    final index = _indexForFraction(fraction);
-    return _dateLabelCache[index] ??= _formatDateLabel(timestamps[index]);
+    return _dateLabelForIndex(_indexForFraction(fraction));
+  }
+
+  _ScrubberDateLabel _dateLabelForIndex(int index) {
+    final timestamps = _scrubberTimestamps;
+    if (timestamps.isEmpty) {
+      return _formatDateLabel(DateTime.now());
+    }
+
+    final safeIndex = index.clamp(0, timestamps.length - 1);
+    return _dateLabelCache[safeIndex] ??= _formatDateLabel(
+      timestamps[safeIndex],
+    );
   }
 
   _ScrubberDateLabel _formatDateLabel(DateTime timestamp) {
@@ -600,6 +631,12 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
                         builder: (context, visualState, _) {
                           return Stack(
                             children: [
+                              if (visualState.dragging)
+                                _buildDragPreviewLayer(
+                                  width: constraints.maxWidth,
+                                  height: constraints.maxHeight,
+                                  visualState: visualState,
+                                ),
                               IgnorePointer(
                                 child: _buildScrubberVisuals(
                                   width: constraints.maxWidth,
@@ -891,6 +928,88 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
       ),
     );
   }
+
+  Widget _buildDragPreviewLayer({
+    required double width,
+    required double height,
+    required _ScrubberVisualState visualState,
+  }) {
+    final timestamps = _scrubberTimestamps;
+    if (timestamps.isEmpty) return const SizedBox.shrink();
+
+    final gestureWidth = math.min(_gestureHitWidth, width);
+    final previewWidth = width - gestureWidth;
+    if (previewWidth < 120 || height < 160) return const SizedBox.shrink();
+
+    final index = _floatingIndexForFraction(visualState.fraction);
+    final anchorIndex = index.floor().clamp(0, timestamps.length - 1);
+    final phase = (index - index.floor()).clamp(0.0, 1.0);
+    final cardHeight = math.min(104.0, math.max(92.0, height * 0.16));
+    final rowStride = cardHeight + _previewCardSpacing;
+    final rowCount = math.max(3, ((height - 88) / rowStride).ceil() + 2);
+    final firstIndex = (anchorIndex - 1).clamp(0, timestamps.length - 1);
+    final activeLabel = _dateLabelForIndex(anchorIndex);
+
+    return Positioned.fill(
+      right: gestureWidth,
+      child: IgnorePointer(
+        child: DecoratedBox(
+          key: timelineDateScrubberPreviewKey,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC).withValues(alpha: 0.9),
+          ),
+          child: ClipRect(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 18, 12, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${activeLabel.day} ${activeLabel.year}',
+                    key: timelineDateScrubberPreviewHeaderKey,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF111827),
+                      fontSize: 13,
+                      height: 1,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Expanded(
+                    child: Stack(
+                      clipBehavior: Clip.hardEdge,
+                      children: [
+                        for (var slot = 0; slot < rowCount; slot++)
+                          Positioned(
+                            top: slot * rowStride - phase * rowStride,
+                            left: 0,
+                            right: 0,
+                            height: cardHeight,
+                            child: _ScrubberPreviewCard(
+                              key: timelineDateScrubberPreviewCardKey(slot),
+                              label: _dateLabelForIndex(
+                                math.min(
+                                  timestamps.length - 1,
+                                  firstIndex + slot,
+                                ),
+                              ),
+                              height: cardHeight,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _ScrubberDateLabel {
@@ -924,10 +1043,128 @@ class _ScrubberVisualState {
   int get hashCode => Object.hash(visible, dragging, fraction);
 }
 
+class _ScrubberPreviewCard extends StatelessWidget {
+  const _ScrubberPreviewCard({
+    super.key,
+    required this.label,
+    required this.height,
+  });
+
+  final _ScrubberDateLabel label;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: height,
+      width: double.infinity,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.96),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: const Color(0xFFE5E7EB),
+            width: 0.7,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${label.day} ${label.year}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF4B5563),
+                  fontSize: 11,
+                  height: 1,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0,
+                ),
+              ),
+              const Spacer(),
+              const _ScrubberPreviewLine(widthFactor: 0.74, height: 10),
+              const SizedBox(height: 8),
+              const _ScrubberPreviewLine(widthFactor: 0.92, height: 8),
+              const SizedBox(height: 6),
+              const _ScrubberPreviewLine(widthFactor: 0.58, height: 8),
+              const Spacer(),
+              const Row(
+                children: [
+                  _ScrubberPreviewPill(width: 40),
+                  SizedBox(width: 6),
+                  _ScrubberPreviewPill(width: 54),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScrubberPreviewLine extends StatelessWidget {
+  const _ScrubberPreviewLine({
+    required this.widthFactor,
+    required this.height,
+  });
+
+  final double widthFactor;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return FractionallySizedBox(
+      alignment: Alignment.centerLeft,
+      widthFactor: widthFactor,
+      child: SizedBox(
+        height: height,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color(0xFFE5E7EB),
+            borderRadius: BorderRadius.circular(height / 2),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScrubberPreviewPill extends StatelessWidget {
+  const _ScrubberPreviewPill({required this.width});
+
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: 14,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: const Color(0xFFF3F4F6),
+          borderRadius: BorderRadius.circular(7),
+        ),
+      ),
+    );
+  }
+}
+
 class _YearRailLabel extends StatelessWidget {
   const _YearRailLabel({required this.year, required this.active});
 
   final int year;
+
   final bool active;
 
   @override
