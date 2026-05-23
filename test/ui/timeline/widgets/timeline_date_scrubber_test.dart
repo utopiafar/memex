@@ -195,6 +195,7 @@ void main() {
       await _revealScrubber(tester);
       await _settleScrubberEntrance(tester);
 
+      final offsetBeforeDrag = controller.offset;
       final start =
           tester.getRect(find.byKey(timelineDateScrubberHandleKey)).center;
       final gesture = await tester.startGesture(start);
@@ -206,12 +207,17 @@ void main() {
           tester.getRect(find.byKey(timelineDateScrubberHandleKey)).center;
 
       expect(handleCenter.dy, closeTo(start.dy + 220, 2));
-      expect(controller.offset, greaterThan(0));
+      expect(controller.offset, offsetBeforeDrag);
 
       await gesture.up();
+      await tester.pump();
+
+      expect(controller.offset, greaterThan(offsetBeforeDrag));
     });
 
-    testWidgets('coalesces drag jumps until the next frame', (tester) async {
+    testWidgets('previews drag target without scrolling until release', (
+      tester,
+    ) async {
       final controller = ScrollController();
 
       await _pumpScrubber(tester, controller: controller, cards: _cards(180));
@@ -232,16 +238,16 @@ void main() {
       expect(controller.offset, 0);
 
       await tester.pump();
-      expect(controller.offset, greaterThan(0));
-      final firstFrameOffset = controller.offset;
+      expect(controller.offset, 0);
 
       await gesture.moveBy(const Offset(0, 120));
-      expect(controller.offset, firstFrameOffset);
-
       await tester.pump();
-      expect(controller.offset, greaterThan(firstFrameOffset));
+      expect(controller.offset, 0);
 
       await gesture.up();
+      await tester.pump();
+
+      expect(controller.offset, greaterThan(0));
     });
 
     testWidgets('dragging the handle does not rebuild the timeline child', (
@@ -262,6 +268,7 @@ void main() {
       await _settleScrubberEntrance(tester);
 
       final buildsBeforeDrag = childBuilds;
+      final offsetBeforeDrag = controller.offset;
       final start =
           tester.getRect(find.byKey(timelineDateScrubberHandleKey)).center;
       final gesture = await tester.startGesture(start);
@@ -271,7 +278,7 @@ void main() {
       await tester.pump();
 
       expect(childBuilds, buildsBeforeDrag);
-      expect(controller.offset, greaterThan(0));
+      expect(controller.offset, offsetBeforeDrag);
 
       await gesture.up();
     });
@@ -294,6 +301,7 @@ void main() {
       await _settleScrubberEntrance(tester);
       childPointerMoves = 0;
 
+      final offsetBeforeDrag = controller.offset;
       final start =
           tester.getRect(find.byKey(timelineDateScrubberHandleKey)).center;
       final gesture = await tester.startGesture(start);
@@ -301,9 +309,12 @@ void main() {
       await tester.pump();
 
       expect(childPointerMoves, 0);
-      expect(controller.offset, greaterThan(0));
+      expect(controller.offset, offsetBeforeDrag);
 
       await gesture.up();
+      await tester.pump();
+
+      expect(controller.offset, greaterThan(0));
     });
 
     testWidgets('shows year rail while dragging across multiple years', (
@@ -461,6 +472,41 @@ void main() {
       expect(loadMoreCalls, 1);
     });
 
+    testWidgets('defers loadMore while dragging to the bottom', (
+      tester,
+    ) async {
+      final controller = ScrollController();
+      var loadMoreCalls = 0;
+
+      await _pumpScrubber(
+        tester,
+        controller: controller,
+        cards: _cards(40),
+        hasMore: true,
+        onLoadMore: () async {
+          loadMoreCalls++;
+        },
+      );
+      await _revealScrubber(tester);
+      await _settleScrubberEntrance(tester);
+
+      final gestureArea = tester.getRect(
+        find.byKey(timelineDateScrubberGestureKey),
+      );
+      final gesture = await tester.startGesture(
+        gestureArea.topCenter + const Offset(0, 24),
+      );
+      await gesture.moveBy(Offset(0, gestureArea.height - 72));
+      await tester.pump(const Duration(milliseconds: 240));
+
+      expect(loadMoreCalls, 0);
+
+      await gesture.up();
+      await tester.pump();
+
+      expect(loadMoreCalls, 1);
+    });
+
     testWidgets('uses the full timeline index before all cards are loaded', (
       tester,
     ) async {
@@ -554,7 +600,7 @@ void main() {
       expect(requestedIndex, 99);
     });
 
-    testWidgets('debounces target loads while dragging', (tester) async {
+    testWidgets('defers target loads while dragging', (tester) async {
       final controller = ScrollController();
       final fullTimelineTimestamps = _dates(
         100,
@@ -591,10 +637,14 @@ void main() {
       await gesture.moveBy(const Offset(0, 120));
       await tester.pump(const Duration(milliseconds: 190));
 
-      expect(loadToIndexCalls, 1);
-      expect(requestedIndex, greaterThan(19));
+      expect(loadToIndexCalls, 0);
+      expect(requestedIndex, isNull);
 
       await gesture.up();
+      await tester.pump();
+
+      expect(loadToIndexCalls, 1);
+      expect(requestedIndex, greaterThan(19));
     });
 
     testWidgets('flushes the final target load when dragging ends', (
@@ -919,13 +969,17 @@ void main() {
       final gesture = await tester.startGesture(
         gestureArea.topCenter + const Offset(0, 24),
       );
+      final offsetBeforeDrag = controller.offset;
       await gesture.moveBy(const Offset(0, 200));
       await tester.pump();
 
       expect(find.byKey(timelineDateScrubberYearRailKey), findsNothing);
-      expect(controller.offset, greaterThan(0));
+      expect(controller.offset, offsetBeforeDrag);
 
       await gesture.up();
+      await tester.pump();
+
+      expect(controller.offset, greaterThan(offsetBeforeDrag));
     });
   });
 }

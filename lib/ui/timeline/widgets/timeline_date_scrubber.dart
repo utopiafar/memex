@@ -3,7 +3,6 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:intl/intl.dart';
 import 'package:memex/domain/models/timeline_card_model.dart';
 import 'package:memex/utils/logger.dart';
@@ -70,13 +69,11 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   static const double _yearRailRowHeight = 26;
   static const int _maxYearRailRows = 7;
   static const Duration _hideDelay = Duration(milliseconds: 900);
-  static const Duration _targetLoadDebounce = Duration(milliseconds: 180);
   static const Duration _visibilityTransitionDuration = Duration(
     milliseconds: 140,
   );
 
   Timer? _hideTimer;
-  Timer? _targetLoadTimer;
   bool _isVisible = false;
   bool _isDragging = false;
   bool _isScrollable = false;
@@ -88,9 +85,6 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   int? _pendingLoadTargetIndex;
   double? _pendingLoadTargetFraction;
   int? _activePointer;
-  bool _jumpFrameScheduled = false;
-  int? _queuedJumpTargetIndex;
-  double? _queuedJumpFraction;
   List<int> _timelineYears = const [];
   final Map<int, _ScrubberDateLabel> _dateLabelCache = {};
   late final ValueNotifier<_ScrubberVisualState> _visualState = ValueNotifier(
@@ -154,7 +148,6 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
   @override
   void dispose() {
     _hideTimer?.cancel();
-    _targetLoadTimer?.cancel();
     widget.scrollController.removeListener(_syncFractionFromScroll);
     _visualState.dispose();
     super.dispose();
@@ -286,9 +279,6 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
       _fraction = _fractionForLocalY(event.localPosition.dy, height);
     }
     _publishVisualState();
-    if (!touchesHandle) {
-      _jumpToFraction(_fraction, loadImmediately: true);
-    }
   }
 
   void _handlePointerMove(PointerMoveEvent event, double height) {
@@ -304,48 +294,34 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     _isVisible = true;
     _fraction = nextFraction;
     _publishVisualState();
-    _jumpToFraction(
-      nextFraction,
-      loadImmediately: false,
-      jumpImmediately: false,
-    );
   }
 
   void _handlePointerEnd(PointerEvent event) {
     if (event.pointer != _activePointer) return;
     _activePointer = null;
-    _endDrag();
+    _endDrag(commit: event is! PointerCancelEvent);
   }
 
-  void _endDrag() {
+  void _endDrag({required bool commit}) {
     if (!_isDragging) return;
+    final targetFraction = _fraction;
     _isDragging = false;
     _publishVisualState();
-    _flushQueuedJump();
-    _flushQueuedTargetLoad();
+    if (commit) {
+      _jumpToFraction(targetFraction);
+    } else {
+      _syncFractionFromScroll();
+    }
     _scheduleHide();
   }
 
-  void _jumpToFraction(
-    double fraction, {
-    required bool loadImmediately,
-    bool jumpImmediately = true,
-  }) {
+  void _jumpToFraction(double fraction) {
     final targetIndex = _indexForFraction(fraction);
     if (_shouldLoadToTarget(targetIndex)) {
       _rememberPendingLoadTarget(targetIndex, fraction);
     }
-    if (jumpImmediately) {
-      _jumpWithinLoadedExtent(targetIndex: targetIndex, fraction: fraction);
-    } else {
-      _queueJumpWithinLoadedExtent(
-          targetIndex: targetIndex, fraction: fraction);
-    }
-    if (loadImmediately) {
-      unawaited(_maybeLoadForTarget(targetIndex, fraction));
-    } else {
-      _queueLoadForTarget(targetIndex, fraction);
-    }
+    _jumpWithinLoadedExtent(targetIndex: targetIndex, fraction: fraction);
+    unawaited(_maybeLoadForTarget(targetIndex, fraction));
   }
 
   double _fractionForLoadedScroll(double scrollFraction) {
@@ -374,36 +350,6 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
     widget.scrollController.jumpTo(target);
   }
 
-  void _queueJumpWithinLoadedExtent({
-    required int targetIndex,
-    required double fraction,
-  }) {
-    _queuedJumpTargetIndex = targetIndex;
-    _queuedJumpFraction = fraction;
-    if (_jumpFrameScheduled) return;
-
-    _jumpFrameScheduled = true;
-    SchedulerBinding.instance.scheduleFrameCallback((_) {
-      _jumpFrameScheduled = false;
-      _flushQueuedJump();
-    });
-  }
-
-  void _flushQueuedJump() {
-    final targetIndex = _queuedJumpTargetIndex;
-    final fraction = _queuedJumpFraction;
-    _queuedJumpTargetIndex = null;
-    _queuedJumpFraction = null;
-    if (!mounted ||
-        targetIndex == null ||
-        fraction == null ||
-        !widget.scrollController.hasClients) {
-      return;
-    }
-
-    _jumpWithinLoadedExtent(targetIndex: targetIndex, fraction: fraction);
-  }
-
   bool _shouldLoadToTarget(int targetIndex) {
     return widget.hasMore &&
         widget.timelineTimestamps.isNotEmpty &&
@@ -416,30 +362,6 @@ class _TimelineDateScrubberState extends State<TimelineDateScrubber> {
         widget.timelineTimestamps.isEmpty &&
         widget.onLoadMore != null &&
         _fraction >= 0.92;
-  }
-
-  void _queueLoadForTarget(int targetIndex, double fraction) {
-    if (!_shouldLoadToTarget(targetIndex) && !_shouldLoadNextPage()) {
-      return;
-    }
-
-    _queuedLoadTargetIndex = targetIndex;
-    _queuedLoadTargetFraction = fraction;
-    _targetLoadTimer?.cancel();
-    _targetLoadTimer = Timer(_targetLoadDebounce, _flushQueuedTargetLoad);
-  }
-
-  void _flushQueuedTargetLoad() {
-    _targetLoadTimer?.cancel();
-    _targetLoadTimer = null;
-
-    final targetIndex = _queuedLoadTargetIndex;
-    final fraction = _queuedLoadTargetFraction;
-    _queuedLoadTargetIndex = null;
-    _queuedLoadTargetFraction = null;
-
-    if (targetIndex == null || fraction == null) return;
-    unawaited(_maybeLoadForTarget(targetIndex, fraction));
   }
 
   void _rememberPendingLoadTarget(int targetIndex, double fraction) {
