@@ -1,0 +1,337 @@
+{
+  "run_id": "2026-05-13-full-chain-journey-medium",
+  "started_at": "2026-05-12T18:00:53.551032Z",
+  "benchmark_elapsed_ms": 29125,
+  "replay_elapsed_ms": 7200000,
+  "replay_case_elapsed_total_ms": 7200000,
+  "dataset_path": "evals/datasets/full_chain_journey_medium",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 6,
+  "task_count": 60,
+  "dataset_summary": {
+    "case_count": 6,
+    "persona_count": 6,
+    "input_count": 600,
+    "task_count": 60,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "full_chain_journey_medium": 6
+    },
+    "tasks_by_type": {
+      "card_extraction": 42,
+      "cost_trace": 6,
+      "memory_write": 6,
+      "super_agent_qa": 6
+    },
+    "personas": [
+      {
+        "user_id": "journey_u_001",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 10,
+        "sample_inputs": [
+          "以后像导出项目评审这种重要会议，尽量提前一天提醒我，别临近了才说。",
+          "先记一下，我最近不喝咖啡，早上也不要，免得影响状态。"
+        ]
+      },
+      {
+        "user_id": "journey_u_002",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 10,
+        "sample_inputs": [
+          "以后像北美站增长评审这种重要会议，尽量提前一天提醒我，别临近了才说。",
+          "先记一下，我最近不喝咖啡，早上也不要，免得影响状态。"
+        ]
+      },
+      {
+        "user_id": "journey_u_003",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 10,
+        "sample_inputs": [
+          "以后像Memex eval评审这种重要会议，尽量提前一天提醒我，别临近了才说。",
+          "先记一下，我最近不喝咖啡，早上也不要，免得影响状态。"
+        ]
+      },
+      {
+        "user_id": "journey_u_004",
+        "occupation": "律师",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 10,
+        "sample_inputs": [
+          "以后像法务合同库评审这种重要会议，尽量提前一天提醒我，别临近了才说。",
+          "先记一下，我最近不喝咖啡，早上也不要，免得影响状态。"
+        ]
+      },
+      {
+        "user_id": "journey_u_005",
+        "occupation": "财务主管",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 10,
+        "sample_inputs": [
+          "以后像预算月结评审这种重要会议，尽量提前一天提醒我，别临近了才说。",
+          "先记一下，我最近不喝咖啡，早上也不要，免得影响状态。"
+        ]
+      },
+      {
+        "user_id": "journey_u_006",
+        "occupation": "内容运营",
+        "city": "苏州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 10,
+        "sample_inputs": [
+          "以后像小红书活动评审这种重要会议，尽量提前一天提醒我，别临近了才说。",
+          "先记一下，我最近不喝咖啡，早上也不要，免得影响状态。"
+        ]
+      }
+    ]
+  },
+  "dataset_audit": {
+    "overall_score": 0.7,
+    "language_consistency": 0.9,
+    "persona_plausibility": 0.8,
+    "input_naturalness": 0.6,
+    "oracle_consistency": 0.9,
+    "coverage_notes": [
+      "数据集覆盖了6种不同职业和城市的persona，任务类型包括卡片提取、记忆写入、超级问答和成本追踪。",
+      "每个案例包含100条输入流和10个评估任务，结构完整。",
+      "主要问题在于6个案例的结构和内容高度同质化，缺乏多样性。"
+    ],
+    "issues": [
+      {
+        "case_id": "journey_medium_001",
+        "severity": "high",
+        "issue": "高度模板化和重复性。所有6个案例的输入流结构、事件序列、甚至具体语句（如咖啡偏好更新、情绪管理、家庭事务提醒）都几乎完全相同，仅替换项目名称和协作人姓名。",
+        "suggestion": "打破模板，为不同persona设计更符合其职业特性、生活习惯和城市背景的多样化输入流和事件。避免简单替换关键词。"
+      },
+      {
+        "case_id": "journey_medium_001",
+        "severity": "medium",
+        "issue": "输入流中存在大量重复或高度相似的语句（例如，关于‘杭州通勤不稳定’、‘晚上散步想到一个点’、‘临时咨询’等），降低了自然度和挑战性。",
+        "suggestion": "精简重复内容，增加更多反映用户长期偏好、复杂决策或独特生活细节的输入，使对话历史更丰富、更具区分度。"
+      },
+      {
+        "case_id": "journey_medium_001",
+        "severity": "low",
+        "issue": "部分中文表达略显生硬或书面化，如‘先记一下’、‘帮我记一下’，在口语中可能更常说‘记一下’或‘提醒我’。",
+        "suggestion": "微调部分语句，使其更符合中文日常口语习惯，提升自然度。"
+      }
+    ],
+    "sample_reviews": [
+      {
+        "case_id": "journey_medium_001",
+        "score": 0.65,
+        "reason": "单个案例结构完整，ground truth与任务一致。但作为样本，其内容与后续案例高度雷同，模板化严重，严重影响了数据集的整体多样性和评估有效性。"
+      },
+      {
+        "case_id": "journey_medium_002",
+        "score": 0.65,
+        "reason": "与案例001结构完全一致，仅项目名称和协作人不同。虽然persona（跨境电商运营）和城市（深圳）设定合理，但内容缺乏独特性。"
+      },
+      {
+        "case_id": "journey_medium_003",
+        "score": 0.65,
+        "reason": "继续重复相同的模板。数据分析师（上海）的persona未在输入流中体现出明显的数据分析工作特性（如对数据口径、指标的深入讨论不足）。"
+      },
+      {
+        "case_id": "journey_medium_004",
+        "score": 0.65,
+        "reason": "律师（广州）的persona同样被套入通用模板，未见法律相关工作（如合同审阅、案例研究）的独特内容。"
+      },
+      {
+        "case_id": "journey_medium_005",
+        "score": 0.65,
+        "reason": "财务主管（成都）的案例依然遵循固定模式。‘月底结账’、‘早上核对付款’等习惯在输入流中体现不足，大部分内容是通用的工作沟通。"
+      },
+      {
+        "case_id": "journey_medium_006",
+        "score": 0.65,
+        "reason": "内容运营（苏州）的案例是模板的最后一次重复。‘小红书活动’、‘晚上看评论’等特性未得到充分发挥。"
+      }
+    ],
+    "reason": "数据集在语言一致性、基础结构和oracle逻辑上表现良好，但存在致命缺陷：6个案例高度同质化，几乎是同一模板的简单替换。这导致数据集多样性严重不足，无法有效评估Agent在不同真实场景下的泛化能力，作为benchmark的价值大打折扣。必须首先解决模板化问题，增加案例的独特性和真实性，然后才能考虑扩大规模。"
+  },
+  "assertions": {
+    "passed": 306,
+    "total": 306,
+    "pass_rate": 1.0,
+    "avg_score": 0.9750190789473684
+  },
+  "by_family": {
+    "card_extraction": {
+      "passed": 168,
+      "total": 168,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_write": {
+      "passed": 54,
+      "total": 54,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "super_agent_qa": {
+      "passed": 36,
+      "total": 36,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "cost_trace": {
+      "passed": 48,
+      "total": 48,
+      "pass_rate": 1.0,
+      "avg_score": 0.9050725
+    }
+  },
+  "by_metric": {
+    "card_schema_valid": {
+      "passed": 42,
+      "total": 42,
+      "pass_rate": 1.0
+    },
+    "card_status_accuracy": {
+      "passed": 42,
+      "total": 42,
+      "pass_rate": 1.0
+    },
+    "title_constraint_accuracy": {
+      "passed": 42,
+      "total": 42,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "hallucinated_field_absence": {
+      "passed": 42,
+      "total": 42,
+      "pass_rate": 1.0
+    },
+    "memory_must_write_recall": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_must_not_write_precision": {
+      "passed": 18,
+      "total": 18,
+      "pass_rate": 1.0
+    },
+    "memory_duplicate_rate": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_conflict_handling": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0
+    },
+    "answer_must_include": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unsupported_claim_absence": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0
+    },
+    "unnecessary_uncertainty_absence": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0
+    },
+    "prohibited_tool_absence": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0
+    },
+    "super_agent_read_only_compliance": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0
+    },
+    "personalization_accuracy": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "total_token_budget": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0,
+      "avg_score": 0.60446875
+    },
+    "cost_per_input": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0,
+      "avg_score": 0.92089375
+    },
+    "latency_budget": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0
+    },
+    "tool_call_budget": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0
+    },
+    "task_completion_status": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0
+    },
+    "retry_rate": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "failed_task_rate": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "cost_answer_must_include": {
+      "passed": 6,
+      "total": 6,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 1854,
+    "tool_call_count": 1248,
+    "avg_latency_ms": 1688.0,
+    "p95_latency_ms": 3871.0,
+    "avg_total_tokens": 2119.1909385113267,
+    "total_tokens": 3928980
+  }
+}

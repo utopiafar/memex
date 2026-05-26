@@ -1301,6 +1301,16 @@ class FileSystemService {
     return path.join(getSystemPath(userId), 'Drafts');
   }
 
+  /// Split agent pipeline artifacts path.
+  String getSplitAgentPipelinePath(String userId) {
+    return path.join(getSystemPath(userId), 'SplitAgentPipeline');
+  }
+
+  /// Shadow outputs from the split agent pipeline.
+  String getSplitAgentShadowPath(String userId) {
+    return path.join(getSplitAgentPipelinePath(userId), 'shadow');
+  }
+
   /// Active draft file path
   String getActiveDraftPath(String userId) {
     return path.join(getDraftsPath(userId), 'active.json');
@@ -1803,6 +1813,18 @@ class FileSystemService {
     }
 
     _logger.info('Appended to fact file: $filePath');
+  }
+
+  Future<void> writeSplitAgentShadowResult(
+    String userId,
+    String factId,
+    Map<String, dynamic> data,
+  ) async {
+    final shadowPath = getSplitAgentShadowPath(userId);
+    await ensureDirectory(shadowPath);
+    final filePath = path.join(shadowPath, '${makeFactIdSafe(factId)}.json');
+    const encoder = JsonEncoder.withIndent('  ');
+    await _baseService.writeFile(filePath, encoder.convert(data));
   }
 
   /// Read card YAML file and return typed [CardData], or null if missing/invalid.

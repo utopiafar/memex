@@ -23,6 +23,37 @@ void main() {
   });
 
   group('LocalTaskExecutor scheduling', () {
+    test('backs off rate limit retries exponentially', () {
+      expect(
+        LocalTaskExecutor.retryDelaySecondsForTesting(
+          'HTTP 429: quota exhausted',
+          0,
+        ),
+        30,
+      );
+      expect(
+        LocalTaskExecutor.retryDelaySecondsForTesting(
+          'API rate limit exceeded',
+          1,
+        ),
+        60,
+      );
+      expect(
+        LocalTaskExecutor.retryDelaySecondsForTesting(
+          'API 调用频率超限，请稍后再试。',
+          4,
+        ),
+        300,
+      );
+      expect(
+        LocalTaskExecutor.retryDelaySecondsForTesting(
+          'HTTP 500 upstream error',
+          4,
+        ),
+        30,
+      );
+    });
+
     test('scans past dependency-blocked queue head to run later tasks',
         () async {
       final completed = Completer<void>();

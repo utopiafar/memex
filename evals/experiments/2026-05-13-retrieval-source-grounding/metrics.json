@@ -1,0 +1,353 @@
+{
+  "run_id": "2026-05-13-retrieval-source-grounding",
+  "started_at": "2026-05-12T18:02:48.917337Z",
+  "benchmark_elapsed_ms": 35516,
+  "dataset_path": "evals/datasets/retrieval_source_grounding",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 12,
+  "task_count": 144,
+  "dataset_summary": {
+    "case_count": 12,
+    "persona_count": 12,
+    "input_count": 1200,
+    "task_count": 144,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "retrieval_source_grounding": 12
+    },
+    "tasks_by_type": {
+      "retrieval_qa": 144
+    },
+    "personas": [
+      {
+        "user_id": "retrieval_u_001",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "5月8日下午三点和Alex在腾讯会议讨论导出项目预算，重点看 CPA、ROAS 和退款率。",
+          "导出项目预算复盘 owner 先写Alex，后面问这个项目先找他对齐。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_002",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "5月8日下午三点和Jason在腾讯会议讨论北美站增长预算，重点看 CPA、ROAS 和退款率。",
+          "北美站增长预算复盘 owner 先写Jason，后面问这个项目先找他对齐。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_003",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "5月8日下午三点和Grace在腾讯会议讨论Memex eval预算，重点看 CPA、ROAS 和退款率。",
+          "Memex eval预算复盘 owner 先写Grace，后面问这个项目先找他对齐。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_004",
+        "occupation": "律师",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "5月8日下午三点和Annie在腾讯会议讨论法务合同库预算，重点看 CPA、ROAS 和退款率。",
+          "法务合同库预算复盘 owner 先写Annie，后面问这个项目先找他对齐。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_005",
+        "occupation": "财务主管",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "5月8日下午三点和Mina在腾讯会议讨论预算月结预算，重点看 CPA、ROAS 和退款率。",
+          "预算月结预算复盘 owner 先写Mina，后面问这个项目先找他对齐。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_006",
+        "occupation": "内容运营",
+        "city": "苏州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "5月8日下午三点和Grace在腾讯会议讨论小红书活动预算，重点看 CPA、ROAS 和退款率。",
+          "小红书活动预算复盘 owner 先写Grace，后面问这个项目先找他对齐。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_007",
+        "occupation": "独立开发者",
+        "city": "厦门",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "5月8日下午三点和小陈在腾讯会议讨论个人工具订阅预算，重点看 CPA、ROAS 和退款率。",
+          "个人工具订阅预算复盘 owner 先写小陈，后面问这个项目先找他对齐。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_008",
+        "occupation": "老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "5月8日下午三点和Ada在腾讯会议讨论公开课改版预算，重点看 CPA、ROAS 和退款率。",
+          "公开课改版预算复盘 owner 先写Ada，后面问这个项目先找他对齐。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_009",
+        "occupation": "医生",
+        "city": "南京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "5月8日下午三点和周医生在腾讯会议讨论门诊随访系统预算，重点看 CPA、ROAS 和退款率。",
+          "门诊随访系统预算复盘 owner 先写周医生，后面问这个项目先找他对齐。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_010",
+        "occupation": "HRBP",
+        "city": "武汉",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "5月8日下午三点和Sophie在腾讯会议讨论绩效校准预算，重点看 CPA、ROAS 和退款率。",
+          "绩效校准预算复盘 owner 先写Sophie，后面问这个项目先找他对齐。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_011",
+        "occupation": "设计师",
+        "city": "长沙",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "5月8日下午三点和Nora在腾讯会议讨论会员页改版预算，重点看 CPA、ROAS 和退款率。",
+          "会员页改版预算复盘 owner 先写Nora，后面问这个项目先找他对齐。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_012",
+        "occupation": "创业者",
+        "city": "青岛",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "5月8日下午三点和Ethan在腾讯会议讨论B 端试点预算，重点看 CPA、ROAS 和退款率。",
+          "B 端试点预算复盘 owner 先写Ethan，后面问这个项目先找他对齐。"
+        ]
+      }
+    ]
+  },
+  "dataset_audit": {
+    "overall_score": 0.65,
+    "language_consistency": 0.9,
+    "persona_plausibility": 0.7,
+    "input_naturalness": 0.4,
+    "oracle_consistency": 0.8,
+    "coverage_notes": [
+      "任务类型单一，全部为`retrieval_qa`，缺乏多样性。",
+      "输入流条目数量多（每个case 100条），但内容在不同persona间高度重复，仅替换项目名、人名等少数变量。",
+      "所有case共享完全相同的`ground_truth_world.facts`（如饮食、会议提醒偏好），这在不同用户场景下不太自然。",
+      "评估任务（eval_tasks）结构一致，但查询和预期答案在不同case间也高度模板化。"
+    ],
+    "issues": [
+      {
+        "case_id": "retrieval_grounding_001",
+        "severity": "high",
+        "issue": "输入流（input_stream）存在大量模板化、重复性内容，不同case间仅替换少数词汇（如项目名、人名、城市），缺乏自然对话的多样性和随机性。",
+        "suggestion": "大幅重写输入流，为不同persona设计更独特、符合其职业和生活习惯的对话内容，减少跨case的句式重复。"
+      },
+      {
+        "case_id": "retrieval_grounding_001",
+        "severity": "medium",
+        "issue": "`ground_truth_world.facts` 中的记忆条目（如饮食偏好、会议提醒偏好）在所有12个case中完全一致，这不符合不同用户应有不同个人偏好的现实。",
+        "suggestion": "为不同persona定制不同的个人偏好记忆，增加数据集的真实性。"
+      },
+      {
+        "case_id": "retrieval_grounding_001",
+        "severity": "medium",
+        "issue": "部分职业与项目内容的搭配略显牵强。例如，律师（retrieval_u_004）讨论“法务合同库”预算时，关注点却是通用的“CPA、ROAS、退款率”，这更像是市场或运营指标，与法律合同管理的核心关注点（如合规风险、审核效率）不符。",
+        "suggestion": "调整项目内容和评估指标，使其更贴合对应职业的典型工作场景和术语。"
+      },
+      {
+        "case_id": "retrieval_grounding_002",
+        "severity": "low",
+        "issue": "输入流中混杂了大量元指令（如“如果没有记录，回答我时直接说不确定，别猜”），这些更像是系统提示而非用户自然产生的记忆或笔记。",
+        "suggestion": "将元指令从`input_stream`中分离，或将其转化为更自然的用户表达（例如，在对话中体现用户对AI回答方式的不满和纠正）。"
+      },
+      {
+        "case_id": "retrieval_grounding_003",
+        "severity": "medium",
+        "issue": "评估任务（eval_tasks）的查询和预期答案在不同case间高度相似，仅替换项目名和人名，导致测试覆盖的场景实质单一。",
+        "suggestion": "设计更多样化、更贴近各职业独特场景的查询问题，而不仅仅是同一套问题的变量替换。"
+      }
+    ],
+    "sample_reviews": [
+      {
+        "case_id": "retrieval_grounding_001",
+        "score": 0.6,
+        "reason": "结构完整，oracle一致性好，但输入流模板化严重，persona习惯（如‘周三下午需求评审’）过于通用，缺乏独特性。"
+      },
+      {
+        "case_id": "retrieval_grounding_002",
+        "score": 0.6,
+        "reason": "与001 case结构高度相似，仅项目名、人名、城市和个别指标（退款率）不同，输入流重复度高，多样性不足。"
+      },
+      {
+        "case_id": "retrieval_grounding_003",
+        "score": 0.6,
+        "reason": "数据分析师persona的‘保留英文metric id’偏好（体现在‘retry rate’）是合理细节，但整体仍受困于跨case的模板化问题。"
+      },
+      {
+        "case_id": "retrieval_grounding_004",
+        "score": 0.6,
+        "reason": "律师persona的‘重要结论要列来源’偏好是好的设计，但项目内容（法务合同库看CPA/ROAS）与职业核心场景匹配度一般。"
+      },
+      {
+        "case_id": "retrieval_grounding_005",
+        "score": 0.6,
+        "reason": "财务主管persona的‘数字先给口径’偏好贴合职业，但输入流和任务与其他case雷同，削弱了评估价值。"
+      },
+      {
+        "case_id": "retrieval_grounding_006",
+        "score": 0.6,
+        "reason": "内容运营persona的‘复盘保留素材来源’偏好合理，但‘小红书活动’看CPA/ROAS的设定与案例001-005逻辑完全一致，缺乏场景特异性。"
+      }
+    ],
+    "reason": "数据集语言一致，oracle逻辑自洽，但核心问题在于严重的模板化和重复。不同persona的输入流、评估任务甚至部分世界事实高度雷同，仅进行机械替换，导致数据集多样性差，无法有效测试模型在不同真实场景下的泛化能力。作为小规模benchmark，其‘压力测试’价值有限。"
+  },
+  "assertions": {
+    "passed": 1272,
+    "total": 1272,
+    "pass_rate": 1.0,
+    "avg_score": 1.0
+  },
+  "by_family": {
+    "retrieval_qa": {
+      "passed": 1272,
+      "total": 1272,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "by_metric": {
+    "retrieval_hit_at_1": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_3": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_5": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_mrr": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_recall_at_5": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_filter_accuracy": {
+      "passed": 108,
+      "total": 108,
+      "pass_rate": 1.0
+    },
+    "answer_must_include": {
+      "passed": 144,
+      "total": 144,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unnecessary_uncertainty_absence": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0
+    },
+    "answer_source_citation": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "grounded_answer_rate": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unsupported_claim_absence": {
+      "passed": 36,
+      "total": 36,
+      "pass_rate": 1.0
+    },
+    "abstention_accuracy": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 144,
+    "tool_call_count": 288,
+    "avg_latency_ms": 380.0,
+    "p95_latency_ms": 900.0,
+    "avg_total_tokens": 2220.0,
+    "total_tokens": 319680
+  }
+}

@@ -14,6 +14,121 @@ import 'package:logging/logging.dart';
 
 final _logger = Logger('MemoryManagement');
 
+class MemoryAtomDraft {
+  final String content;
+  final String? kind;
+  final List<String> entities;
+  final List<String> sourceFactIds;
+  final double? confidence;
+  final String? scope;
+  final String? validFrom;
+  final String? validUntil;
+  final String status;
+  final List<String> supersedesMemoryIds;
+  final List<String> conflictingMemoryIds;
+
+  const MemoryAtomDraft({
+    required this.content,
+    this.kind,
+    this.entities = const [],
+    this.sourceFactIds = const [],
+    this.confidence,
+    this.scope,
+    this.validFrom,
+    this.validUntil,
+    this.status = 'active',
+    this.supersedesMemoryIds = const [],
+    this.conflictingMemoryIds = const [],
+  });
+
+  factory MemoryAtomDraft.fromToolInput(dynamic input) {
+    if (input is String) {
+      return MemoryAtomDraft(content: input);
+    }
+    if (input is Map) {
+      final content = input['content']?.toString() ??
+          input['memory']?.toString() ??
+          input['text']?.toString() ??
+          '';
+      final sourceFactIds = _firstStringList(
+        input,
+        const ['source_fact_ids', 'source_ids', 'source_references'],
+      );
+      final status = _normalizeStatus(input['status']?.toString());
+      return MemoryAtomDraft(
+        content: content,
+        kind: _normalizeKind(input['kind']?.toString()),
+        entities: _stringList(input['entities']),
+        sourceFactIds: sourceFactIds,
+        confidence: _normalizeConfidence(input['confidence']),
+        scope: _cleanString(input['scope']?.toString()),
+        validFrom: _cleanString(input['valid_from']?.toString()),
+        validUntil: _cleanString(input['valid_until']?.toString()),
+        status: status,
+        supersedesMemoryIds: _stringList(input['supersedes_memory_ids']),
+        conflictingMemoryIds: _stringList(input['conflicting_memory_ids']),
+      );
+    }
+    return MemoryAtomDraft(content: input?.toString() ?? '');
+  }
+
+  static String _normalizeStatus(String? value) {
+    final normalized = value?.trim();
+    if (normalized == 'conflict') return 'conflict';
+    return 'active';
+  }
+
+  static String? _normalizeKind(String? value) {
+    final normalized = value?.trim();
+    if (normalized == null || normalized.isEmpty) return null;
+    const allowed = {
+      'identity',
+      'preference',
+      'routine',
+      'reminder_rule',
+      'project_context',
+      'boundary',
+      'asset_environment',
+      'interaction_preference',
+      'other',
+    };
+    return allowed.contains(normalized) ? normalized : 'other';
+  }
+
+  static double? _normalizeConfidence(dynamic value) {
+    if (value == null) return null;
+    final parsed = value is num ? value.toDouble() : double.tryParse('$value');
+    if (parsed == null) return null;
+    return parsed.clamp(0.0, 1.0).toDouble();
+  }
+
+  static String? _cleanString(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
+
+  static List<String> _stringList(dynamic value) {
+    if (value is! List) return const [];
+    final seen = <String>{};
+    final result = <String>[];
+    for (final item in value) {
+      final id = item.toString().trim();
+      if (id.isNotEmpty && seen.add(id)) {
+        result.add(id);
+      }
+    }
+    return result;
+  }
+
+  static List<String> _firstStringList(Map input, List<String> keys) {
+    for (final key in keys) {
+      final values = _stringList(input[key]);
+      if (values.isNotEmpty) return values;
+    }
+    return const [];
+  }
+}
+
 class MemoryManagement {
   final String userId;
   final String sourceAgent;
@@ -87,6 +202,7 @@ class MemoryManagement {
         "last_updated": DateTime.now().toIso8601String(),
         "next_mem_id": 101,
         "archived_memory": "",
+        "archived_atoms": [],
         "recent_buffer": [],
       };
     }
@@ -102,6 +218,7 @@ class MemoryManagement {
         "last_updated": DateTime.now().toIso8601String(),
         "next_mem_id": 101,
         "archived_memory": "",
+        "archived_atoms": [],
         "recent_buffer": [],
       };
     }
@@ -121,10 +238,30 @@ class MemoryManagement {
     await file.writeAsString(encoder.convert(memory));
   }
 
-  Future<String> appendMemories(List<String> memories) async {
+  Future<String> appendMemories(
+    List<String> memories, {
+    List<String> sourceFactIds = const [],
+  }) async {
+    return appendMemoryAtoms(
+      memories
+          .map(
+            (memory) => MemoryAtomDraft(
+              content: memory,
+              sourceFactIds: sourceFactIds,
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Future<String> appendMemoryAtoms(List<MemoryAtomDraft> memories) async {
     return _runWithMemoryLock(() async {
       var mem = await _loadMemory();
       final buffer = (mem['recent_buffer'] as List?)
+              ?.map((e) => Map<String, dynamic>.from(e))
+              .toList() ??
+          [];
+      final archivedAtoms = (mem['archived_atoms'] as List?)
               ?.map((e) => Map<String, dynamic>.from(e))
               .toList() ??
           [];
@@ -133,18 +270,58 @@ class MemoryManagement {
       final addedIds = <String>[];
 
       for (final memory in memories) {
-        final m = memory.trim();
+        final m = memory.content.trim();
         if (m.isEmpty) continue;
 
         final memoryId = "mem_$nextId";
         nextId++;
 
-        final newEntry = {
+        final newEntry = <String, dynamic>{
           "memory_id": memoryId,
           "content": m,
           "source_agent": sourceAgent,
           "created_at": DateTime.now().toIso8601String(),
         };
+        if (memory.kind != null) {
+          newEntry["kind"] = memory.kind;
+        }
+        if (memory.entities.isNotEmpty) {
+          newEntry["entities"] = memory.entities;
+        }
+        if (memory.status != 'active') {
+          newEntry["status"] = memory.status;
+        }
+        if (memory.sourceFactIds.isNotEmpty) {
+          newEntry["source_fact_ids"] = memory.sourceFactIds;
+        }
+        if (memory.confidence != null) {
+          newEntry["confidence"] = memory.confidence;
+        }
+        if (memory.scope != null) {
+          newEntry["scope"] = memory.scope;
+        }
+        if (memory.validFrom != null) {
+          newEntry["valid_from"] = memory.validFrom;
+        }
+        if (memory.validUntil != null) {
+          newEntry["valid_until"] = memory.validUntil;
+        }
+        if (memory.supersedesMemoryIds.isNotEmpty) {
+          newEntry["supersedes_memory_ids"] = memory.supersedesMemoryIds;
+          _markSuperseded(
+            buffer,
+            supersededIds: memory.supersedesMemoryIds,
+            supersededByMemoryId: memoryId,
+          );
+          _markSuperseded(
+            archivedAtoms,
+            supersededIds: memory.supersedesMemoryIds,
+            supersededByMemoryId: memoryId,
+          );
+        }
+        if (memory.conflictingMemoryIds.isNotEmpty) {
+          newEntry["conflicting_memory_ids"] = memory.conflictingMemoryIds;
+        }
 
         buffer.add(newEntry);
         addedIds.add(memoryId);
@@ -152,6 +329,7 @@ class MemoryManagement {
 
       mem['next_mem_id'] = nextId;
       mem['recent_buffer'] = buffer;
+      mem['archived_atoms'] = archivedAtoms;
 
       String resultMsg =
           "Memories appended successfully. IDs: ${addedIds.join(', ')}";
@@ -170,6 +348,22 @@ class MemoryManagement {
     });
   }
 
+  void _markSuperseded(
+    List<Map<String, dynamic>> buffer, {
+    required List<String> supersededIds,
+    required String supersededByMemoryId,
+  }) {
+    final targetIds = supersededIds.toSet();
+    final now = DateTime.now().toIso8601String();
+    for (final entry in buffer) {
+      final memoryId = entry['memory_id']?.toString();
+      if (memoryId == null || !targetIds.contains(memoryId)) continue;
+      entry['status'] = 'superseded';
+      entry['superseded_at'] = now;
+      entry['superseded_by_memory_id'] = supersededByMemoryId;
+    }
+  }
+
   List<Tool> buildMemoryManagementTools() {
     return [
       Tool(
@@ -182,16 +376,96 @@ class MemoryManagement {
             'memories': {
               'type': 'array',
               'description':
-                  'List of memory strings to add. Each string should be an atomic fact using 3rd person perspective. AVOID "User said". BAD: "User said he likes Python". GOOD: "Preferred programming language is Python".',
+                  'List of memory atoms to add. Prefer objects with content and source_fact_ids. String items are accepted for backward compatibility. Each content string should be an atomic fact using 3rd person perspective. AVOID "User said". BAD: "User said he likes Python". GOOD: "Preferred programming language is Python".',
               'items': {
-                'type': 'string',
+                'oneOf': [
+                  {'type': 'string'},
+                  {
+                    'type': 'object',
+                    'properties': {
+                      'content': {
+                        'type': 'string',
+                        'description': 'Atomic memory content.',
+                      },
+                      'source_fact_ids': {
+                        'type': 'array',
+                        'description':
+                            'Concrete fact IDs that support this memory atom.',
+                        'items': {'type': 'string'},
+                      },
+                      'kind': {
+                        'type': 'string',
+                        'enum': [
+                          'identity',
+                          'preference',
+                          'routine',
+                          'reminder_rule',
+                          'project_context',
+                          'boundary',
+                          'asset_environment',
+                          'interaction_preference',
+                          'other',
+                        ],
+                        'description':
+                            'Lightweight retrieval hint for the atom. This is not a hard routing rule.',
+                      },
+                      'entities': {
+                        'type': 'array',
+                        'description':
+                            'Important people, projects, places, topics, or exact terms mentioned in this memory atom.',
+                        'items': {'type': 'string'},
+                      },
+                      'confidence': {
+                        'type': 'number',
+                        'description':
+                            '0-1 confidence that the memory is durable and current. Use only when the evidence supports it.',
+                      },
+                      'scope': {
+                        'type': 'string',
+                        'description':
+                            'Optional natural-language scope, such as a project/topic/family/work context.',
+                      },
+                      'valid_from': {
+                        'type': 'string',
+                        'description':
+                            'Optional ISO date/time or source phrase for when this memory starts to apply.',
+                      },
+                      'valid_until': {
+                        'type': 'string',
+                        'description':
+                            'Optional ISO date/time or source phrase for when this memory stops applying.',
+                      },
+                      'status': {
+                        'type': 'string',
+                        'enum': ['active', 'conflict'],
+                        'description':
+                            'Use active for normal current memories. Use conflict only when evidence conflicts and you cannot decide the latest truth.',
+                      },
+                      'supersedes_memory_ids': {
+                        'type': 'array',
+                        'description':
+                            'Existing memory IDs this atom should replace because the new evidence clearly makes them outdated.',
+                        'items': {'type': 'string'},
+                      },
+                      'conflicting_memory_ids': {
+                        'type': 'array',
+                        'description':
+                            'Existing memory IDs related to an unresolved conflict.',
+                        'items': {'type': 'string'},
+                      },
+                    },
+                    'required': ['content', 'source_fact_ids'],
+                  },
+                ],
               },
             },
           },
           'required': ['memories'],
         },
         executable: (List<dynamic> memories) async {
-          return appendMemories(memories.whereType<String>().toList());
+          return appendMemoryAtoms(
+            memories.map(MemoryAtomDraft.fromToolInput).toList(),
+          );
         },
       ),
     ];
@@ -200,6 +474,10 @@ class MemoryManagement {
   Future<Map<String, dynamic>> _summarizeMemory(
       Map<String, dynamic> memory) async {
     final archived = memory['archived_memory'] as String? ?? '';
+    final archivedAtoms = (memory['archived_atoms'] as List?)
+            ?.map((e) => Map<String, dynamic>.from(e))
+            .toList() ??
+        [];
     final buffer = (memory['recent_buffer'] as List?)
             ?.map((e) => Map<String, dynamic>.from(e))
             .toList() ??
@@ -213,10 +491,37 @@ class MemoryManagement {
     if (itemsToConsolidate.isEmpty) return memory;
 
     final currentTime = DateTime.now();
+    final summarizeStrings = _memorySummarizeStrings();
 
     final itemsBuffer = StringBuffer();
     for (final item in itemsToConsolidate) {
-      itemsBuffer.writeln('- [${item['created_at']}] ${item['content']}');
+      if (item['status'] == 'superseded') continue;
+      final sourceFactIds = (item['source_fact_ids'] as List?)
+              ?.map((e) => e.toString())
+              .where((e) => e.trim().isNotEmpty)
+              .toList() ??
+          const <String>[];
+      final sourceSuffix = sourceFactIds.isEmpty
+          ? ''
+          : ' (sources: ${sourceFactIds.join(', ')})';
+      final kind = item['kind']?.toString();
+      final entities = (item['entities'] as List?)
+              ?.map((e) => e.toString())
+              .where((e) => e.trim().isNotEmpty)
+              .toList() ??
+          const <String>[];
+      final hintSuffix = [
+        if (kind != null && kind.trim().isNotEmpty) 'kind: $kind',
+        if (entities.isNotEmpty) 'entities: ${entities.join(', ')}',
+        if (item['scope'] != null) 'scope: ${item['scope']}',
+      ].join('; ');
+      final status = item['status']?.toString();
+      final statusSuffix =
+          status == null || status == 'active' ? '' : ' (status: $status)';
+      final metadataSuffix = hintSuffix.isEmpty ? '' : ' [$hintSuffix]';
+      itemsBuffer.writeln(
+        '- [${item['created_at']}] ${item['content']}$sourceSuffix$statusSuffix$metadataSuffix',
+      );
     }
 
     final prompt = '''Role: You are an expert **User Profile Builder**.
@@ -244,17 +549,18 @@ ${itemsBuffer.toString()}
     -   **Combine Related Items**: If the buffer has 5 entries about "Router setup", summarize them into **ONE** bullet point defining the user's network setup.
     -   **Update Status**: If new info contradicts old info (e.g., location changed), **overwrite** the old info. Keep only the latest state.
     -   **Discard Noise**: Remove specific timestamps, one-off transaction IDs, and transient emotions.
+    -   **Preserve Evidence Hints**: When a high-value profile bullet is supported by source IDs or important named entities, keep those IDs/entities compactly near that bullet. They are retrieval hints, not display prose.
 
 3.  **Language Consistency**:
-    -   ${UserStorage.l10n.memorySummarizeLanguageInstruction}
+    -   ${summarizeStrings.languageInstruction}
     -   Keep technical terms (like "Python", "OpenWrt") in English where appropriate.
 
 4.  **Output Structure**:
     -   Organize the summary using these logical headers (or similar):
-        -   `${UserStorage.l10n.memorySummarizeIdentityHeader}`: Basic info, roles, family status.
-        -   `${UserStorage.l10n.memorySummarizeInterestsHeader}`: Tech stack, hobbies, professional skills.
-        -   `${UserStorage.l10n.memorySummarizeAssetsHeader}`: Devices, hardware, location, home setup.
-        -   `${UserStorage.l10n.memorySummarizeFocusHeader}`: Active goals or immediate plans (summarized).
+        -   `${summarizeStrings.identityHeader}`: Basic info, roles, family status.
+        -   `${summarizeStrings.interestsHeader}`: Tech stack, hobbies, professional skills.
+        -   `${summarizeStrings.assetsHeader}`: Devices, hardware, location, home setup.
+        -   `${summarizeStrings.focusHeader}`: Active goals or immediate plans (summarized).
     -   Use concise bullet points.
 
 5.  **Output**:
@@ -324,6 +630,13 @@ Output ONLY the condensed Markdown.
 
       if (newArchived.isNotEmpty) {
         memory['archived_memory'] = newArchived;
+        final mergedArchivedAtoms = [
+          ...archivedAtoms,
+          ...itemsToConsolidate.where((item) => item['status'] != 'superseded'),
+        ];
+        memory['archived_atoms'] = _dedupeArchivedAtoms(
+          mergedArchivedAtoms,
+        ).takeLast(200).toList(growable: false);
         memory['recent_buffer'] = itemsToKeep;
       }
     } catch (e) {
@@ -347,6 +660,8 @@ While executing your primary directive, **silently observe** the conversation fo
 1. **Recall**: Use the context provided in the `<user_memory_context>` block to tailor your responses.
 2. **Record (Analytic & Selective)**: 
    - **Trigger Condition**: Use the `append_memories` tool **IF AND ONLY IF** you detect new information with clear **Long-term Strategic Value**.
+   - **Source Links**: When durable evidence includes concrete fact IDs, pass each memory as an object with `content` and `source_fact_ids`. Preserve source IDs exactly; never invent them. If no source fact ID is available, use an empty `source_fact_ids` list.
+   - **Conflict Updates**: If new durable evidence clearly updates an existing recent memory, pass the new atom with `supersedes_memory_ids` containing the old memory IDs. If the evidence conflicts but the latest truth is unclear, pass `status: "conflict"` and `conflicting_memory_ids` instead of guessing. Do not rely on rigid keys; judge from the wording and evidence.
    - **Analyst Mindset**: Do not act as a passive scribe. Look for patterns and attributes (e.g., "User buys expensive gear" -> "High spending power"), rather than just logging events.
    - **AI Interaction Preferences**: Treat durable preferences about how the AI should interact as memory candidates, such as asking fewer clarification questions, confirming more proactively, or avoiding small interruptions.
    - **The "Silence is Okay" Rule**: If the conversation is casual, transactional, or contains no new profile data, **DO NOT call the tool**. It is better to record *nothing* than to fill the memory with noise.
@@ -436,6 +751,10 @@ You have access to the user's long-term memory context as **reference material o
     return _runWithMemoryLock(() async {
       final mem = await _loadMemory();
       final archived = mem['archived_memory'] as String? ?? '';
+      final archivedAtoms = (mem['archived_atoms'] as List?)
+              ?.map((e) => Map<String, dynamic>.from(e))
+              .toList() ??
+          [];
 
       final buffer = (mem['recent_buffer'] as List?)
               ?.map((e) => Map<String, dynamic>.from(e))
@@ -459,15 +778,56 @@ You have access to the user's long-term memory context as **reference material o
         sb.writeln('');
       }
 
+      final activeArchivedAtoms = archivedAtoms
+          .where((item) => item['status'] != 'superseded')
+          .toList(growable: false);
+      if (activeArchivedAtoms.isNotEmpty) {
+        sb.writeln('### 🔎 Archived Memory Atoms (Structured Retrieval Hints)');
+        for (final item in activeArchivedAtoms.takeLast(30)) {
+          final memoryId = item['memory_id']?.toString() ?? 'archived_memory';
+          final sourceFactIds = (item['source_fact_ids'] as List?)
+                  ?.map((e) => e.toString())
+                  .where((e) => e.trim().isNotEmpty)
+                  .toList() ??
+              const <String>[];
+          final sourceSuffix = sourceFactIds.isEmpty
+              ? ''
+              : ' (sources: ${sourceFactIds.join(', ')})';
+          sb.writeln(
+            '- [$memoryId] ${item['content']}$sourceSuffix${_memoryMetadataLine(item)}',
+          );
+        }
+        sb.writeln('');
+      }
+
       if (buffer.isNotEmpty) {
         sb.writeln('### 📝 Recent Working Memory (New & Unprocessed)');
 
         for (final item in buffer) {
+          if (item['status'] == 'superseded') continue;
           final timeStr = item['created_at'] ?? '';
           final shortTime =
               timeStr.length > 16 ? timeStr.substring(0, 16) : timeStr;
+          final memoryId = item['memory_id']?.toString() ?? 'unknown_memory';
+          final status = item['status']?.toString() ?? 'active';
+          final sourceFactIds = (item['source_fact_ids'] as List?)
+                  ?.map((e) => e.toString())
+                  .where((e) => e.trim().isNotEmpty)
+                  .toList() ??
+              const <String>[];
+          final sourceSuffix = sourceFactIds.isEmpty
+              ? ''
+              : ' (sources: ${sourceFactIds.join(', ')})';
+          final statusSuffix = status == 'active' ? '' : ' (status: $status)';
+          final metadata = _memoryMetadataLine(item);
 
-          sb.writeln('- [$shortTime] ${item['content']}');
+          sb.writeln(
+            '- [$memoryId][$shortTime] ${item['content']}$sourceSuffix$statusSuffix$metadata',
+          );
+          final evidence = await _sourceFactEvidenceBlock(sourceFactIds);
+          if (evidence.isNotEmpty) {
+            sb.writeln(evidence);
+          }
         }
         sb.writeln('');
       }
@@ -481,5 +841,102 @@ You have access to the user's long-term memory context as **reference material o
 
       return sb.toString();
     });
+  }
+
+  String _memoryMetadataLine(Map<String, dynamic> item) {
+    final parts = <String>[];
+    final kind = item['kind']?.toString().trim();
+    if (kind != null && kind.isNotEmpty) parts.add('kind=$kind');
+    final entities = (item['entities'] as List?)
+            ?.map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty)
+            .toList() ??
+        const <String>[];
+    if (entities.isNotEmpty) parts.add('entities=${entities.join('|')}');
+    final scope = item['scope']?.toString().trim();
+    if (scope != null && scope.isNotEmpty) parts.add('scope=$scope');
+    final confidence = item['confidence'];
+    if (confidence != null) parts.add('confidence=$confidence');
+    final validFrom = item['valid_from']?.toString().trim();
+    if (validFrom != null && validFrom.isNotEmpty) {
+      parts.add('valid_from=$validFrom');
+    }
+    final validUntil = item['valid_until']?.toString().trim();
+    if (validUntil != null && validUntil.isNotEmpty) {
+      parts.add('valid_until=$validUntil');
+    }
+    return parts.isEmpty ? '' : ' (${parts.join(', ')})';
+  }
+
+  Future<String> _sourceFactEvidenceBlock(List<String> sourceFactIds) async {
+    if (sourceFactIds.isEmpty) return '';
+    final lines = <String>[];
+    for (final sourceFactId in sourceFactIds.take(3)) {
+      try {
+        final fact = await fileSystem.extractFactContentFromFile(
+          userId,
+          sourceFactId,
+        );
+        final content = fact?.content.trim();
+        if (content == null || content.isEmpty) continue;
+        lines.add(
+          '  source[$sourceFactId]: ${_compactEvidence(content, maxChars: 240)}',
+        );
+      } catch (_) {
+        // Source expansion is opportunistic; memory recall should not fail
+        // because a Fact was moved, deleted in a fixture, or unreadable.
+      }
+    }
+    return lines.join('\n');
+  }
+
+  String _compactEvidence(String text, {required int maxChars}) {
+    final compact = text.replaceAll(RegExp(r'\s+'), ' ').trim();
+    if (compact.length <= maxChars) return compact;
+    return '${compact.substring(0, maxChars)}...';
+  }
+
+  List<Map<String, dynamic>> _dedupeArchivedAtoms(
+    List<Map<String, dynamic>> atoms,
+  ) {
+    final byId = <String, Map<String, dynamic>>{};
+    final withoutId = <Map<String, dynamic>>[];
+    for (final atom in atoms) {
+      final id = atom['memory_id']?.toString();
+      if (id == null || id.isEmpty) {
+        withoutId.add(atom);
+      } else {
+        byId[id] = atom;
+      }
+    }
+    return [...withoutId, ...byId.values];
+  }
+
+  ({
+    String languageInstruction,
+    String identityHeader,
+    String interestsHeader,
+    String assetsHeader,
+    String focusHeader,
+  }) _memorySummarizeStrings() {
+    try {
+      final l10n = UserStorage.l10n;
+      return (
+        languageInstruction: l10n.memorySummarizeLanguageInstruction,
+        identityHeader: l10n.memorySummarizeIdentityHeader,
+        interestsHeader: l10n.memorySummarizeInterestsHeader,
+        assetsHeader: l10n.memorySummarizeAssetsHeader,
+        focusHeader: l10n.memorySummarizeFocusHeader,
+      );
+    } catch (_) {
+      return (
+        languageInstruction:
+            'Use the same language as the source memories and current profile.',
+        identityHeader: 'Identity',
+        interestsHeader: 'Interests',
+        assetsHeader: 'Assets',
+        focusHeader: 'Current Focus',
+      );
+    }
   }
 }

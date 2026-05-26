@@ -62,12 +62,15 @@ The user answered a short question created by another agent. Decide whether this
 3. Use the same language as the user's question/answer.
 ${UserStorage.l10n.userLanguageInstruction}
 4. Deduplicate against existing memory context.
+   Existing recent memories include IDs like `[mem_101]`. If the answer clearly updates an older recent memory, include that old ID in `supersedes_memory_ids` on the new atom.
 5. If a `proposed_memory` template is present and appropriate, use it, replacing `{answer}` with the resolved answer.
 6. If an option contains a `memory` field and it is appropriate, prefer that memory text.
 7. If `answer.is_custom_answer` is true, ignore `memory` fields from vague/custom options. Concrete selected options may still be used when clearly selected.
 8. If the selected option is vague (`manual input`, `other`, `unknown`, `not sure`, `prefer not to say`, etc.) and the user did not provide a specific typed answer, DO NOT call `append_memories`.
 9. Never turn a manual/other/unknown choice into a specific relationship, identity, or social category. Generic manual input is not knowledge by itself.
-10. Output a short final note after tool use; do not ask another question.
+10. When calling `append_memories`, include `source_fact_ids` copied from `request.evidence_fact_ids` and `request.fact_id` when present. Do not invent source IDs.
+11. Prefer semantic conflict judgment over rigid keys. If old and new evidence are both useful in different contexts, keep both. If the current truth is unclear, write a `status: "conflict"` atom with `conflicting_memory_ids` instead of guessing.
+12. Output a short final note after tool use; do not ask another question.
 ''',
       ],
       disableSubAgents: true,

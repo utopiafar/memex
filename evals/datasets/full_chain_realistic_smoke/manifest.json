@@ -1,0 +1,36 @@
+{
+  "dataset_id": "memex_full_chain_realistic_smoke",
+  "version": 1,
+  "description": "小样本真实 App 行为串行全链路 replay：跨天记录、回看、评论、日程刷新、洞察刷新、记忆等待和 Super Agent 问答。",
+  "created_at": "2026-05-16",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "case_count": 2,
+  "persona_count": 2,
+  "operation_count": 24,
+  "record_operation_count": 13,
+  "eval_task_count": 6,
+  "families": [
+    "full_chain_realistic_replay"
+  ],
+  "evidence_goal": "先用少量样本跑通真实链路和日志闭环，再扩到更多 persona、输入和指标。",
+  "feature_points": [
+    "record_input",
+    "timeline_card",
+    "timeline_browse",
+    "comment",
+    "memory",
+    "pkm",
+    "schedule",
+    "knowledge_insight",
+    "super_agent",
+    "cost_trace"
+  ],
+  "notes": [
+    "每个 record 操作后等待 LocalTaskExecutor idle，模拟用户逐条记录后的后台处理。",
+    "operation.time 传入 submitInput(createdAt)，用于测试跨天/跨周时间上下文。",
+    "channel 字段保留真实来源形态：text、voice_transcript、ocr_clip。",
+    "本数据集不追求一次性大规模；目标是让真实 replay、replay_file 评分、debug_log 和 report 全部闭环。"
+  ]
+}

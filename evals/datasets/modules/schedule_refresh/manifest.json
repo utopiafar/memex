@@ -1,0 +1,25 @@
+{
+  "dataset_id": "memex_module_schedule_refresh_smoke",
+  "version": 2,
+  "title": "日程刷新",
+  "description": "验证日程相关输入是否正确 skip / dirty / refresh，并控制不必要刷新。",
+  "created_at": "2026-05-12",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "case_count": 6,
+  "persona_count": 4,
+  "input_count": 220,
+  "min_input_count_per_case": 36,
+  "max_input_count_per_case": 37,
+  "task_count": 6,
+  "families": [
+    "schedule_refresh"
+  ],
+  "notes": [
+    "所有 persona、输入、oracle 均为中文。",
+    "fixture_observed 只用于验证 grader 和指标口径，不代表真实链路产物。",
+    "标准答案只来自 ground_truth_world，不从 Memex 输出反推。",
+    "每个 case 都注入同一 persona 的 36 条跨周期 journey context，用于模拟真实用户长期输入背景。"
+  ]
+}

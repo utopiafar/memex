@@ -9,6 +9,8 @@ import 'package:logging/logging.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/domain/models/llm_config.dart';
 import 'package:memex/domain/models/agent_config.dart';
+import 'package:memex/domain/models/agent_pipeline_config.dart';
+import 'package:memex/domain/models/embedding_config.dart';
 import 'package:memex/domain/models/location_context_config.dart';
 import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:memex/domain/models/agent_definitions.dart';
@@ -68,6 +70,8 @@ class UserStorage {
   static const String _keyUserAvatar = 'user_avatar';
   static const String _keyLocationContextConfig = 'location_context_config';
   static const String _keyGeocodingCache = 'geocoding_cache';
+  static const String _keyAgentPipelineConfig = 'agent_pipeline_config';
+  static const String _keyEmbeddingConfig = 'embedding_config';
 
   /// Per-user workspace storage preference keys.
   static const String _keyStorageLocationPrefix = 'memex_storage_location_';
@@ -464,6 +468,93 @@ class UserStorage {
       await prefs.setString(_keyGeocodingCache, jsonEncode(cache));
     } catch (e) {
       _logger.warning('Failed to save geocoding cache: $e');
+    }
+  }
+
+  static Future<AgentPipelineConfig> getAgentPipelineConfig() async {
+    final envMode = Platform.environment['MEMEX_AGENT_PIPELINE_MODE'];
+    if (envMode != null && envMode.trim().isNotEmpty) {
+      return AgentPipelineConfig(
+        mode: AgentPipelineMode.fromStorageValue(envMode.trim()),
+      );
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_keyAgentPipelineConfig);
+      if (jsonString == null || jsonString.isEmpty) {
+        return const AgentPipelineConfig();
+      }
+      return AgentPipelineConfig.fromJson(
+        jsonDecode(jsonString) as Map<String, dynamic>,
+      );
+    } catch (e) {
+      _logger.warning('Failed to load agent pipeline config: $e');
+      return const AgentPipelineConfig();
+    }
+  }
+
+  static Future<void> saveAgentPipelineConfig(
+    AgentPipelineConfig config,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _keyAgentPipelineConfig,
+        jsonEncode(config.toJson()),
+      );
+    } catch (e) {
+      throw Exception('Failed to save agent pipeline config: $e');
+    }
+  }
+
+  static Future<EmbeddingConfig> getEmbeddingConfig() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_keyEmbeddingConfig);
+      var config = jsonString == null || jsonString.isEmpty
+          ? const EmbeddingConfig()
+          : EmbeddingConfig.fromJson(
+              jsonDecode(jsonString) as Map<String, dynamic>,
+            );
+
+      final envEnabled = Platform.environment['MEMEX_EMBEDDING_ENABLED'];
+      final envBaseUrl = Platform.environment['MEMEX_EMBEDDING_BASE_URL'];
+      final envApiKey = Platform.environment['MEMEX_EMBEDDING_API_KEY'];
+      final envModel = Platform.environment['MEMEX_EMBEDDING_MODEL'];
+
+      if (envEnabled != null) {
+        final normalized = envEnabled.trim().toLowerCase();
+        config = config.copyWith(
+          enabled: normalized == '1' ||
+              normalized == 'true' ||
+              normalized == 'yes' ||
+              normalized == 'on',
+        );
+      }
+      if (envBaseUrl != null && envBaseUrl.trim().isNotEmpty) {
+        config = config.copyWith(baseUrl: envBaseUrl.trim());
+      }
+      if (envApiKey != null && envApiKey.trim().isNotEmpty) {
+        config = config.copyWith(apiKey: envApiKey.trim());
+      }
+      if (envModel != null && envModel.trim().isNotEmpty) {
+        config = config.copyWith(model: envModel.trim());
+      }
+
+      return config;
+    } catch (e) {
+      _logger.warning('Failed to load embedding config: $e');
+      return const EmbeddingConfig();
+    }
+  }
+
+  static Future<void> saveEmbeddingConfig(EmbeddingConfig config) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_keyEmbeddingConfig, jsonEncode(config.toJson()));
+    } catch (e) {
+      throw Exception('Failed to save embedding config: $e');
     }
   }
 
@@ -878,8 +969,7 @@ class UserStorage {
     return prefs.getBool(_keyAutoBackupEnabledPrefix + userId) ?? false;
   }
 
-  static Future<void> setAutoBackupEnabled(
-      String userId, bool enabled) async {
+  static Future<void> setAutoBackupEnabled(String userId, bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyAutoBackupEnabledPrefix + userId, enabled);
   }
@@ -925,7 +1015,8 @@ class UserStorage {
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_keyAndroidBackupTreeUriPrefix + userId, treeUri);
-    await prefs.setString(_keyAndroidBackupTreeNamePrefix + userId, displayName);
+    await prefs.setString(
+        _keyAndroidBackupTreeNamePrefix + userId, displayName);
   }
 
   static Future<void> clearAndroidBackupTree(String userId) async {

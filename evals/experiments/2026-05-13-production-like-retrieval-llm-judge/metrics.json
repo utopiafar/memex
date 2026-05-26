@@ -1,0 +1,250 @@
+{
+  "run_id": "2026-05-13-production-like-retrieval-llm-judge",
+  "started_at": "2026-05-13T03:54:47.728791Z",
+  "benchmark_elapsed_ms": 283946,
+  "dataset_path": "evals/datasets/production_like_retrieval",
+  "adapter": "fixture",
+  "evidence_level": "audited_synthetic_fixture",
+  "observation_contract": "fixture_observed",
+  "llm_judge_enabled": true,
+  "llm_judge_policy": "retrieval_and_super_agent_qa_unless_expected_llm_judge_false",
+  "llm_judge_assertion_count": 16,
+  "llm_judge_provider": "anthropic",
+  "llm_judge_model": "mimo-v2-pro",
+  "llm_judge_max_tokens": 4096,
+  "llm_judge_timeout_seconds": 240,
+  "case_count": 5,
+  "task_count": 16,
+  "dataset_summary": {
+    "case_count": 5,
+    "persona_count": 5,
+    "input_count": 23,
+    "task_count": 16,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "production_retrieval_clinic": 1,
+      "production_retrieval_indie_dev": 1,
+      "production_retrieval_legal": 1,
+      "production_retrieval_product": 1,
+      "production_retrieval_teacher": 1
+    },
+    "tasks_by_type": {
+      "retrieval_qa": 16
+    },
+    "personas": [
+      {
+        "user_id": "clinic_u_001",
+        "occupation": "医生",
+        "city": "南京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 4,
+        "task_count": 3,
+        "sample_inputs": [
+          "随访系统这两天投诉有点散：问卷提交失败、隐私授权说明不清、复诊提醒重复。先记一下，别写成诊断。",
+          "5月16日下午三点和周医生评审门诊随访系统表单，记得带隐私授权截图。"
+        ]
+      },
+      {
+        "user_id": "dev_u_001",
+        "occupation": "独立开发者",
+        "city": "厦门",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 5,
+        "task_count": 4,
+        "sample_inputs": [
+          "个人工具订阅反馈先记：订阅激活失败、支付回调慢、导入报错。别写漂亮话，能进 backlog 就行。",
+          "5月21日晚上九点做订阅 bug bash，重点看支付回调和退款工单。"
+        ]
+      },
+      {
+        "user_id": "legal_u_001",
+        "occupation": "律师",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 5,
+        "task_count": 3,
+        "sample_inputs": [
+          "和 Annie 飞书会议对了一版合同风险清单，5 月 9 日 18:30，别忘。",
+          "法务合同库这轮重点是 SLA 违约责任、数据删除期限、审计日志保留。客户口述不能当正式意见。"
+        ]
+      },
+      {
+        "user_id": "prod_u_001",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 5,
+        "task_count": 3,
+        "sample_inputs": [
+          "刚和 Nora 过完导出灰度，时间是 5 月 12 日 10:30。嗯，重点是失败率和回滚开关，别写得太乐观。",
+          "导出失败率从 2.1% 到 3.4%，客服说大文件重试和等待时间被问得最多。"
+        ]
+      },
+      {
+        "user_id": "teacher_u_001",
+        "occupation": "老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 4,
+        "task_count": 3,
+        "sample_inputs": [
+          "公开课改版试听是 5 月 20 日晚上七点，课前两小时检查直播回放和讲义下载。",
+          "学生反馈有点碎：讲义下载慢、回放入口藏得深、作业入口找不到。"
+        ]
+      }
+    ]
+  },
+  "dataset_audit": {
+    "overall_score": 0.95,
+    "language_consistency": 1.0,
+    "persona_plausibility": 1.0,
+    "input_naturalness": 1.0,
+    "oracle_consistency": 1.0,
+    "coverage_notes": [
+      "覆盖医生、独立开发者、律师、产品经理、老师五个职业，体现领域差异",
+      "输入包含文本和语音转录，有碎碎念、心情、冗余信息，文风多样",
+      "任务包括检索已知信息和处理不确定性，符合实际场景"
+    ],
+    "issues": [
+      {
+        "case_id": "all",
+        "severity": "low",
+        "issue": "数据集结构相似性较高，每个case都包含events、notes、pkm_entries和噪声输入，eval_tasks都包含一个未知查询",
+        "suggestion": "可考虑增加更多任务类型或输入变体，以进一步提升多样性"
+      }
+    ],
+    "sample_reviews": [
+      {
+        "case_id": "production_retrieval_product_001",
+        "score": 1.0,
+        "reason": "语言中文稳定，产品经理persona自然，输入有噪声和闲聊，ground truth与任务一致"
+      },
+      {
+        "case_id": "production_retrieval_clinic_001",
+        "score": 1.0,
+        "reason": "医生persona可信，输入包含医疗谨慎偏好，任务覆盖检索和不确定性，一致性好"
+      },
+      {
+        "case_id": "production_retrieval_legal_001",
+        "score": 1.0,
+        "reason": "律师persona体现法律领域特点，输入有客户口述区分，oracle推导合理"
+      },
+      {
+        "case_id": "production_retrieval_teacher_001",
+        "score": 1.0,
+        "reason": "老师persona自然，输入有学生反馈和课前准备，任务与ground truth匹配"
+      },
+      {
+        "case_id": "production_retrieval_indie_dev_001",
+        "score": 1.0,
+        "reason": "独立开发者persona符合职业习惯，输入有bug反馈和changelog，任务一致"
+      }
+    ],
+    "reason": "数据集语言一致为zh-CN，persona可信且领域差异明显，输入自然多样，ground truth、输入和eval_tasks高度一致，无严重问题，适合作为smoke/小规模benchmark数据"
+  },
+  "assertions": {
+    "passed": 155,
+    "total": 155,
+    "pass_rate": 1.0,
+    "avg_score": 1.0
+  },
+  "by_family": {
+    "retrieval_qa": {
+      "passed": 155,
+      "total": 155,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "by_metric": {
+    "retrieval_hit_at_1": {
+      "passed": 13,
+      "total": 13,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_3": {
+      "passed": 13,
+      "total": 13,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_5": {
+      "passed": 13,
+      "total": 13,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_mrr": {
+      "passed": 13,
+      "total": 13,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_recall_at_5": {
+      "passed": 13,
+      "total": 13,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_filter_accuracy": {
+      "passed": 13,
+      "total": 13,
+      "pass_rate": 1.0
+    },
+    "answer_must_include": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unnecessary_uncertainty_absence": {
+      "passed": 13,
+      "total": 13,
+      "pass_rate": 1.0
+    },
+    "answer_source_citation": {
+      "passed": 13,
+      "total": 13,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "grounded_answer_rate": {
+      "passed": 13,
+      "total": 13,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "llm_grounded_answer_score": {
+      "passed": 16,
+      "total": 16,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unsupported_claim_absence": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    },
+    "abstention_accuracy": {
+      "passed": 3,
+      "total": 3,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 16,
+    "tool_call_count": 29,
+    "avg_latency_ms": 410.22222222222223,
+    "p95_latency_ms": 900.0,
+    "avg_total_tokens": 1702.5,
+    "total_tokens": 27240
+  }
+}

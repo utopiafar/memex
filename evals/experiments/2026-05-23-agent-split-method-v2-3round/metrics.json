@@ -1,0 +1,180 @@
+{
+  "experiment_id": "2026-05-23-agent-split-method-v2-3round",
+  "dataset": {
+    "fake_scale_v4": {
+      "path": "evals/datasets/full_chain_journey_scale_v4",
+      "personas": 12,
+      "records": 7680,
+      "eval_tasks": 120,
+      "fixture_score": "1416/1416",
+      "fixture_pass_rate": 1.0
+    },
+    "real_replay_v5": {
+      "path": "evals/datasets/full_chain_journey_real_replay_v5",
+      "cases": 48,
+      "records": 768,
+      "operations": 1104,
+      "eval_tasks": 288,
+      "live_scored_mode_runs": 6,
+      "live_scored_record_slots": 192,
+      "live_scored_eval_tasks": 72
+    }
+  },
+  "method": {
+    "comparison": "Legacy and Primary are run independently on the same case windows.",
+    "shadow": "not used for scoring",
+    "provider_policy": "R1 and R2 use the requested MIMO-compatible evaluator. R3 uses an OpenRouter fallback after the requested evaluator returned quota exhausted.",
+    "scoring_note": "Do not aggregate R3 with R1/R2 as a same-provider mean."
+  },
+  "final_scored_runs": [
+    {
+      "round": 1,
+      "provider": "mimo",
+      "mode": "legacy",
+      "run_id": "agent-split-method-r1-legacy-score",
+      "cases": 2,
+      "tasks": 12,
+      "assertions_passed": 94,
+      "assertions_total": 112,
+      "pass_rate": 0.839,
+      "tokens": 212769,
+      "llm_calls": 195,
+      "tool_calls": 1044,
+      "replay_elapsed_ms": 2069555,
+      "failed_tasks": 1,
+      "loop_detection_tasks": 0
+    },
+    {
+      "round": 1,
+      "provider": "mimo",
+      "mode": "primary",
+      "run_id": "agent-split-method-r1-primary-score",
+      "cases": 2,
+      "tasks": 12,
+      "assertions_passed": 109,
+      "assertions_total": 112,
+      "pass_rate": 0.973,
+      "tokens": 87081,
+      "llm_calls": 136,
+      "tool_calls": 756,
+      "replay_elapsed_ms": 2421035,
+      "failed_tasks": 0,
+      "loop_detection_tasks": 0
+    },
+    {
+      "round": 2,
+      "provider": "mimo",
+      "mode": "legacy",
+      "run_id": "agent-split-method-r2-legacy-score",
+      "cases": 2,
+      "tasks": 12,
+      "assertions_passed": 104,
+      "assertions_total": 112,
+      "pass_rate": 0.929,
+      "tokens": 309214,
+      "llm_calls": 272,
+      "tool_calls": 1290,
+      "replay_elapsed_ms": 3016508,
+      "failed_tasks": 0,
+      "loop_detection_tasks": 0
+    },
+    {
+      "round": 2,
+      "provider": "mimo",
+      "mode": "primary",
+      "run_id": "agent-split-method-r2-primary-rerun-score",
+      "cases": 2,
+      "tasks": 12,
+      "assertions_passed": 105,
+      "assertions_total": 112,
+      "pass_rate": 0.938,
+      "tokens": 92130,
+      "llm_calls": 132,
+      "tool_calls": 678,
+      "replay_elapsed_ms": 2377378,
+      "failed_tasks": 0,
+      "loop_detection_tasks": 0
+    },
+    {
+      "round": 3,
+      "provider": "openrouter_fallback",
+      "mode": "legacy",
+      "run_id": "agent-split-method-r3-legacy-openrouter-score",
+      "cases": 2,
+      "tasks": 12,
+      "assertions_passed": 85,
+      "assertions_total": 108,
+      "pass_rate": 0.787,
+      "tokens": 671973,
+      "llm_calls": 124,
+      "tool_calls": 864,
+      "replay_elapsed_ms": 697413,
+      "failed_tasks": 1,
+      "loop_detection_tasks": 1
+    },
+    {
+      "round": 3,
+      "provider": "openrouter_fallback",
+      "mode": "primary",
+      "run_id": "agent-split-method-r3-primary-openrouter-score",
+      "cases": 2,
+      "tasks": 12,
+      "assertions_passed": 99,
+      "assertions_total": 108,
+      "pass_rate": 0.917,
+      "tokens": 583766,
+      "llm_calls": 109,
+      "tool_calls": 696,
+      "replay_elapsed_ms": 582242,
+      "failed_tasks": 0,
+      "loop_detection_tasks": 0
+    }
+  ],
+  "same_provider_mimo_summary": {
+    "rounds": [1, 2],
+    "legacy": {
+      "assertions_passed": 198,
+      "assertions_total": 224,
+      "pass_rate": 0.884,
+      "tokens": 521983,
+      "llm_calls": 467,
+      "tool_calls": 2334,
+      "failed_tasks": 1,
+      "loop_detection_tasks": 0
+    },
+    "primary": {
+      "assertions_passed": 214,
+      "assertions_total": 224,
+      "pass_rate": 0.955,
+      "tokens": 179211,
+      "llm_calls": 268,
+      "tool_calls": 1434,
+      "failed_tasks": 0,
+      "loop_detection_tasks": 0
+    },
+    "primary_delta": {
+      "pass_rate_points": 7.1,
+      "token_reduction": 0.657,
+      "llm_call_reduction": 0.426,
+      "tool_call_reduction": 0.386
+    }
+  },
+  "diagnostic_runs": [
+    {
+      "run_id": "agent-split-method-r2-primary-score",
+      "status": "superseded_by_rerun",
+      "reason": "transient transport HTTP 400 connection prematurely closed before response"
+    },
+    {
+      "run_id": "agent-split-method-r3-legacy-rerun",
+      "status": "infra_contaminated",
+      "reason": "requested evaluator returned HTTP 429 quota exhausted"
+    },
+    {
+      "run_id": "agent-split-method-r3-primary-openrouter-rerun2-score",
+      "status": "diagnostic_only",
+      "pass_rate": 0.889,
+      "reason": "memory owner recall reached 2/2 after prompt fix, but schedule aggregation hit an unrelated max-turn guard"
+    }
+  ]
+}

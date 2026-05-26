@@ -1,0 +1,41 @@
+{
+  "dataset_id": "memex_full_chain_journey_real_replay_v6",
+  "version": 6,
+  "description": "真实 full-chain replay 数据集：12 个 persona，60 个 case，每 case 20 条 record，加 timeline browse、comment、schedule refresh、knowledge insight refresh、memory wait、Super Agent quick query。",
+  "created_at": "2026-05-23",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "case_file": "cases.jsonl",
+  "persona_count": 12,
+  "case_count": 60,
+  "records_per_case": 20,
+  "records_per_persona": 100,
+  "record_offsets": [
+    0,
+    120,
+    240,
+    360,
+    480
+  ],
+  "interleave_windows": true,
+  "input_count": 1200,
+  "operation_count": 1620,
+  "eval_task_count": 360,
+  "families": [
+    "full_chain_journey_real_replay_v6"
+  ],
+  "evidence_goal": "通过 serial_full_chain_replay_test.dart 走真实 Memex 链路，再用 replay_file adapter 评分为 real_replay。",
+  "oracle_scope": "每个 replay case 的 expected 只要求当前 record window 中可见的事实，不从完整 source case 泄漏 ground truth。",
+  "scaleup_notes": [
+    "相对 v3：用户数从 8 增加到 12，增加 50%。",
+    "相对 v3：每用户 replay record 从 24 增加到 36，增加 50%。",
+    "为了控制单 case 时长，仍使用 12-record case 窗口，改为每用户 3 个窗口。",
+    "建议按 12 case 一组分片运行：offset 0、12、24。"
+  ],
+  "methodology_notes": [
+    "相对 v4：source fake 数据池扩展到每用户 640 条输入。",
+    "每个 replay 窗口扩展到 16 条 record，提高单 case 内证据密度。",
+    "窗口按 offset 交错排列，方便 case-offset 分片覆盖不同 persona，而不是连续打同一用户。",
+    "oracle 按窗口证据收敛，避免要求当前链路回答未输入过的历史事实。"
+  ]
+}

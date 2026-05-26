@@ -1,6 +1,7 @@
 class AgentDefinitions {
   static const String pkmAgent = 'pkm_agent';
   static const String cardAgent = 'card_agent';
+  static const String cardInsightAgent = 'card_insight_agent';
   static const String profileAgent = 'profile_agent';
   static const String knowledgeInsightAgent = 'knowledge_insight_agent';
   static const String scheduleAggregatorAgent = 'schedule_aggregator_agent';
@@ -16,6 +17,7 @@ class AgentDefinitions {
   static const Map<String, String> displayNames = {
     pkmAgent: 'PKM',
     cardAgent: 'Cards',
+    cardInsightAgent: 'Card insights',
     profileAgent: 'Memory summary',
     knowledgeInsightAgent: 'Insights',
     scheduleAggregatorAgent: 'Schedule',

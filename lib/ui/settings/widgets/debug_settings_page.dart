@@ -7,6 +7,7 @@ import 'package:memex/ui/insight/widgets/insight_template_gallery_page.dart';
 import 'package:memex/ui/timeline/widgets/timeline_template_gallery_page.dart';
 import 'package:memex/ui/settings/widgets/log_viewer_page.dart';
 import 'package:memex/ui/settings/widgets/async_task_list_page.dart';
+import 'package:memex/ui/settings/widgets/agent_pipeline_debug_page.dart';
 import 'package:memex/ui/settings/widgets/custom_agent_config_page.dart';
 import 'package:memex/ui/settings/widgets/skills_management_page.dart';
 import 'package:memex/utils/toast_helper.dart';
@@ -126,6 +127,20 @@ class DebugSettingsPage extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const AsyncTaskListPage(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          _buildFunctionTab(
+            context: context,
+            icon: Icons.account_tree_outlined,
+            title: 'Agent Pipeline',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const AgentPipelineDebugPage(),
                 ),
               );
             },

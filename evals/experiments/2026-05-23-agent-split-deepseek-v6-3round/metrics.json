@@ -1,0 +1,149 @@
+{
+  "date": "2026-05-23",
+  "dataset": "evals/datasets/full_chain_journey_real_replay_v6",
+  "llm_provider": "deepseek chat_completion",
+  "llm_model": "deepseek-v4-flash",
+  "embedding_provider": "openrouter",
+  "embedding_model": "perplexity/pplx-embed-v1-4b",
+  "principle": "Improve candidate evidence for the model; do not let deterministic rules take over semantic decisions.",
+  "rounds": [
+    {
+      "round": "R1",
+      "case_offset": 0,
+      "case_limit": 2,
+      "legacy": {
+        "score": "134/140",
+        "pass_rate": 95.71,
+        "tokens": 2464310,
+        "llm_calls": 300,
+        "tool_calls": 1374,
+        "replay_minutes": 28.9,
+        "failed_tasks": 0,
+        "loop_detection_tasks": 0,
+        "max_turns_tasks": 0,
+        "score_dir": "evals/runs/agent-split-deepseek-r1-legacy-score-final"
+      },
+      "primary": {
+        "score": "140/140",
+        "pass_rate": 100.0,
+        "tokens": 862415,
+        "llm_calls": 151,
+        "tool_calls": 858,
+        "replay_minutes": 19.2,
+        "failed_tasks": 0,
+        "loop_detection_tasks": 0,
+        "max_turns_tasks": 0,
+        "score_dir": "evals/runs/agent-split-deepseek-r1-primary-score-final"
+      }
+    },
+    {
+      "round": "R2",
+      "case_offset": 12,
+      "case_limit": 3,
+      "legacy": {
+        "score": "184/190",
+        "pass_rate": 96.84,
+        "tokens": 3424587,
+        "llm_calls": 422,
+        "tool_calls": 1926,
+        "replay_minutes": 35.8,
+        "failed_tasks": 0,
+        "loop_detection_tasks": 0,
+        "max_turns_tasks": 0,
+        "score_dir": "evals/runs/agent-split-deepseek-r2-legacy-score-final"
+      },
+      "primary": {
+        "score": "190/190",
+        "pass_rate": 100.0,
+        "tokens": 1396415,
+        "llm_calls": 232,
+        "tool_calls": 1554,
+        "replay_minutes": 28.6,
+        "failed_tasks": 0,
+        "loop_detection_tasks": 0,
+        "max_turns_tasks": 0,
+        "score_dir": "evals/runs/agent-split-deepseek-r2-primary-score-final"
+      }
+    },
+    {
+      "round": "R3",
+      "case_offset": 24,
+      "case_limit": 4,
+      "legacy": {
+        "score": "253/263",
+        "pass_rate": 96.2,
+        "tokens": 4803085,
+        "llm_calls": 580,
+        "tool_calls": 2628,
+        "replay_minutes": 46.7,
+        "failed_tasks": 0,
+        "loop_detection_tasks": 0,
+        "max_turns_tasks": 0,
+        "score_dir": "evals/runs/agent-split-deepseek-r3-legacy-score-final"
+      },
+      "primary": {
+        "score": "262/263",
+        "pass_rate": 99.62,
+        "tokens": 1744814,
+        "llm_calls": 303,
+        "tool_calls": 1998,
+        "replay_minutes": 38.1,
+        "failed_tasks": 0,
+        "loop_detection_tasks": 0,
+        "max_turns_tasks": 0,
+        "score_dir": "evals/runs/agent-split-deepseek-r3-primary-score-final"
+      }
+    }
+  ],
+  "aggregate": {
+    "legacy": {
+      "cases": 9,
+      "tasks": 54,
+      "score": "571/593",
+      "pass_rate": 96.29,
+      "tokens": 10691982,
+      "llm_calls": 1302,
+      "tool_calls": 5928,
+      "replay_minutes": 111.4,
+      "failed_tasks": 0,
+      "loop_detection_tasks": 0,
+      "max_turns_tasks": 0,
+      "memory_entries": 115,
+      "memory_source_linked_entries": 106,
+      "memory_kinded_entries": 106,
+      "memory_entity_linked_entries": 106
+    },
+    "primary": {
+      "cases": 9,
+      "tasks": 54,
+      "score": "592/593",
+      "pass_rate": 99.83,
+      "tokens": 4003644,
+      "llm_calls": 686,
+      "tool_calls": 4410,
+      "replay_minutes": 85.9,
+      "failed_tasks": 0,
+      "loop_detection_tasks": 0,
+      "max_turns_tasks": 0,
+      "memory_entries": 113,
+      "memory_source_linked_entries": 105,
+      "memory_kinded_entries": 105,
+      "memory_entity_linked_entries": 105
+    },
+    "primary_reduction_vs_legacy": {
+      "tokens_pct": 62.55,
+      "llm_calls_pct": 47.31,
+      "tool_calls_pct": 25.61,
+      "replay_time_pct": 22.86
+    }
+  },
+  "primary_remaining_failures": [
+    {
+      "case_id": "journey_real_replay_v6_02_c",
+      "task_id": "journey_real_replay_v6_02_c_card_project",
+      "metric": "title_constraint_accuracy",
+      "message": "Card content missing: Jason.",
+      "classification": "real card extraction miss; SuperAgent and memory still retained Jason"
+    }
+  ]
+}

@@ -53,6 +53,7 @@ Example: An image of a receipt should use the `transaction` template, not a gene
 # Title Guidelines
 - **Concise:** Summarize the core content (e.g., "Morning Run 5km", not "I went for a run this morning").
 - **Clean:** Remove redundant modifiers.
+- **Preserve Conflict Anchors:** If a task or reminder is defined by avoiding conflict with another named project, person, or boundary, include both the concrete task and the named anchor in the title (e.g., "Parents Report vs Export Gray Deep Work").
 - **Examples:**
   - ✅ "Keychron K3 Pro Purchase Record"
   - ❌ "Bought a keyboard" (Vague)

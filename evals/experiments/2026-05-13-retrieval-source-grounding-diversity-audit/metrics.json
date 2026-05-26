@@ -1,0 +1,335 @@
+{
+  "run_id": "2026-05-13-retrieval-source-grounding-diversity-audit",
+  "started_at": "2026-05-13T03:38:20.760192Z",
+  "benchmark_elapsed_ms": 37379,
+  "dataset_path": "evals/datasets/retrieval_source_grounding",
+  "adapter": "fixture",
+  "evidence_level": "fixture_smoke_needs_dataset_work",
+  "observation_contract": "fixture_observed",
+  "llm_judge_enabled": false,
+  "llm_judge_policy": "disabled",
+  "llm_judge_assertion_count": 0,
+  "case_count": 12,
+  "task_count": 144,
+  "dataset_summary": {
+    "case_count": 12,
+    "persona_count": 12,
+    "input_count": 1200,
+    "task_count": 144,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "retrieval_source_grounding": 12
+    },
+    "tasks_by_type": {
+      "retrieval_qa": 144
+    },
+    "personas": [
+      {
+        "user_id": "retrieval_u_001",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "刚开完会脑子有点乱，但重点是： 5月8日下午三点，和Alex在腾讯会议过了一遍导出项目预算；先别写成大结论，会上主要盯CPA、ROAS、退款率。",
+          "补一条，不然我后面肯定忘：导出项目预算复盘 owner 暂时按Alex，问这个项目先找 TA 对齐。结论先行，但证据和来源不要丢。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_002",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "先记个不太工整的版本： 5月8日下午三点，和Jason在腾讯会议过了一遍北美站增长预算；先别写成大结论，会上主要盯广告花费、ROAS、退款率。",
+          "补一条，不然我后面肯定忘：北美站增长预算复盘 owner 暂时按Jason，问这个项目先找 TA 对齐。顺带看一下广告组和物流口径，别把退款率和投诉率混了。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_003",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "先记个不太工整的版本： 5月8日下午三点，和Grace在腾讯会议过了一遍Memex eval预算；先别写成大结论，会上主要盯样本覆盖率、retry rate、p95 latency。",
+          "补一条，不然我后面肯定忘：Memex eval预算复盘 owner 暂时按Grace，问这个项目先找 TA 对齐。如果后面写分析，metric id 保留英文，口径写清楚。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_004",
+        "occupation": "律师",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "刚开完会脑子有点乱，但重点是： 5月8日下午三点，和Annie在腾讯会议过了一遍法务合同库预算；先别写成大结论，会上主要盯合同风险数、审批时长、条款争议。",
+          "补一条，不然我后面肯定忘：法务合同库预算复盘 owner 暂时按Annie，问这个项目先找 TA 对齐。风险结论必须列来源，别只写一句“需要注意”。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_005",
+        "occupation": "财务主管",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "嗯，这条可能以后会问到： 5月8日下午三点，和Mina在腾讯会议过了一遍预算月结预算；先别写成大结论，会上主要盯预算差异率、付款延迟、发票异常。",
+          "补一条，不然我后面肯定忘：预算月结预算复盘 owner 暂时按Mina，问这个项目先找 TA 对齐。数字先给口径，再给差异，不然月结会对不上。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_006",
+        "occupation": "内容运营",
+        "city": "苏州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "顺手记一下，别嫌碎： 5月8日下午三点，和Grace在腾讯会议过了一遍小红书活动预算；先别写成大结论，会上主要盯互动率、素材消耗、转化评论。",
+          "补一条，不然我后面肯定忘：小红书活动预算复盘 owner 暂时按Grace，问这个项目先找 TA 对齐。素材来源和投放反馈分开放，别混进一个结论。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_007",
+        "occupation": "独立开发者",
+        "city": "厦门",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "顺手记一下，别嫌碎： 5月8日下午三点，和小陈在腾讯会议过了一遍个人工具订阅预算；先别写成大结论，会上主要盯激活率、退款工单、订阅续费。",
+          "补一条，不然我后面肯定忘：个人工具订阅预算复盘 owner 暂时按小陈，问这个项目先找 TA 对齐。少写空话，最好直接能变成 backlog 或 changelog。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_008",
+        "occupation": "老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "嗯，这条可能以后会问到： 5月8日下午三点，和Ada在腾讯会议过了一遍公开课改版预算；先别写成大结论，会上主要盯完课率、试听转化、作业提交率。",
+          "补一条，不然我后面肯定忘：公开课改版预算复盘 owner 暂时按Ada，问这个项目先找 TA 对齐。如果涉及课程反馈，别超过三条重点。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_009",
+        "occupation": "医生",
+        "city": "南京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "刚开完会脑子有点乱，但重点是： 5月8日下午三点，和周医生在腾讯会议过了一遍门诊随访系统预算；先别写成大结论，会上主要盯随访完成率、预约爽约率、问卷回收。",
+          "补一条，不然我后面肯定忘：门诊随访系统预算复盘 owner 暂时按周医生，问这个项目先找 TA 对齐。医疗相关只能区分记录和建议，别自动下结论。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_010",
+        "occupation": "HRBP",
+        "city": "武汉",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "嗯，这条可能以后会问到： 5月8日下午三点，和Sophie在腾讯会议过了一遍绩效校准预算；先别写成大结论，会上主要盯校准争议数、面评完成率、敏感反馈。",
+          "补一条，不然我后面肯定忘：绩效校准预算复盘 owner 暂时按Sophie，问这个项目先找 TA 对齐。敏感信息少写细节，只保留必要上下文。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_011",
+        "occupation": "设计师",
+        "city": "长沙",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "刚开完会脑子有点乱，但重点是： 5月8日下午三点，和Nora在腾讯会议过了一遍会员页改版预算；先别写成大结论，会上主要盯点击率、首屏停留、转化路径。",
+          "补一条，不然我后面肯定忘：会员页改版预算复盘 owner 暂时按Nora，问这个项目先找 TA 对齐。视觉反馈最好带截图来源，不然之后对不上版本。"
+        ]
+      },
+      {
+        "user_id": "retrieval_u_012",
+        "occupation": "创业者",
+        "city": "青岛",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 12,
+        "sample_inputs": [
+          "顺手记一下，别嫌碎： 5月8日下午三点，和Ethan在腾讯会议过了一遍B 端试点预算；先别写成大结论，会上主要盯试点转化率、客单价、回款周期。",
+          "补一条，不然我后面肯定忘：B 端试点预算复盘 owner 暂时按Ethan，问这个项目先找 TA 对齐。商务复盘先列风险和下一步，别写成鸡汤。"
+        ]
+      }
+    ]
+  },
+  "dataset_audit": {
+    "overall_score": 0.65,
+    "language_consistency": 1.0,
+    "persona_plausibility": 0.8,
+    "input_naturalness": 0.4,
+    "oracle_consistency": 0.9,
+    "coverage_notes": [
+      "覆盖了12种不同职业和城市，体现了领域差异。",
+      "所有任务均为检索问答，类型单一。",
+      "输入流长度充足（100条），但内容模板化严重。"
+    ],
+    "issues": [
+      {
+        "case_id": "all",
+        "severity": "high",
+        "issue": "数据集存在严重的模板化和结构重复问题。",
+        "suggestion": "打破固定模板，为不同persona设计差异化的输入流结构、ground_truth构成和eval_task模式。"
+      },
+      {
+        "case_id": "all",
+        "severity": "medium",
+        "issue": "输入流中从第13条开始，大量内容是高度同质化的‘碎碎念’，仅替换项目名和关键词列表，缺乏真实对话的多样性和随机性。",
+        "suggestion": "大幅减少或重构这些模板化输入，增加更多反映真实工作场景的、非结构化的、带有噪音的对话或笔记。"
+      },
+      {
+        "case_id": "all",
+        "severity": "medium",
+        "issue": "ground_truth_world的结构（4 facts, 3 events, 3 notes, 2 pkm）在所有case中完全一致，过于规整，降低了模拟真实记忆库的复杂性。",
+        "suggestion": "引入不同数量和类型的记忆条目，模拟更真实、不均衡的个人知识库状态。"
+      },
+      {
+        "case_id": "all",
+        "severity": "low",
+        "issue": "eval_tasks的12个问题类型和结构在所有case中完全一致，可能导致评估过于机械。",
+        "suggestion": "为不同persona设计更贴合其领域特点的、多样化的评估任务，而不仅仅是替换项目名和指标名。"
+      }
+    ],
+    "sample_reviews": [
+      {
+        "case_id": "retrieval_grounding_001",
+        "score": 0.7,
+        "reason": "persona和领域细节（产品经理，导出项目）可信，eval_tasks与ground_truth一致。但输入流后半段模板化严重，自然度扣分。"
+      },
+      {
+        "case_id": "retrieval_grounding_003",
+        "score": 0.7,
+        "reason": "数据分析师的领域术语（retry rate, p95 latency）准确。问题同case_001，输入流存在大量模板化‘碎碎念’。"
+      },
+      {
+        "case_id": "retrieval_grounding_009",
+        "score": 0.7,
+        "reason": "医生的persona和医疗相关约束（区分记录和建议）设计得好。但整体结构与其他case无异，模板化问题突出。"
+      }
+    ],
+    "reason": "数据集在语言、persona多样性和oracle一致性上表现良好，但存在致命的模板化问题。输入流和ground_truth结构高度重复，像同一套模具填充不同领域关键词生成，严重损害了数据的自然度和作为评估基准的有效性。需要重构以增加多样性和真实性。"
+  },
+  "assertions": {
+    "passed": 1272,
+    "total": 1272,
+    "pass_rate": 1.0,
+    "avg_score": 1.0
+  },
+  "by_family": {
+    "retrieval_qa": {
+      "passed": 1272,
+      "total": 1272,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "by_metric": {
+    "retrieval_hit_at_1": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_3": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_5": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_mrr": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_recall_at_5": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_filter_accuracy": {
+      "passed": 108,
+      "total": 108,
+      "pass_rate": 1.0
+    },
+    "answer_must_include": {
+      "passed": 144,
+      "total": 144,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unnecessary_uncertainty_absence": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0
+    },
+    "answer_source_citation": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "grounded_answer_rate": {
+      "passed": 120,
+      "total": 120,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unsupported_claim_absence": {
+      "passed": 36,
+      "total": 36,
+      "pass_rate": 1.0
+    },
+    "abstention_accuracy": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 144,
+    "tool_call_count": 288,
+    "avg_latency_ms": 380.0,
+    "p95_latency_ms": 900.0,
+    "avg_total_tokens": 2220.0,
+    "total_tokens": 319680
+  }
+}

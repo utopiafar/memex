@@ -62,6 +62,12 @@ void main() {
     expect(clearCount, 0);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
   });
+
+  testWidgets('shows agent pipeline debugging entry', (tester) async {
+    await _pumpDebugPage(tester);
+
+    expect(find.text('Agent Pipeline'), findsOneWidget);
+  });
 }
 
 Future<void> _pumpDebugPage(

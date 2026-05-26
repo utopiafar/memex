@@ -1,0 +1,589 @@
+{
+  "run_id": "2026-05-13-production-like-retrieval-v3-llm-judge",
+  "started_at": "2026-05-13T06:36:23.379954Z",
+  "benchmark_elapsed_ms": 1743728,
+  "dataset_path": "evals/datasets/production_like_retrieval_v3",
+  "adapter": "fixture",
+  "evidence_level": "audited_synthetic_fixture",
+  "observation_contract": "fixture_observed",
+  "llm_judge_enabled": true,
+  "llm_judge_policy": "retrieval_and_super_agent_qa_unless_expected_llm_judge_false",
+  "llm_judge_assertion_count": 94,
+  "llm_judge_provider": "anthropic",
+  "llm_judge_model": "mimo-v2-pro",
+  "llm_judge_max_tokens": 4096,
+  "llm_judge_timeout_seconds": 180,
+  "case_count": 24,
+  "task_count": 94,
+  "dataset_summary": {
+    "case_count": 24,
+    "persona_count": 24,
+    "input_count": 150,
+    "task_count": 94,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "production_retrieval_v3_climate_analyst": 1,
+      "production_retrieval_v3_counselor_ops": 1,
+      "production_retrieval_v3_cross_border_ecommerce": 1,
+      "production_retrieval_v3_farm_coop_manager": 1,
+      "production_retrieval_v3_insurance_adjuster": 1,
+      "production_retrieval_v3_museum_curator": 1,
+      "production_retrieval_v3_open_source_maintainer": 1,
+      "production_retrieval_v3_patent_agent": 1,
+      "production_retrieval_v3_podcast_producer": 1,
+      "production_retrieval_v3_robotics_lab": 1,
+      "production_retrieval_v3_seed_chronic_care": 1,
+      "production_retrieval_v3_seed_construction_architect": 1,
+      "production_retrieval_v3_seed_family_caregiver": 1,
+      "production_retrieval_v3_seed_finance_fpna": 1,
+      "production_retrieval_v3_seed_game_design": 1,
+      "production_retrieval_v3_seed_growth_product": 1,
+      "production_retrieval_v3_seed_investigative_editor": 1,
+      "production_retrieval_v3_seed_ops_warehouse": 1,
+      "production_retrieval_v3_seed_restaurant_owner": 1,
+      "production_retrieval_v3_seed_sre_incident": 1,
+      "production_retrieval_v3_seed_technical_recruiting": 1,
+      "production_retrieval_v3_seed_ux_research": 1,
+      "production_retrieval_v3_travel_planner": 1,
+      "production_retrieval_v3_university_lab_manager": 1
+    },
+    "tasks_by_type": {
+      "retrieval_qa": 94
+    },
+    "personas": [
+      {
+        "user_id": "v2_architect_site_001",
+        "occupation": "建筑设计项目经理",
+        "city": "重庆",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 3,
+        "sample_inputs": [
+          "南塔现场巡检是 5月15日下午四点，照片 P12 到 P18 都是幕墙龙骨偏差，别只写“外立面问题”。",
+          "照片 OCR 可用信息：临边防护缺两处，材料堆放挡消防通道，幕墙龙骨最大偏差 8mm。"
+        ]
+      },
+      {
+        "user_id": "v2_caregiver_001",
+        "occupation": "双职工家长",
+        "city": "苏州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "5月24日早上九点儿童医院复查，带过敏记录和上次化验单，别忘。",
+          "老师今天反馈三件事：午睡短，体育课后咳嗽一次，手工课找不到蓝色文件夹。先别紧张。"
+        ]
+      },
+      {
+        "user_id": "v2_clinic_followup_001",
+        "occupation": "慢病随访医生",
+        "city": "南京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "随访反馈有点散：三位说夜间咳嗽，两位找不到问卷入口，还有一位一直问隐私授权，先记成反馈，不是诊断。",
+          "5月16日下午三点和周医生评审门诊随访表单，带隐私授权截图，还有问卷漏斗。"
+        ]
+      },
+      {
+        "user_id": "v2_editor_001",
+        "occupation": "深度报道编辑",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 7,
+        "task_count": 4,
+        "sample_inputs": [
+          "5月6日晚上 7:30 和线人 M 电话，对方只愿意匿名引用，别写实名。",
+          "M 的两条线索目前交叉验证过：采购绕过二次审批，验收记录晚于付款日期。语气克制点。"
+        ]
+      },
+      {
+        "user_id": "v2_finance_fpna_001",
+        "occupation": "FP&A 分析师",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 7,
+        "task_count": 4,
+        "sample_inputs": [
+          "Q2 最新 forecast：保守 1280 万，乐观 1410 万，云成本上涨会压毛利率。这个是今晚版本。",
+          "5月13日早上九点半预算委员会，看 Q2 forecast、云成本、续费率，别只讲收入。"
+        ]
+      },
+      {
+        "user_id": "v2_game_designer_001",
+        "occupation": "独立游戏设计师",
+        "city": "武汉",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "第 4 章 playtest：12 个人里 7 个卡灯塔谜题，平均通关 38 分钟，还有 2 个说音乐太压迫。",
+          "5月21日晚上九点章节 4 bug bash，重点看存档丢失和灯塔交互提示。"
+        ]
+      },
+      {
+        "user_id": "v2_ops_warehouse_001",
+        "occupation": "仓配运营负责人",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "夜里 3:18 西区分拣线扫码枪离线，3:42 临时切手工复核。我有点困，先把时间线记准。",
+          "异常影响复盘：错分 17 单，延迟出库 43 单，投诉主要是生鲜延误。"
+        ]
+      },
+      {
+        "user_id": "v2_prod_growth_001",
+        "occupation": "增长产品经理",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 7,
+        "task_count": 4,
+        "sample_inputs": [
+          "Kai 那场邀请链路 A/B 评审是 5 月 11 日下午两点。低线城市新用户转化不行，别只看总盘。",
+          "邀请链路今天的数据有点拧巴：老用户邀请转化 8.2%，新用户 4.7%，弹窗关闭率 31%，大图文投诉更多。"
+        ]
+      },
+      {
+        "user_id": "v2_recruiter_001",
+        "occupation": "技术招聘负责人",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 7,
+        "task_count": 4,
+        "sample_inputs": [
+          "5月22日下午三点面 Lin，Agent 算法工程师，面试官 Tao 和 Mina。",
+          "Lin 面试反馈：检索评估讲得清楚，工程落地一般，追问 LLM judge 校准的时候有点虚。"
+        ]
+      },
+      {
+        "user_id": "v2_restaurant_001",
+        "occupation": "餐厅主理人",
+        "city": "厦门",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 7,
+        "task_count": 4,
+        "sample_inputs": [
+          "旧报价先留着：三文鱼 68 元/斤，但后面供应商应该会更新。",
+          "供应商邮件：5月12日最新，三文鱼 74 一斤，青口 22 一斤；三文鱼到货不稳定。"
+        ]
+      },
+      {
+        "user_id": "v2_sre_001",
+        "occupation": "数据平台 SRE",
+        "city": "西安",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 7,
+        "task_count": 4,
+        "sample_inputs": [
+          "2:17 数据同步延迟告警，2:41 暂停低优先级回填，3:05 恢复。时间线别写乱。",
+          "事故影响：最大延迟 48 分钟，影响 BI 看板 6 个，没有影响线上交易链路。"
+        ]
+      },
+      {
+        "user_id": "v2_ux_research_001",
+        "occupation": "用户研究员",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "5月18日上午访了 P03、P07、P11 三个新手用户，时间 10 点到 12 点。",
+          "访谈观察先记：P03 找不到导入入口，P07 误解同步状态，P11 一直担心历史记录丢失。别写真名。"
+        ]
+      },
+      {
+        "user_id": "v3_climate_analyst_001",
+        "occupation": "气候风险分析师",
+        "city": "昆明",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "雨量 digest：滇池北岸三个站过去 6 小时 41、38、44mm，南岸都低于 20mm。",
+          "9:30 给社区应急小组讲内涝风险，重点是北岸低洼片区，不要泛泛讲全市。"
+        ]
+      },
+      {
+        "user_id": "v3_counselor_ops_001",
+        "occupation": "心理咨询机构运营",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "5月16日晚上 7:30 督导会，讲青少年团体课排班和危机转介流程。",
+          "家长反馈三点：报名入口难找，课前提醒太晚，保密边界说明不清楚。"
+        ]
+      },
+      {
+        "user_id": "v3_cross_border_ecommerce_001",
+        "occupation": "跨境电商运营",
+        "city": "义乌",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "欧洲站广告先记：德国 ACOS 31%、退货率 6.4%，法国 ACOS 27%、退货率 4.1%。德国差评主要说尺码偏小。",
+          "5月14日下午四点和货代 Leo 对德国站补货，清关资料、欧盟责任人标签都要问。"
+        ]
+      },
+      {
+        "user_id": "v3_farm_coop_manager_001",
+        "occupation": "农业合作社负责人",
+        "city": "大理",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "早上巡田：3 号茶园新梢卷曲率大概 18%，叶背少量虫卵；2 号没明显扩散。",
+          "5月13日早上八点农技员到 3 号茶园复查，带黄板记录和有机认证用药清单。"
+        ]
+      },
+      {
+        "user_id": "v3_insurance_adjuster_001",
+        "occupation": "保险理赔定损员",
+        "city": "郑州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "5月14日上午十点勘查 C-7821，北环路停车场，车主 Wei 在场。",
+          "照片 P04 到 P09：右前翼子板擦伤，保险杠卡扣断，维修站初报 4200。"
+        ]
+      },
+      {
+        "user_id": "v3_museum_curator_001",
+        "occupation": "博物馆策展人",
+        "city": "西安",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "5月20日下午三点和洛阳馆确认青铜镜借展清单，借展期 6月3日 到 8月28日。",
+          "condition report OCR：A17 边缘有旧修补痕，运输湿度 45%-55%，保险估值 120 万。"
+        ]
+      },
+      {
+        "user_id": "v3_open_source_maintainer_001",
+        "occupation": "开源项目维护者",
+        "city": "南京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "GitHub digest：#428 Windows 路径，#431 tokenizer cache，#433 文档拼写，不影响发布。",
+          "5月21日晚上十点准备 0.9.4 release，Windows matrix 和 tokenizer cache regression 必跑。"
+        ]
+      },
+      {
+        "user_id": "v3_patent_agent_001",
+        "occupation": "专利代理人",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "5月9日下午两点和 Dr. Xu 聊柔性传感器，重点是低温封装、可重复弯折。",
+          "初检：CN1128 有低温封装，但没覆盖 5000 次弯折后的电阻漂移补偿。"
+        ]
+      },
+      {
+        "user_id": "v3_podcast_producer_001",
+        "occupation": "播客制作人",
+        "city": "长沙",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "第 42 期 5月18日晚上八点录，嘉宾 Suki，主题独立开发者定价。",
+          "剪辑点有点碎：14分20秒删键盘噪声，31分10秒保留年付折扣争论，48分05秒插过场。"
+        ]
+      },
+      {
+        "user_id": "v3_robotics_lab_001",
+        "occupation": "机器人实验室工程师",
+        "city": "合肥",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "机械臂抓取测试是 5月17日 10:30，固件 v2.8.3。夹爪偏移基本都在第 4 次抓取后出现。",
+          "40 次抓取，成功 32 次。失败里 5 次视觉定位漂移，3 次夹爪压力不足。"
+        ]
+      },
+      {
+        "user_id": "v3_travel_planner_001",
+        "occupation": "高端旅行顾问",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 3,
+        "sample_inputs": [
+          "5月23日 11 点和客户 Z 家庭聊瑞士行程，已确认 7月12日 到苏黎世。",
+          "限制记一下：小朋友坚果过敏，老人不走长坡；少女峰想坐火车但没出票。"
+        ]
+      },
+      {
+        "user_id": "v3_university_lab_manager_001",
+        "occupation": "高校实验室管理员",
+        "city": "天津",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 6,
+        "task_count": 4,
+        "sample_inputs": [
+          "库存：乙腈 4 瓶，甲醇 9 瓶。乙腈安全库存是 6，已经低了。",
+          "5月12日 14 到 16 点 HPLC 是 Li 课题组，16 到 17 点维护窗口。"
+        ]
+      }
+    ]
+  },
+  "dataset_audit": {
+    "overall_score": 0.9,
+    "language_consistency": 0.95,
+    "persona_plausibility": 0.9,
+    "input_naturalness": 0.85,
+    "oracle_consistency": 0.9,
+    "coverage_notes": [
+      "所有 case 语言均为 zh-CN。",
+      "抽样中观察到 persona 覆盖了 24 种不同职业，城市分布合理。",
+      "多数 case 的输入包含会议笔记、语音转录、日历提醒等多种形式，文风多样。",
+      "所有 eval_tasks 类型均为 retrieval_qa，且每个 case 均包含一个要求模型‘不确定’时应 abstain 的边界测试任务。",
+      "抽样中观察到 ground_truth_world、input_stream 与 eval_tasks.expected 之间逻辑一致，预期答案可从隐藏真相或输入中推出。"
+    ],
+    "issues": [
+      {
+        "case_id": "production_retrieval_v3_seed_chronic_care",
+        "severity": "low",
+        "issue": "输入内容相对简短，信息密度可进一步提升。",
+        "suggestion": "可增加更多关于患者反馈细节或表单设计上下文的输入，以丰富场景。"
+      },
+      {
+        "case_id": "production_retrieval_v3_climate_analyst",
+        "severity": "low",
+        "issue": "专业领域（气候风险）的术语和场景深度有提升空间。",
+        "suggestion": "可引入更具体的模型参数、历史数据对比或预警发布流程的输入，以增强领域真实性。"
+      }
+    ],
+    "sample_reviews": [
+      {
+        "case_id": "production_retrieval_v3_seed_growth_product",
+        "score": 0.92,
+        "reason": "persona 设定（增长产品经理）与输入内容（A/B测试、数据指标）高度契合，输入包含会议、笔记、语音等多种形式，自然且有噪声。eval_tasks 设计合理，能有效测试信息检索和边界判断。"
+      },
+      {
+        "case_id": "production_retrieval_v3_cross_border_ecommerce",
+        "score": 0.9,
+        "reason": "跨境电商场景真实，输入包含广告数据、物流沟通、运营计划，体现了领域特点。任务要求按站点拆分数据并区分已确认/未确认信息，符合职业习惯。"
+      },
+      {
+        "case_id": "production_retrieval_v3_seed_chronic_care",
+        "score": 0.85,
+        "reason": "医疗随访场景清晰，强调了记录与诊断的边界，符合职业伦理。输入内容稍显简略，但核心要素（症状、会议、流程）齐全。"
+      },
+      {
+        "case_id": "production_retrieval_v3_robotics_lab",
+        "score": 0.9,
+        "reason": "工程师 persona 真实，输入包含实验时间、固件版本、测试结果、校准计划等专业细节。任务要求保留版本和样本量，体现了严谨性。"
+      },
+      {
+        "case_id": "production_retrieval_v3_seed_finance_fpna",
+        "score": 0.91,
+        "reason": "FP&A 分析师场景专业，输入包含预测数据、会议、模型假设。任务设计能测试对数据版本、假设和未知信息的处理能力。"
+      },
+      {
+        "case_id": "production_retrieval_v3_climate_analyst",
+        "score": 0.86,
+        "reason": "气候风险分析场景成立，输入包含传感器数据、会议、阈值规则。任务要求区分观测、预测和预警，符合领域规范。"
+      },
+      {
+        "case_id": "production_retrieval_v3_seed_ops_warehouse",
+        "score": 0.89,
+        "reason": "仓配运营场景具体，输入包含事件时间线、影响数据、处理流程。任务要求区分临时绕行和长期改造，体现了运营思维。"
+      },
+      {
+        "case_id": "production_retrieval_v3_museum_curator",
+        "score": 0.9,
+        "reason": "策展人 persona 细致，输入包含借展沟通、文物状况报告、展陈规划。任务要求区分借展方、馆藏状态、保险和保存条件，专业性强。"
+      },
+      {
+        "case_id": "production_retrieval_v3_seed_ux_research",
+        "score": 0.88,
+        "reason": "用户研究员场景典型，输入包含访谈安排、观察记录、综合计划。任务强调匿名化和区分观察与推断，符合研究伦理。"
+      },
+      {
+        "case_id": "production_retrieval_v3_podcast_producer",
+        "score": 0.87,
+        "reason": "播客制作人场景生动，输入包含录制安排、剪辑点、发布计划。任务要求区分录制与上线，并测试对未知广告信息的处理。"
+      },
+      {
+        "case_id": "production_retrieval_v3_seed_investigative_editor",
+        "score": 0.91,
+        "reason": "调查编辑 persona 刻画到位，输入包含线人访谈、已验证线索、未核实传闻。任务严格要求区分信息核实状态，防止将传闻写成事实。"
+      },
+      {
+        "case_id": "production_retrieval_v3_patent_agent",
+        "score": 0.89,
+        "reason": "专利代理人场景专业，输入包含发明人沟通、初步检索结果、权利要求规划。任务要求区分客户描述和检索证据，符合职业操守。"
+      },
+      {
+        "case_id": "production_retrieval_v3_seed_restaurant_owner",
+        "score": 0.88,
+        "reason": "餐厅主理人场景生活化，输入包含新旧报价、客户限制、菜单调整。任务强调过敏信息优先级和使用最新报价，符合餐饮管理实际。"
+      },
+      {
+        "case_id": "production_retrieval_v3_counselor_ops",
+        "score": 0.87,
+        "reason": "心理咨询机构运营场景独特，输入包含督导会议、家长反馈、流程优化。任务要求只描述运营事实不做诊断，边界清晰。"
+      },
+      {
+        "case_id": "production_retrieval_v3_seed_construction_architect",
+        "score": 0.9,
+        "reason": "建筑项目经理场景真实，输入包含现场巡检照片、安全问题、整改计划。任务要求保留照片编号和不美化安全问题，体现了工程严谨性。"
+      },
+      {
+        "case_id": "production_retrieval_v3_travel_planner",
+        "score": 0.89,
+        "reason": "高端旅行顾问场景贴切，输入包含客户沟通、行程限制、待确认事项。任务要求区分已确认和待确认信息，并优先处理过敏等关键限制。"
+      },
+      {
+        "case_id": "production_retrieval_v3_seed_game_design",
+        "score": 0.88,
+        "reason": "独立游戏设计师场景有趣，输入包含玩家测试数据、bug bash 计划、平衡调整。任务要求区分定量数据、玩家原话和设计判断，逻辑清晰。"
+      },
+      {
+        "case_id": "production_retrieval_v3_open_source_maintainer",
+        "score": 0.9,
+        "reason": "开源维护者 persona 准确，输入包含 PR 摘要、发布计划、安全边界。任务能测试对发布内容、检查项和安全披露边界的理解。"
+      }
+    ],
+    "reason": "数据集整体质量高。语言稳定为中文（zh-CN），24种职业persona设定可信且体现了领域差异，输入形式多样、自然度较好。ground_truth_world、input_stream与eval_tasks之间逻辑一致，预期答案可从给定信息中合理推出，且通过‘不确定’查询有效防止了oracle泄漏。适合作为小规模benchmark数据。"
+  },
+  "assertions": {
+    "passed": 873,
+    "total": 873,
+    "pass_rate": 1.0,
+    "avg_score": 0.9996350364963503
+  },
+  "by_family": {
+    "retrieval_qa": {
+      "passed": 873,
+      "total": 873,
+      "pass_rate": 1.0,
+      "avg_score": 0.9996350364963503
+    }
+  },
+  "by_metric": {
+    "retrieval_hit_at_1": {
+      "passed": 71,
+      "total": 71,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_3": {
+      "passed": 71,
+      "total": 71,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_hit_at_5": {
+      "passed": 71,
+      "total": 71,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_mrr": {
+      "passed": 71,
+      "total": 71,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_recall_at_5": {
+      "passed": 71,
+      "total": 71,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "retrieval_filter_accuracy": {
+      "passed": 71,
+      "total": 71,
+      "pass_rate": 1.0
+    },
+    "answer_must_include": {
+      "passed": 94,
+      "total": 94,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unnecessary_uncertainty_absence": {
+      "passed": 71,
+      "total": 71,
+      "pass_rate": 1.0
+    },
+    "answer_source_citation": {
+      "passed": 71,
+      "total": 71,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "grounded_answer_rate": {
+      "passed": 71,
+      "total": 71,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "llm_grounded_answer_score": {
+      "passed": 94,
+      "total": 94,
+      "pass_rate": 1.0,
+      "avg_score": 0.9973404255319149
+    },
+    "unsupported_claim_absence": {
+      "passed": 23,
+      "total": 23,
+      "pass_rate": 1.0
+    },
+    "abstention_accuracy": {
+      "passed": 23,
+      "total": 23,
+      "pass_rate": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 94,
+    "tool_call_count": 330,
+    "avg_latency_ms": 302.29245283018867,
+    "p95_latency_ms": 990.0,
+    "avg_total_tokens": 1916.6489361702127,
+    "total_tokens": 180165
+  }
+}

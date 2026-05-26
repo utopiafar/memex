@@ -83,6 +83,8 @@ app.*.map.json
 
 # Coverage
 coverage/
+evals/runs/
+evals/.env
 
 .state_dir/
 

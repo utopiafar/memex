@@ -133,6 +133,11 @@ class SuperAgent {
         '## Quick Query Mode\n'
         'You are in **Quick Query** (read-only) mode. You can ONLY read and search existing data.\n'
         'You MUST NOT create, modify, or delete any records, cards, knowledge entries, or files.\n'
+        'Before answering, use the injected `<user_memory_context>` as first-class evidence alongside Facts/Cards/PKM search results.\n'
+        'For questions that ask for preferences, reminder rules, latest corrections, project owners, or boundaries, include the relevant active memory atoms explicitly instead of narrowing only to project-specific files.\n'
+        'Prefer the user\'s exact terms for durable facts and exclusion boundaries, such as "不要写成长记忆", so the answer remains grounded and easy to audit.\n'
+        'Preserve numeric thresholds and comparison words exactly when they are present in sources, for example "低于 2.2" or "提前一天".\n'
+        'If the answer spans owner, reminder, preference, and boundary, keep those facts visibly separated so missing evidence is easy to spot.\n'
         'If the user asks you to create or change something, explain that this is a read-only mode '
         'and suggest they use the full Chat mode instead.',
       );

@@ -1,0 +1,89 @@
+{
+  "dataset_id": "memex_module_smoke_collection",
+  "version": 2,
+  "description": "中文小样本模块级 Agent eval 数据集集合。每个模块独立成一个小实验，便于单独定位回归。",
+  "created_at": "2026-05-12",
+  "language": "zh-CN",
+  "locale": "zh-CN",
+  "datasets": [
+    {
+      "dataset_id": "memex_module_card_extraction_smoke",
+      "path": "evals/datasets/modules/card_extraction",
+      "case_count": 4,
+      "task_count": 4,
+      "families": [
+        "card_extraction"
+      ]
+    },
+    {
+      "dataset_id": "memex_module_memory_smoke",
+      "path": "evals/datasets/modules/memory",
+      "case_count": 6,
+      "task_count": 6,
+      "families": [
+        "memory_conflict",
+        "memory_write"
+      ]
+    },
+    {
+      "dataset_id": "memex_module_retrieval_qa_smoke",
+      "path": "evals/datasets/modules/retrieval_qa",
+      "case_count": 4,
+      "task_count": 4,
+      "families": [
+        "retrieval_qa"
+      ]
+    },
+    {
+      "dataset_id": "memex_module_router_tool_calling_smoke",
+      "path": "evals/datasets/modules/router_tool_calling",
+      "case_count": 4,
+      "task_count": 4,
+      "families": [
+        "tool_calling"
+      ]
+    },
+    {
+      "dataset_id": "memex_module_schedule_refresh_smoke",
+      "path": "evals/datasets/modules/schedule_refresh",
+      "case_count": 6,
+      "task_count": 6,
+      "families": [
+        "schedule_refresh"
+      ]
+    },
+    {
+      "dataset_id": "memex_module_pkm_organization_smoke",
+      "path": "evals/datasets/modules/pkm_organization",
+      "case_count": 4,
+      "task_count": 4,
+      "families": [
+        "pkm_organization"
+      ]
+    },
+    {
+      "dataset_id": "memex_module_super_agent_qa_smoke",
+      "path": "evals/datasets/modules/super_agent_qa",
+      "case_count": 4,
+      "task_count": 4,
+      "families": [
+        "super_agent_qa"
+      ]
+    },
+    {
+      "dataset_id": "memex_module_cost_trace_smoke",
+      "path": "evals/datasets/modules/cost_trace",
+      "case_count": 3,
+      "task_count": 3,
+      "families": [
+        "cost_trace"
+      ]
+    }
+  ],
+  "notes": [
+    "所有 persona、输入、oracle 均为中文。",
+    "fixture_observed 只用于验证 grader 和指标口径，不代表真实链路产物。",
+    "标准答案只来自 ground_truth_world，不从 Memex 输出反推。",
+    "模块实验只做局部能力和指标口径验证；端到端质量由 full_chain_serial_smoke 覆盖。"
+  ]
+}

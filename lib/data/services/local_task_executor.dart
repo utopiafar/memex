@@ -232,8 +232,13 @@ class LocalTaskExecutor {
 
   // Max concurrent tasks
   static const int _maxConcurrency = 5;
+  @visibleForTesting
+  static int? maxConcurrencyOverrideForTesting;
   static const int _candidatePageSize = 50;
   static const int _maxCandidateScan = 500;
+
+  static int get _effectiveMaxConcurrency =>
+      maxConcurrencyOverrideForTesting ?? _maxConcurrency;
 
   /// Enqueue a new task
   Future<String> enqueueTask({
@@ -302,13 +307,13 @@ class LocalTaskExecutor {
         ..where((t) => t.status.isIn(['processing']));
       final activeTasks = await activeCountQuery.get();
 
-      if (activeTasks.length >= _maxConcurrency) {
+      if (activeTasks.length >= _effectiveMaxConcurrency) {
         _isProcessing = false;
         _scheduleNextPoll(); // Wait for next slot
         return;
       }
 
-      final slotsAvailable = _maxConcurrency - activeTasks.length;
+      final slotsAvailable = _effectiveMaxConcurrency - activeTasks.length;
 
       // 2. Fetch runnable tasks. Dependency-blocked tasks at the front of the
       // queue should not starve later tasks that can safely run now.
@@ -468,8 +473,7 @@ class LocalTaskExecutor {
       final nextRetry = task.retryCount + 1;
 
       if (e is! NonRetryableTaskException && nextRetry <= task.maxRetries) {
-        // Exponential backoff
-        const backoff = 30; //* (1 << (task.retryCount));
+        final backoff = _retryDelaySeconds(e, task.retryCount);
         final nextRun = now + backoff;
 
         await (_db.update(_db.tasks)..where((t) => t.id.equals(task.id))).write(
@@ -530,6 +534,31 @@ class LocalTaskExecutor {
         _scheduleNextPoll(immediate: true);
       }
     }
+  }
+
+  @visibleForTesting
+  static int retryDelaySecondsForTesting(Object error, int retryCount) =>
+      _retryDelaySeconds(error, retryCount);
+
+  static int _retryDelaySeconds(Object error, int retryCount) {
+    if (!_isRateLimitError(error)) return 30;
+
+    final exponent = retryCount < 0
+        ? 0
+        : retryCount > 4
+            ? 4
+            : retryCount;
+    final delaySeconds = 30 * (1 << exponent);
+    return delaySeconds > 300 ? 300 : delaySeconds;
+  }
+
+  static bool _isRateLimitError(Object error) {
+    final normalized = error.toString().toLowerCase();
+    return normalized.contains('429') ||
+        normalized.contains('rate limit') ||
+        normalized.contains('quota exhausted') ||
+        normalized.contains('too many requests') ||
+        normalized.contains('频率超限');
   }
 
   Future<void> _handlePreviousExecutionMarkers() async {

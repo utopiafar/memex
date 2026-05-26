@@ -31,6 +31,12 @@ Future<void> processWithPkmAgent({
   try {
     _logger.info("processWithPkmAgent for $factId (dryRun: $dryRun)");
 
+    final pipelineConfig = await UserStorage.getAgentPipelineConfig();
+    if (!pipelineConfig.runsLegacyPkm) {
+      _logger.info('PKM agent disabled by split pipeline mode for $factId');
+      return;
+    }
+
     final skipDecision = PkmAgent.detectNonPersistentInput(contentText);
     if (skipDecision.shouldSkip) {
       _logger.info(

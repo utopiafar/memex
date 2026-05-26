@@ -1,0 +1,127 @@
+{
+  "experiment": "2026-05-22-agent-split-dual-chain",
+  "dataset": "evals/datasets/full_chain_realistic_smoke/cases.jsonl",
+  "case_count": 2,
+  "input_count": 13,
+  "task_count": 6,
+  "raw_runs": {
+    "legacy_full_chain": "evals/runs/agent-split-legacy-full-chain",
+    "legacy_score": "evals/runs/agent-split-legacy-score",
+    "split_primary_full_chain": "evals/runs/agent-split-primary-full-chain",
+    "split_primary_score": "evals/runs/agent-split-primary-score"
+  },
+  "judge_note": "llm_grounded_answer_score is not used for the main conclusion because both runs hit HTTP 404 when the openai_chat judge was pointed at the Anthropic-compatible evaluation endpoint.",
+  "runs": {
+    "legacy_pkm": {
+      "pipeline_mode": "legacy_pkm",
+      "assertions_passed": 42,
+      "assertions_total": 48,
+      "assertion_pass_rate": 0.875,
+      "replay_elapsed_ms": 1345240,
+      "record_avg_ms": 71790.69230769231,
+      "record_max_ms": 105512,
+      "refresh_knowledge_insights_avg_ms": 121946.5,
+      "refresh_knowledge_insights_max_ms": 140643,
+      "operation_count": 24,
+      "operation_settlement_rate": 1.0,
+      "active_task_count": 0,
+      "failed_task_count": 0,
+      "retrying_task_count": 0,
+      "loop_detection_task_count": 0,
+      "completed_card_count": 13,
+      "memory_entry_count": 4,
+      "total_tokens": 148001,
+      "llm_call_count": 122,
+      "tool_call_count": 378,
+      "pkm_agent_call_count": 47,
+      "pkm_agent_tokens": 88730,
+      "by_family": {
+        "cost_trace": {
+          "passed": 28,
+          "total": 28,
+          "pass_rate": 1.0
+        },
+        "memory_write": {
+          "passed": 5,
+          "total": 8,
+          "pass_rate": 0.625
+        },
+        "super_agent_qa": {
+          "passed": 9,
+          "total": 12,
+          "pass_rate": 0.75
+        }
+      },
+      "case_elapsed_ms": {
+        "realistic_chain_product_release": 614686,
+        "realistic_chain_family_care": 730380
+      }
+    },
+    "split_primary": {
+      "pipeline_mode": "split_primary",
+      "embedding_enabled": true,
+      "embedding_model": "perplexity/pplx-embed-v1-4b",
+      "embedding_store": "in_memory",
+      "assertions_passed": 39,
+      "assertions_total": 48,
+      "assertion_pass_rate": 0.8125,
+      "replay_elapsed_ms": 1861258,
+      "record_avg_ms": 55483.769230769234,
+      "record_max_ms": 63683,
+      "refresh_knowledge_insights_avg_ms": 509409.5,
+      "refresh_knowledge_insights_max_ms": 900471,
+      "operation_count": 22,
+      "operation_settlement_rate": 0.9444444444444444,
+      "active_task_count": 1,
+      "failed_task_count": 0,
+      "retrying_task_count": 1,
+      "loop_detection_task_count": 1,
+      "active_task_type_counts": {
+        "knowledge_insight_task": 1
+      },
+      "completed_card_count": 13,
+      "memory_entry_count": 6,
+      "total_tokens": 66090,
+      "llm_call_count": 112,
+      "tool_call_count": 291,
+      "pkm_agent_call_count": 0,
+      "pkm_agent_tokens": 0,
+      "by_family": {
+        "cost_trace": {
+          "passed": 24,
+          "total": 28,
+          "pass_rate": 0.8571428571428571
+        },
+        "memory_write": {
+          "passed": 6,
+          "total": 8,
+          "pass_rate": 0.75
+        },
+        "super_agent_qa": {
+          "passed": 9,
+          "total": 12,
+          "pass_rate": 0.75
+        }
+      },
+      "case_elapsed_ms": {
+        "realistic_chain_product_release": 509560,
+        "realistic_chain_family_care": 1351543
+      }
+    }
+  },
+  "deltas": {
+    "record_avg_ms_delta": -16306.92307692308,
+    "record_avg_ms_reduction_rate": 0.22714278958230787,
+    "record_max_ms_delta": -41829,
+    "product_case_elapsed_ms_delta": -105126,
+    "product_case_elapsed_ms_reduction_rate": 0.17103447614717346,
+    "replay_elapsed_ms_delta": 516018,
+    "total_tokens_delta": -81911,
+    "total_tokens_reduction_rate": 0.5534496388537915,
+    "tool_call_delta": -87,
+    "tool_call_reduction_rate": 0.23015873015873015,
+    "llm_call_delta": -10,
+    "assertion_pass_rate_delta": -0.0625,
+    "memory_write_pass_rate_delta": 0.125
+  }
+}

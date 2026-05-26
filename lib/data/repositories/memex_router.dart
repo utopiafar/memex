@@ -46,6 +46,7 @@ import 'package:memex/data/repositories/reprocess_pending_cards.dart';
 import 'package:memex/data/services/task_handlers/analyze_assets_handler.dart';
 import 'package:memex/data/services/task_handlers/card_agent_handler.dart';
 import 'package:memex/data/services/task_handlers/pkm_agent_handler.dart';
+import 'package:memex/data/services/task_handlers/split_agent_pipeline_handler.dart';
 import 'package:memex/data/services/task_handlers/fts_index_handler.dart';
 import 'package:memex/data/services/task_handlers/llm_error_utils.dart';
 import 'package:memex/data/services/task_handlers/comment_agent_handler.dart';
@@ -137,6 +138,10 @@ class MemexRouter {
         handlePkmAgentImpl,
       );
       LocalTaskExecutor.instance.registerHandler(
+        'split_agent_pipeline_task',
+        handleSplitAgentPipelineImpl,
+      );
+      LocalTaskExecutor.instance.registerHandler(
         'fts_index_update',
         handleFtsIndexUpdateImpl,
       );
@@ -185,6 +190,7 @@ class MemexRouter {
       // Generic failure handler for all other agent tasks — emits ErrorNotificationMessage
       for (final taskType in [
         'pkm_agent_task',
+        'split_agent_pipeline_task',
         'comment_agent_task',
         'knowledge_insight_task',
         'schedule_aggregator_task',
@@ -290,9 +296,27 @@ class MemexRouter {
     eventBus.subscribe(
       eventType: SystemEventTypes.userInputSubmitted,
       subscription: EventTaskSubscription(
+        subscriptionId: 'split_agent_pipeline',
+        taskType: 'split_agent_pipeline_task',
+        dependsOn: const ['card_agent', 'analyze_assets', 'pkm_agent'],
+        payloadBuilder: (_, event) {
+          final p = event.payload as UserInputSubmittedPayload;
+          return Future.value({
+            'fact_id': p.factId,
+            'combined_text': p.combinedText,
+            'created_at_ts': p.createdAtTs,
+            'location_context_reminder': p.locationContextReminder,
+          });
+        },
+      ),
+    );
+
+    eventBus.subscribe(
+      eventType: SystemEventTypes.userInputSubmitted,
+      subscription: EventTaskSubscription(
         subscriptionId: 'comment_agent',
         taskType: 'comment_agent_task',
-        dependsOn: const ['pkm_agent'],
+        dependsOn: const ['pkm_agent', 'split_agent_pipeline'],
         payloadBuilder: (_, event) {
           final p = event.payload as UserInputSubmittedPayload;
           return Future.value({
@@ -468,6 +492,7 @@ class MemexRouter {
     String? textHash,
     List<String>? imageHashes,
     String? audioHash,
+    DateTime? createdAt,
   }) async {
     await _ensureInitialized();
     _logger.info(
@@ -515,7 +540,11 @@ class MemexRouter {
       throw Exception('User not logged in, cannot submit local data');
     }
 
-    return submit_input_endpoint.submitInput(userId, content);
+    return submit_input_endpoint.submitInput(
+      userId,
+      content,
+      createdAt: createdAt,
+    );
   }
 
   Future<List<String>> checkProcessedHashes(List<String> hashes) async {

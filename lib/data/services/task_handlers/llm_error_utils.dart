@@ -49,6 +49,10 @@ LlmErrorCategory classifyError(Object error) {
 
   final errorStr = actual.toString();
 
+  if (_isTransientTransportError(errorStr)) {
+    return LlmErrorCategory.networkError;
+  }
+
   if (RegExp(r'\b40[13]\b').hasMatch(errorStr)) {
     return LlmErrorCategory.authenticationError;
   }
@@ -67,6 +71,17 @@ LlmErrorCategory classifyError(Object error) {
   }
 
   return LlmErrorCategory.unknownError;
+}
+
+bool _isTransientTransportError(String errorStr) {
+  final normalized = errorStr.toLowerCase();
+  return normalized.contains('connection prematurely closed') ||
+      normalized.contains('connection closed before response') ||
+      normalized.contains('connection reset') ||
+      normalized.contains('connection refused') ||
+      normalized.contains('connection aborted') ||
+      normalized.contains('clientexception') ||
+      normalized.contains('handshakeexception');
 }
 
 /// Generate a localized, user-friendly error message for the given [category].
@@ -169,6 +184,10 @@ Future<void> handleGenericAgentFailure(
 Never rethrowIfNonRetryable(Object error) {
   final category = classifyError(error);
   final statusCode = _extractStatusCode(error);
+
+  if (category == LlmErrorCategory.networkError) {
+    throw error;
+  }
 
   // 400-class errors (auth, bad request) are never worth retrying
   if (category == LlmErrorCategory.authenticationError ||

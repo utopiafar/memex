@@ -1,0 +1,42 @@
+{
+  "run_id": "2026-05-16-eval-system-review",
+  "reviewed_experiment_count": 28,
+  "merged_refs": {
+    "base_branch": "codex/agent-evals-harness",
+    "main_ref": "upstream/main",
+    "pr_105_ref": "upstream/pr/105"
+  },
+  "new_real_replay": {
+    "dataset": "evals/datasets/full_chain_realistic_smoke",
+    "experiment": "evals/experiments/2026-05-16-realistic-full-chain-smoke",
+    "case_limit": 1,
+    "assertions": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0
+    },
+    "replay_elapsed_ms": 467852,
+    "llm_call_count": 58,
+    "tool_call_count": 177,
+    "total_tokens": 59825,
+    "task_completion_status": "all_completed",
+    "dataset_audit_overall": 0.9
+  },
+  "new_metrics": [
+    "record_operation_coverage",
+    "journey_time_span_coverage",
+    "app_operation_sequence_completeness",
+    "input_channel_diversity",
+    "feature_trigger_coverage"
+  ],
+  "key_problem_categories": [
+    "fixture_results_do_not_prove_real_agent_behavior",
+    "not_enough_real_replay",
+    "data_naturalness_drops_when_scaling",
+    "retrieval_only_expansion_has_low_marginal_value",
+    "hard_cases_are_useful_for_failures_but_not_strong_benchmarks",
+    "app_behavior_metrics_were_missing",
+    "super_agent_judge_needs_source_snippets",
+    "flutter_tester_proxy_environment_can_break_replay"
+  ]
+}

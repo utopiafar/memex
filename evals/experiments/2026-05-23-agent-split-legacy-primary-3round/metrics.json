@@ -1,0 +1,138 @@
+{
+  "experiment_id": "agent_split_legacy_primary_3round_2026_05_23",
+  "dataset": "evals/datasets/full_chain_journey_real_replay_v4/cases.jsonl",
+  "method": {
+    "formal_modes": ["legacy_pkm", "split_primary"],
+    "shadow_mode_used_for_conclusion": false,
+    "case_limit_per_mode_per_round": 2,
+    "rounds": [
+      {"round": 1, "case_offset": 0, "case_ids": ["journey_real_replay_v4_01_a", "journey_real_replay_v4_01_b"]},
+      {"round": 2, "case_offset": 0, "case_ids": ["journey_real_replay_v4_01_a", "journey_real_replay_v4_01_b"]},
+      {"round": 3, "case_offset": 2, "case_ids": ["journey_real_replay_v4_01_c", "journey_real_replay_v4_02_a"]}
+    ]
+  },
+  "results": [
+    {
+      "round": 1,
+      "mode": "legacy_pkm",
+      "run_dir": "evals/runs/agent-split-iter-r1-legacy",
+      "score_dir": "evals/runs/agent-split-iter-r1-legacy-score",
+      "assertions": {"passed": 83, "total": 113, "pass_rate": 0.7345},
+      "replay_elapsed_ms": 1699318,
+      "tokens": 194197,
+      "llm_calls": 155,
+      "tool_calls": 1080,
+      "record_operations": 15,
+      "operation_settlement_rate": 0.9444,
+      "failed_tasks": 1,
+      "loop_detection_tasks": 1,
+      "memory_entries": 3,
+      "memory_source_linked_entries": 3
+    },
+    {
+      "round": 1,
+      "mode": "split_primary",
+      "run_dir": "evals/runs/agent-split-iter-r1-primary",
+      "score_dir": "evals/runs/agent-split-iter-r1-primary-score",
+      "assertions": {"passed": 103, "total": 113, "pass_rate": 0.9115},
+      "replay_elapsed_ms": 1663840,
+      "tokens": 73656,
+      "llm_calls": 115,
+      "tool_calls": 678,
+      "record_operations": 24,
+      "operation_settlement_rate": 1.0,
+      "failed_tasks": 0,
+      "loop_detection_tasks": 0,
+      "memory_entries": 4,
+      "memory_source_linked_entries": 4
+    },
+    {
+      "round": 2,
+      "mode": "legacy_pkm",
+      "run_dir": "evals/runs/agent-split-iter-r2-legacy",
+      "score_dir": "evals/runs/agent-split-iter-r2-legacy-score",
+      "assertions": {"passed": 84, "total": 113, "pass_rate": 0.7434},
+      "replay_elapsed_ms": 1804444,
+      "tokens": 161712,
+      "llm_calls": 149,
+      "tool_calls": 1044,
+      "record_operations": 16,
+      "operation_settlement_rate": 0.9474,
+      "failed_tasks": 1,
+      "loop_detection_tasks": 1,
+      "memory_entries": 3,
+      "memory_source_linked_entries": 3
+    },
+    {
+      "round": 2,
+      "mode": "split_primary",
+      "run_dir": "evals/runs/agent-split-iter-r2-primary",
+      "score_dir": "evals/runs/agent-split-iter-r2-primary-score",
+      "assertions": {"passed": 104, "total": 113, "pass_rate": 0.9204},
+      "replay_elapsed_ms": 1817374,
+      "tokens": 72465,
+      "llm_calls": 128,
+      "tool_calls": 660,
+      "record_operations": 24,
+      "operation_settlement_rate": 1.0,
+      "failed_tasks": 0,
+      "loop_detection_tasks": 0,
+      "memory_entries": 11,
+      "memory_source_linked_entries": 11
+    },
+    {
+      "round": 3,
+      "mode": "legacy_pkm",
+      "run_dir": "evals/runs/agent-split-iter-r3-legacy",
+      "score_dir": "evals/runs/agent-split-iter-r3-legacy-score",
+      "assertions": {"passed": 88, "total": 114, "pass_rate": 0.7719},
+      "replay_elapsed_ms": 1980195,
+      "tokens": 189930,
+      "llm_calls": 168,
+      "tool_calls": 990,
+      "record_operations": 22,
+      "operation_settlement_rate": 0.96,
+      "failed_tasks": 1,
+      "loop_detection_tasks": 1,
+      "memory_entries": 11,
+      "memory_source_linked_entries": 9
+    },
+    {
+      "round": 3,
+      "mode": "split_primary",
+      "run_dir": "evals/runs/agent-split-iter-r3-primary",
+      "score_dir": "evals/runs/agent-split-iter-r3-primary-score",
+      "assertions": {"passed": 104, "total": 114, "pass_rate": 0.9123},
+      "replay_elapsed_ms": 1857664,
+      "tokens": 82896,
+      "llm_calls": 118,
+      "tool_calls": 612,
+      "record_operations": 24,
+      "operation_settlement_rate": 1.0,
+      "failed_tasks": 0,
+      "loop_detection_tasks": 0,
+      "memory_entries": 11,
+      "memory_source_linked_entries": 11
+    }
+  ],
+  "aggregate": {
+    "legacy_pkm": {
+      "pass_rates": [0.7345, 0.7434, 0.7719],
+      "avg_pass_rate": 0.7499,
+      "total_tokens": 545839,
+      "total_llm_calls": 472,
+      "total_tool_calls": 3114,
+      "total_failed_tasks": 3,
+      "total_loop_detection_tasks": 3
+    },
+    "split_primary": {
+      "pass_rates": [0.9115, 0.9204, 0.9123],
+      "avg_pass_rate": 0.9147,
+      "total_tokens": 229017,
+      "total_llm_calls": 361,
+      "total_tool_calls": 1950,
+      "total_failed_tasks": 0,
+      "total_loop_detection_tasks": 0
+    }
+  }
+}

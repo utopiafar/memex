@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:dart_agent_core/dart_agent_core.dart';
 import 'package:logging/logging.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:memex/data/services/local_task_executor.dart';
@@ -18,10 +20,28 @@ Future<void> handleKnowledgeInsight(
   );
 
   try {
-    await KnowledgeInsightAgent.updateKnowledgeInsight(
-      userId: userId,
-      runId: context.taskId,
-    );
+    try {
+      await KnowledgeInsightAgent.updateKnowledgeInsight(
+        userId: userId,
+        runId: context.taskId,
+      );
+    } on AgentException catch (e) {
+      if (e.code != AgentExceptionCode.loopDetection) {
+        rethrow;
+      }
+
+      _logger.warning(
+        'Knowledge insight task ${context.taskId} skipped after recoverable agent loop: ${e.message}',
+      );
+      await LocalTaskExecutor.instance.updateTaskResult(
+        context.taskId,
+        jsonEncode({
+          'status': 'skipped',
+          'reason': 'recoverable_agent_loop',
+          'error': e.toString(),
+        }),
+      );
+    }
   } finally {
     // Always notify UI that the refresh operation is done (success or failure).
     // On failure, handleGenericAgentFailure also emits ErrorNotificationMessage

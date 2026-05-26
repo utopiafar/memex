@@ -1,0 +1,337 @@
+{
+  "run_id": "2026-05-13-memory-lifecycle",
+  "started_at": "2026-05-12T18:03:49.694465Z",
+  "benchmark_elapsed_ms": 25827,
+  "dataset_path": "evals/datasets/memory_lifecycle",
+  "adapter": "fixture",
+  "llm_judge_enabled": false,
+  "case_count": 12,
+  "task_count": 60,
+  "dataset_summary": {
+    "case_count": 12,
+    "persona_count": 12,
+    "input_count": 1200,
+    "task_count": 60,
+    "languages": [
+      "zh-CN"
+    ],
+    "cases_by_family": {
+      "memory_lifecycle": 12
+    },
+    "tasks_by_type": {
+      "memory_write": 48,
+      "super_agent_qa": 12
+    },
+    "personas": [
+      {
+        "user_id": "memory_life_u_001",
+        "occupation": "产品经理",
+        "city": "杭州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是导出项目相关评审。",
+          "点餐记一下：不要海鲜，少糖，晚上少咖啡。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_002",
+        "occupation": "跨境电商运营",
+        "city": "深圳",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是北美站增长相关评审。",
+          "外卖偏好更新：不要海鲜，少糖，生冷先避开。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_003",
+        "occupation": "数据分析师",
+        "city": "上海",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是Memex eval相关评审。",
+          "午饭偏好：少油，别点海鲜，下午不要奶茶。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_004",
+        "occupation": "老师",
+        "city": "北京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是公开课改版相关评审。",
+          "上课前别给我订太辣的，也尽量不要冰饮。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_005",
+        "occupation": "律师",
+        "city": "广州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是法务合同库相关评审。",
+          "加班餐清淡一点，不要海鲜，咖啡只放上午。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_006",
+        "occupation": "财务主管",
+        "city": "成都",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是预算月结相关评审。",
+          "月底加班餐别太油，少糖，不要生冷。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_007",
+        "occupation": "内容运营",
+        "city": "苏州",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是小红书活动相关评审。",
+          "拍摄当天午饭少糖少油，不要海鲜，避免犯困。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_008",
+        "occupation": "独立开发者",
+        "city": "厦门",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是个人工具订阅相关评审。",
+          "写代码时别给我安排高糖饮料，咖啡只上午喝。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_009",
+        "occupation": "医生",
+        "city": "南京",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是门诊随访系统相关评审。",
+          "值班餐尽量清淡，不要海鲜，夜里不要咖啡。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_010",
+        "occupation": "HRBP",
+        "city": "武汉",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是绩效校准相关评审。",
+          "面谈前别安排太甜的饮料，午饭尽量少油。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_011",
+        "occupation": "设计师",
+        "city": "长沙",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是会员页改版相关评审。",
+          "评审日午饭少糖，不要冰饮，避免下午困。"
+        ]
+      },
+      {
+        "user_id": "memory_life_u_012",
+        "occupation": "创业者",
+        "city": "青岛",
+        "language": "zh-CN",
+        "case_count": 1,
+        "input_count": 100,
+        "task_count": 5,
+        "sample_inputs": [
+          "以后重要会议提前一天提醒我，尤其是B 端试点相关评审。",
+          "跑客户当天少糖少油，咖啡只上午喝。"
+        ]
+      }
+    ]
+  },
+  "dataset_audit": {
+    "overall_score": 0.9,
+    "language_consistency": 1.0,
+    "persona_plausibility": 0.9,
+    "input_naturalness": 0.9,
+    "oracle_consistency": 0.9,
+    "coverage_notes": [
+      "数据集覆盖了12个不同职业和城市的用户，场景多样。",
+      "输入流包含长期偏好、临时状态、冲突更新、敏感信息边界等多种记忆生命周期场景。",
+      "评估任务覆盖了初始写入、冲突解决、时间范围、敏感信息处理和超级代理问答。"
+    ],
+    "issues": [
+      {
+        "case_id": "all",
+        "severity": "low",
+        "issue": "案例结构高度模板化",
+        "suggestion": "在保持核心测试点不变的前提下，可微调输入顺序、表达方式或增加少量非核心干扰项，以降低模式感。"
+      }
+    ],
+    "sample_reviews": [
+      {
+        "case_id": "memory_lifecycle_001",
+        "score": 0.9,
+        "reason": "语言自然，persona可信，输入流丰富且包含多种记忆管理场景，ground truth与输入一致，评估任务设计合理。"
+      },
+      {
+        "case_id": "memory_lifecycle_002",
+        "score": 0.9,
+        "reason": "与001结构类似但细节（职业、城市、项目）不同，同样自然可信，测试点一致，质量稳定。"
+      },
+      {
+        "case_id": "memory_lifecycle_003",
+        "score": 0.9,
+        "reason": "数据分析师角色和‘保留英文metric id’的偏好增加了真实性，其他方面保持高质量。"
+      },
+      {
+        "case_id": "memory_lifecycle_004",
+        "score": 0.9,
+        "reason": "教师角色和‘反馈不超过三条重点’的偏好符合职业特点，整体逻辑自洽。"
+      },
+      {
+        "case_id": "memory_lifecycle_005",
+        "score": 0.9,
+        "reason": "律师角色和‘重要结论要列来源’的偏好合理，案例细节完整。"
+      },
+      {
+        "case_id": "memory_lifecycle_006",
+        "score": 0.9,
+        "reason": "财务主管角色和‘数字先给口径’的偏好贴合实际，案例质量与前几个一致。"
+      }
+    ],
+    "reason": "数据集语言稳定为中文，符合zh-CN场景；12个persona职业、城市、习惯自然可信；ground_truth_world、input_stream、eval_tasks.expected三者高度一致，预期结果均可从输入中合理推出；未发现明显自嗨、文化不自然或oracle泄漏问题。主要不足是案例间结构高度相似，存在模板化倾向，但因其核心测试点（记忆生命周期）明确且细节有变化，不影响作为评估数据集的使用。"
+  },
+  "assertions": {
+    "passed": 300,
+    "total": 300,
+    "pass_rate": 1.0,
+    "avg_score": 1.0
+  },
+  "by_family": {
+    "memory_write": {
+      "passed": 240,
+      "total": 240,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "super_agent_qa": {
+      "passed": 60,
+      "total": 60,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "by_metric": {
+    "memory_must_write_recall": {
+      "passed": 60,
+      "total": 60,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_source_grounding": {
+      "passed": 60,
+      "total": 60,
+      "pass_rate": 1.0
+    },
+    "memory_temporal_validity": {
+      "passed": 36,
+      "total": 36,
+      "pass_rate": 1.0
+    },
+    "memory_must_not_write_precision": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0
+    },
+    "memory_write_precision": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_duplicate_rate": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "memory_conflict_handling": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0
+    },
+    "sensitive_overwrite_absence": {
+      "passed": 24,
+      "total": 24,
+      "pass_rate": 1.0
+    },
+    "answer_must_include": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    },
+    "unsupported_claim_absence": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0
+    },
+    "prohibited_tool_absence": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0
+    },
+    "super_agent_read_only_compliance": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0
+    },
+    "personalization_accuracy": {
+      "passed": 12,
+      "total": 12,
+      "pass_rate": 1.0,
+      "avg_score": 1.0
+    }
+  },
+  "cost_trace": {
+    "llm_call_count": 60,
+    "tool_call_count": 12,
+    "avg_latency_ms": 968.0,
+    "p95_latency_ms": 1100.0,
+    "avg_total_tokens": 2720.0,
+    "total_tokens": 163200
+  }
+}
