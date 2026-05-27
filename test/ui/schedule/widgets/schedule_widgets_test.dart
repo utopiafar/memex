@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:memex/domain/models/schedule_aggregation_model.dart';
+import 'package:memex/domain/models/schedule_state.dart' show ScheduleSubtask;
+import 'package:memex/domain/models/schedule_view_data.dart';
 import 'package:memex/l10n/app_localizations.dart';
 import 'package:memex/ui/core/cards/templates/system/schedule_briefing_card.dart';
 import 'package:memex/ui/schedule/models/schedule_item.dart';
@@ -38,7 +39,9 @@ void main() {
           buildHost(
             MagazineNarrativeTab(
               aggregation: _complexAggregation(),
-              itemStatuses: const {'task-clean': ScheduleItemStatus.completed},
+              itemStatuses: const {
+                'pi_task_clean': ScheduleItemStatus.completed
+              },
               onTapCardId: tappedCards.add,
               onToggleTask: toggledTasks.add,
             ),
@@ -59,30 +62,21 @@ void main() {
         );
         expect(find.text('Deadline pressure'), findsOneWidget);
 
-        await tester.ensureVisible(
-          find.text('Two fixed events overlap with the cleaning window.'),
-        );
-        await tester.pumpAndSettle();
-        expect(
-          find.text('Two fixed events overlap with the cleaning window.'),
-          findsOneWidget,
-        );
-
         await tester.ensureVisible(find.text('Clean the apartment'));
         await tester.pumpAndSettle();
         expect(find.text('Clean the apartment'), findsOneWidget);
         expect(
-          find.byKey(const ValueKey('schedule_task_toggle_task-clean')),
+          find.byKey(const ValueKey('schedule_task_toggle_pi_task_clean')),
           findsOneWidget,
         );
         expect(find.byIcon(Icons.check), findsWidgets);
 
         await tester.tap(
-          find.byKey(const ValueKey('schedule_task_toggle_task-clean')),
+          find.byKey(const ValueKey('schedule_task_toggle_pi_task_clean')),
         );
         await tester.pump();
 
-        expect(toggledTasks, ['task-clean']);
+        expect(toggledTasks, ['pi_task_clean']);
 
         expect(find.text('Dentist appointment'), findsOneWidget);
         await tester.tap(find.text('Dentist appointment'));
@@ -154,15 +148,15 @@ void main() {
         expect(find.text('Collect passport photos'), findsNothing);
 
         await tester.tap(
-          find.byKey(const ValueKey('schedule_subtask_toggle_task-visa_1')),
+          find.byKey(const ValueKey('schedule_subtask_toggle_pi_task_visa_1')),
         );
         await tester.pump();
 
-        expect(toggledSubtasks, ['task-visa:1']);
+        expect(toggledSubtasks, ['pi_task_visa:1']);
         expect(tappedCards, isEmpty);
 
         await tester.tap(
-          find.byKey(const ValueKey('schedule_subtasks_expand_task-visa')),
+          find.byKey(const ValueKey('schedule_subtasks_expand_pi_task_visa')),
         );
         await tester.pumpAndSettle();
 
@@ -178,30 +172,30 @@ void main() {
         buildHost(
           MagazineNarrativeTab(
             referenceDate: DateTime(2026, 5, 16, 8),
-            aggregation: ScheduleAggregationModel(
+            aggregation: ScheduleViewData(
               id: 'agg_relative_labels',
               generatedAt: DateTime(2026, 5, 15, 18),
-              timeRange: TimeRange(
+              timeRange: ScheduleViewTimeRange(
                 from: DateTime(2026, 5, 15),
                 to: DateTime(2026, 5, 22),
               ),
               timeline: [
-                TimelineDay(
+                ScheduleViewTimelineDay(
                   dayLabel: 'Tomorrow',
                   dayDate: DateTime(2026, 5, 16),
                   items: [
-                    TimelineItem(
+                    ScheduleViewPendingItem(
                       cardId: 'event-today',
                       title: 'Today event',
                       startTime: DateTime(2026, 5, 16, 10),
                     ),
                   ],
                 ),
-                TimelineDay(
+                ScheduleViewTimelineDay(
                   dayLabel: 'Today',
                   dayDate: DateTime(2026, 5, 17),
                   items: [
-                    TimelineItem(
+                    ScheduleViewPendingItem(
                       cardId: 'event-tomorrow',
                       title: 'Tomorrow event',
                       startTime: DateTime(2026, 5, 17, 10),
@@ -237,40 +231,40 @@ void main() {
         buildHost(
           MagazineNarrativeTab(
             referenceDate: DateTime(2026, 5, 16, 8),
-            aggregation: ScheduleAggregationModel(
+            aggregation: ScheduleViewData(
               id: 'agg_mixed_day_labels',
               generatedAt: DateTime(2026, 5, 15, 18),
-              timeRange: TimeRange(
+              timeRange: ScheduleViewTimeRange(
                 from: DateTime(2026, 5, 15),
                 to: DateTime(2026, 5, 23),
               ),
               timeline: [
-                TimelineDay(
+                ScheduleViewTimelineDay(
                   dayLabel: 'Tomorrow',
                   dayDate: staleFutureDate,
                   items: [
-                    TimelineItem(
+                    ScheduleViewPendingItem(
                       cardId: 'event-future-relative',
                       title: 'Future stale relative label',
                       startTime: DateTime(2026, 5, 20, 10),
                     ),
                   ],
                 ),
-                TimelineDay(
+                ScheduleViewTimelineDay(
                   dayLabel: 'Launch day',
                   dayDate: DateTime(2026, 5, 21),
                   items: [
-                    TimelineItem(
+                    ScheduleViewPendingItem(
                       cardId: 'event-custom',
                       title: 'Custom label event',
                       startTime: DateTime(2026, 5, 21, 11),
                     ),
                   ],
                 ),
-                TimelineDay(
+                ScheduleViewTimelineDay(
                   dayLabel: '',
                   items: [
-                    TimelineItem(
+                    ScheduleViewPendingItem(
                       cardId: 'event-undated-section',
                       title: 'Undated section event',
                       startTime: DateTime(2026, 5, 22, 16),
@@ -358,7 +352,6 @@ void main() {
                 'hero_title': 'Clean the apartment before guest visit',
                 'summary': 'One task and one fixed meeting need attention.',
                 'completed_count': 2,
-                'conflict_count': 1,
                 'items': [
                   {
                     'title': 'Clean the apartment',
@@ -379,29 +372,26 @@ void main() {
       expect(find.text(itemLabel), findsOneWidget);
       expect(find.textContaining('+08:00'), findsNothing);
       expect(find.textContaining('2026-05-15T10:00'), findsNothing);
-      expect(
-        find.text(UserStorage.l10n.scheduleBriefingConflictCount(1)),
-        findsOneWidget,
-      );
     });
   });
 }
 
-ScheduleAggregationModel _subtaskAggregation() {
-  return ScheduleAggregationModel(
+ScheduleViewData _subtaskAggregation() {
+  return ScheduleViewData(
     id: 'agg_subtasks',
     generatedAt: DateTime(2026, 5, 14, 18),
-    timeRange: TimeRange(
+    timeRange: ScheduleViewTimeRange(
       from: DateTime(2026, 5, 14),
       to: DateTime(2026, 5, 21),
     ),
     timeline: [
-      TimelineDay(
+      ScheduleViewTimelineDay(
         dayLabel: 'Friday',
         dayDate: DateTime(2026, 5, 15),
         items: [
-          TimelineItem(
+          ScheduleViewPendingItem(
             cardId: 'task-visa',
+            itemId: 'pi_task_visa',
             title: 'Visa checklist',
             type: 'task',
             status: 'pending',
@@ -423,7 +413,7 @@ ScheduleAggregationModel _subtaskAggregation() {
   );
 }
 
-ScheduleAggregationModel _complexAggregation({
+ScheduleViewData _complexAggregation({
   bool longText = false,
   String heroTitle = 'Visa renewal',
   String editorialIntro = 'A heavy week with travel prep and home tasks.',
@@ -432,14 +422,14 @@ ScheduleAggregationModel _complexAggregation({
       ? 'Very long cross-city conference room name with building, floor, wing, and entrance instructions'
       : 'Clinic room 4';
 
-  return ScheduleAggregationModel(
+  return ScheduleViewData(
     id: 'agg_complex',
     generatedAt: DateTime(2026, 5, 14, 18),
-    timeRange: TimeRange(
+    timeRange: ScheduleViewTimeRange(
       from: DateTime(2026, 5, 14),
       to: DateTime(2026, 5, 21),
     ),
-    heroItem: HeroItem(
+    hero: ScheduleViewHero(
       cardId: 'event-visa',
       title: longText
           ? 'Very long cross-city visa renewal preparation and paperwork deadline'
@@ -451,26 +441,21 @@ ScheduleAggregationModel _complexAggregation({
       priority: 3,
     ),
     editorialIntro: editorialIntro,
-    quoteBlocks: [
-      QuoteBlock(
+    quoteBlocks: const [
+      ScheduleViewQuoteBlock(
         title: 'Deadline pressure',
         content: 'Handle documents before the afternoon meeting.',
         priority: 'high',
       ),
     ],
-    conflicts: [
-      Conflict(
-        description: 'Two fixed events overlap with the cleaning window.',
-        itemIds: ['task-clean', 'event-dentist'],
-      ),
-    ],
     timeline: [
-      TimelineDay(
+      ScheduleViewTimelineDay(
         dayLabel: 'Friday',
         dayDate: DateTime(2026, 5, 15),
         items: [
-          TimelineItem(
+          ScheduleViewPendingItem(
             cardId: 'task-clean',
+            itemId: 'pi_task_clean',
             title: 'Clean the apartment',
             type: 'task',
             status: 'pending',
@@ -479,7 +464,7 @@ ScheduleAggregationModel _complexAggregation({
             description:
                 'Prepare living room and kitchen before guests arrive.',
           ),
-          TimelineItem(
+          ScheduleViewPendingItem(
             cardId: 'event-dentist',
             title: 'Dentist appointment',
             type: 'event',
@@ -491,7 +476,7 @@ ScheduleAggregationModel _complexAggregation({
       ),
     ],
     completed: [
-      CompletedItem(
+      ScheduleViewCompletedItem(
         cardId: 'task-grocery',
         title: 'Done grocery order',
         completedAt: DateTime(2026, 5, 14, 21, 15),

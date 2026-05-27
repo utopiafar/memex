@@ -213,6 +213,77 @@ class AppLocalizationsEn extends AppLocalizations {
   String get schedule => 'Schedule';
 
   @override
+  String get statistics => 'Stats';
+
+  @override
+  String get activityStats => 'Activity stats';
+
+  @override
+  String activityStatsSummary(Object inputs, Object cards, Object todos) {
+    return 'In this period you recorded $inputs time(s), generated $cards card(s), and completed $todos todo(s).';
+  }
+
+  @override
+  String get last7Days => '7 days';
+
+  @override
+  String get last30Days => '30 days';
+
+  @override
+  String get last90Days => '90 days';
+
+  @override
+  String get records => 'Records';
+
+  @override
+  String get words => 'Words';
+
+  @override
+  String get cards => 'Cards';
+
+  @override
+  String get knowledgeUnits => 'Knowledge units';
+
+  @override
+  String get completedTodos => 'Completed todos';
+
+  @override
+  String get activeDays => 'Active days';
+
+  @override
+  String get streakDays => 'Streak';
+
+  @override
+  String get dailyRhythm => 'Daily rhythm';
+
+  @override
+  String get recordToOutput => 'Record to output';
+
+  @override
+  String get sourceBreakdown => 'Source breakdown';
+
+  @override
+  String get topThemes => 'Top themes';
+
+  @override
+  String get textInput => 'Text';
+
+  @override
+  String get imageInput => 'Images';
+
+  @override
+  String get audioInput => 'Audio';
+
+  @override
+  String get noStatsYet => 'No activity stats yet';
+
+  @override
+  String get tapDayForDetails => 'Tap a day to view details';
+
+  @override
+  String get dayDetails => 'Day details';
+
+  @override
   String loadStatsFailed(Object error) {
     return 'Failed to load stats: $error';
   }
@@ -930,6 +1001,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chatHistory => 'Chat history';
 
   @override
+  String get enterFullScreenTooltip => 'Enter full screen';
+
+  @override
+  String get exitFullScreenTooltip => 'Exit full screen';
+
+  @override
   String get noConversations => 'No conversations';
 
   @override
@@ -1051,10 +1128,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get scheduleAggregationEmptyHint =>
       'Tap Update to organize schedules and todos from real temporal cards.';
-
-  @override
-  String get scheduleAggregationDirtyReason =>
-      'New schedule-related content is available. Tap Update to reorganize.';
 
   @override
   String get scheduleAggregationLoadFailed => 'Failed to load schedule data';
@@ -1597,6 +1670,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get providerZhipu => 'Zhipu GLM';
 
   @override
+  String get providerDeepSeek => 'DeepSeek';
+
+  @override
   String get providerMinimax => 'MiniMax';
 
   @override
@@ -1714,6 +1790,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String get advancedSettings => 'Advanced Settings';
 
   @override
+  String get testConnectionSuccess => 'Connection Successful';
+
+  @override
+  String get testConnectionFailed => 'Connection Failed';
+
+  @override
+  String get testTypeText => 'Text';
+
+  @override
+  String get testTypeVision => 'Vision';
+
+  @override
+  String get testButton => 'Test';
+
+  @override
+  String get testing => 'Testing...';
+
+  @override
   String get proxyUrlOptional => 'Proxy URL (Optional)';
 
   @override
@@ -1788,6 +1882,57 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get failureReason => 'Failure Reason';
+
+  @override
+  String get cardGenerationFailedTitle => 'Card generation failed';
+
+  @override
+  String get cardGenerationFailedDescription =>
+      'Your original record is saved. You can regenerate the card without creating a duplicate record.';
+
+  @override
+  String get regenerateCard => 'Regenerate Card';
+
+  @override
+  String get cardRegenerationStarted => 'Card regeneration started';
+
+  @override
+  String get cardRegenerationFailed => 'Failed to start card regeneration';
+
+  @override
+  String get cardRegeneratingTitle => 'Regenerating card';
+
+  @override
+  String get cardRegeneratingDescription =>
+      'Memex is rebuilding this card from the saved original record.';
+
+  @override
+  String failedCardsRetryTitle(num count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count cards failed to generate',
+      one: '1 card failed to generate',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get failedCardsRetryDescription =>
+      'Original records are saved. Retry all failed card generations from the saved records.';
+
+  @override
+  String get retryAllFailedCards => 'Retry All';
+
+  @override
+  String failedCardsRetryStarted(Object count) {
+    return 'Started regenerating $count failed cards';
+  }
+
+  @override
+  String failedCardsRetryPartial(Object retried, Object failed) {
+    return 'Started $retried retries. $failed cards need attention.';
+  }
 
   @override
   String get unknownError => 'Unknown error occurred';
@@ -2985,9 +3130,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get earlyUpdateDownloadAndInstall => 'Download and install';
 
   @override
+  String get earlyUpdateDownloadInProgress => 'Downloading update...';
+
+  @override
   String earlyUpdateDownloadingPercent(Object percent) {
     return 'Downloading update: $percent%';
   }
+
+  @override
+  String get earlyUpdateDownloadReadyToInstall =>
+      'Update package downloaded. Ready to install.';
 
   @override
   String get earlyUpdateInstallDownloadedPackage =>
@@ -3022,4 +3174,32 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get earlyUpdateReleaseNotes => 'Release notes';
+
+  @override
+  String get dismissAllNotifications => 'Clear all';
+
+  @override
+  String get dismissByType => 'Clear by type';
+
+  @override
+  String get dismissTypeSystemAction => 'Reminders & events';
+
+  @override
+  String get dismissTypeClarification => 'Clarifications';
+
+  @override
+  String get dismissTypeCardUpdate => 'Card updates';
+
+  @override
+  String get dismissAllConfirm => 'Clear all notifications?';
+
+  @override
+  String dismissTypeConfirm(Object type) {
+    return 'Clear all $type notifications?';
+  }
+
+  @override
+  String dismissedCount(Object count) {
+    return '$count cleared';
+  }
 }

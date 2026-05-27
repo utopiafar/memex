@@ -464,6 +464,144 @@ abstract class AppLocalizations {
   /// **'Schedule'**
   String get schedule;
 
+  /// No description provided for @statistics.
+  ///
+  /// In en, this message translates to:
+  /// **'Stats'**
+  String get statistics;
+
+  /// No description provided for @activityStats.
+  ///
+  /// In en, this message translates to:
+  /// **'Activity stats'**
+  String get activityStats;
+
+  /// No description provided for @activityStatsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'In this period you recorded {inputs} time(s), generated {cards} card(s), and completed {todos} todo(s).'**
+  String activityStatsSummary(Object inputs, Object cards, Object todos);
+
+  /// No description provided for @last7Days.
+  ///
+  /// In en, this message translates to:
+  /// **'7 days'**
+  String get last7Days;
+
+  /// No description provided for @last30Days.
+  ///
+  /// In en, this message translates to:
+  /// **'30 days'**
+  String get last30Days;
+
+  /// No description provided for @last90Days.
+  ///
+  /// In en, this message translates to:
+  /// **'90 days'**
+  String get last90Days;
+
+  /// No description provided for @records.
+  ///
+  /// In en, this message translates to:
+  /// **'Records'**
+  String get records;
+
+  /// No description provided for @words.
+  ///
+  /// In en, this message translates to:
+  /// **'Words'**
+  String get words;
+
+  /// No description provided for @cards.
+  ///
+  /// In en, this message translates to:
+  /// **'Cards'**
+  String get cards;
+
+  /// No description provided for @knowledgeUnits.
+  ///
+  /// In en, this message translates to:
+  /// **'Knowledge units'**
+  String get knowledgeUnits;
+
+  /// No description provided for @completedTodos.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed todos'**
+  String get completedTodos;
+
+  /// No description provided for @activeDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Active days'**
+  String get activeDays;
+
+  /// No description provided for @streakDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Streak'**
+  String get streakDays;
+
+  /// No description provided for @dailyRhythm.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily rhythm'**
+  String get dailyRhythm;
+
+  /// No description provided for @recordToOutput.
+  ///
+  /// In en, this message translates to:
+  /// **'Record to output'**
+  String get recordToOutput;
+
+  /// No description provided for @sourceBreakdown.
+  ///
+  /// In en, this message translates to:
+  /// **'Source breakdown'**
+  String get sourceBreakdown;
+
+  /// No description provided for @topThemes.
+  ///
+  /// In en, this message translates to:
+  /// **'Top themes'**
+  String get topThemes;
+
+  /// No description provided for @textInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get textInput;
+
+  /// No description provided for @imageInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Images'**
+  String get imageInput;
+
+  /// No description provided for @audioInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get audioInput;
+
+  /// No description provided for @noStatsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No activity stats yet'**
+  String get noStatsYet;
+
+  /// No description provided for @tapDayForDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a day to view details'**
+  String get tapDayForDetails;
+
+  /// No description provided for @dayDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Day details'**
+  String get dayDetails;
+
   /// No description provided for @loadStatsFailed.
   ///
   /// In en, this message translates to:
@@ -1748,6 +1886,18 @@ abstract class AppLocalizations {
   /// **'Chat history'**
   String get chatHistory;
 
+  /// No description provided for @enterFullScreenTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter full screen'**
+  String get enterFullScreenTooltip;
+
+  /// No description provided for @exitFullScreenTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit full screen'**
+  String get exitFullScreenTooltip;
+
   /// No description provided for @noConversations.
   ///
   /// In en, this message translates to:
@@ -1951,12 +2101,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Tap Update to organize schedules and todos from real temporal cards.'**
   String get scheduleAggregationEmptyHint;
-
-  /// No description provided for @scheduleAggregationDirtyReason.
-  ///
-  /// In en, this message translates to:
-  /// **'New schedule-related content is available. Tap Update to reorganize.'**
-  String get scheduleAggregationDirtyReason;
 
   /// No description provided for @scheduleAggregationLoadFailed.
   ///
@@ -2936,6 +3080,12 @@ abstract class AppLocalizations {
   /// **'Zhipu GLM'**
   String get providerZhipu;
 
+  /// No description provided for @providerDeepSeek.
+  ///
+  /// In en, this message translates to:
+  /// **'DeepSeek'**
+  String get providerDeepSeek;
+
   /// No description provided for @providerMinimax.
   ///
   /// In en, this message translates to:
@@ -3158,6 +3308,42 @@ abstract class AppLocalizations {
   /// **'Advanced Settings'**
   String get advancedSettings;
 
+  /// No description provided for @testConnectionSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection Successful'**
+  String get testConnectionSuccess;
+
+  /// No description provided for @testConnectionFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection Failed'**
+  String get testConnectionFailed;
+
+  /// No description provided for @testTypeText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get testTypeText;
+
+  /// No description provided for @testTypeVision.
+  ///
+  /// In en, this message translates to:
+  /// **'Vision'**
+  String get testTypeVision;
+
+  /// No description provided for @testButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Test'**
+  String get testButton;
+
+  /// No description provided for @testing.
+  ///
+  /// In en, this message translates to:
+  /// **'Testing...'**
+  String get testing;
+
   /// No description provided for @proxyUrlOptional.
   ///
   /// In en, this message translates to:
@@ -3295,6 +3481,78 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Failure Reason'**
   String get failureReason;
+
+  /// No description provided for @cardGenerationFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Card generation failed'**
+  String get cardGenerationFailedTitle;
+
+  /// No description provided for @cardGenerationFailedDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Your original record is saved. You can regenerate the card without creating a duplicate record.'**
+  String get cardGenerationFailedDescription;
+
+  /// No description provided for @regenerateCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerate Card'**
+  String get regenerateCard;
+
+  /// No description provided for @cardRegenerationStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Card regeneration started'**
+  String get cardRegenerationStarted;
+
+  /// No description provided for @cardRegenerationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to start card regeneration'**
+  String get cardRegenerationFailed;
+
+  /// No description provided for @cardRegeneratingTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Regenerating card'**
+  String get cardRegeneratingTitle;
+
+  /// No description provided for @cardRegeneratingDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Memex is rebuilding this card from the saved original record.'**
+  String get cardRegeneratingDescription;
+
+  /// No description provided for @failedCardsRetryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 card failed to generate} other{{count} cards failed to generate}}'**
+  String failedCardsRetryTitle(num count);
+
+  /// No description provided for @failedCardsRetryDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Original records are saved. Retry all failed card generations from the saved records.'**
+  String get failedCardsRetryDescription;
+
+  /// No description provided for @retryAllFailedCards.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry All'**
+  String get retryAllFailedCards;
+
+  /// No description provided for @failedCardsRetryStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Started regenerating {count} failed cards'**
+  String failedCardsRetryStarted(Object count);
+
+  /// No description provided for @failedCardsRetryPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Started {retried} retries. {failed} cards need attention.'**
+  String failedCardsRetryPartial(Object retried, Object failed);
 
   /// No description provided for @unknownError.
   ///
@@ -5390,11 +5648,23 @@ abstract class AppLocalizations {
   /// **'Download and install'**
   String get earlyUpdateDownloadAndInstall;
 
+  /// No description provided for @earlyUpdateDownloadInProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading update...'**
+  String get earlyUpdateDownloadInProgress;
+
   /// No description provided for @earlyUpdateDownloadingPercent.
   ///
   /// In en, this message translates to:
   /// **'Downloading update: {percent}%'**
   String earlyUpdateDownloadingPercent(Object percent);
+
+  /// No description provided for @earlyUpdateDownloadReadyToInstall.
+  ///
+  /// In en, this message translates to:
+  /// **'Update package downloaded. Ready to install.'**
+  String get earlyUpdateDownloadReadyToInstall;
 
   /// No description provided for @earlyUpdateInstallDownloadedPackage.
   ///
@@ -5449,6 +5719,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Release notes'**
   String get earlyUpdateReleaseNotes;
+
+  /// No description provided for @dismissAllNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all'**
+  String get dismissAllNotifications;
+
+  /// No description provided for @dismissByType.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear by type'**
+  String get dismissByType;
+
+  /// No description provided for @dismissTypeSystemAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Reminders & events'**
+  String get dismissTypeSystemAction;
+
+  /// No description provided for @dismissTypeClarification.
+  ///
+  /// In en, this message translates to:
+  /// **'Clarifications'**
+  String get dismissTypeClarification;
+
+  /// No description provided for @dismissTypeCardUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Card updates'**
+  String get dismissTypeCardUpdate;
+
+  /// No description provided for @dismissAllConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all notifications?'**
+  String get dismissAllConfirm;
+
+  /// No description provided for @dismissTypeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all {type} notifications?'**
+  String dismissTypeConfirm(Object type);
+
+  /// No description provided for @dismissedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} cleared'**
+  String dismissedCount(Object count);
 }
 
 class _AppLocalizationsDelegate

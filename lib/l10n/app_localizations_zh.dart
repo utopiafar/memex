@@ -208,6 +208,77 @@ class AppLocalizationsZh extends AppLocalizations {
   String get schedule => '日程';
 
   @override
+  String get statistics => '统计';
+
+  @override
+  String get activityStats => '活动统计';
+
+  @override
+  String activityStatsSummary(Object inputs, Object cards, Object todos) {
+    return '这段时间你记录了 $inputs 次，生成了 $cards 张卡片，完成了 $todos 个待办。';
+  }
+
+  @override
+  String get last7Days => '7 天';
+
+  @override
+  String get last30Days => '30 天';
+
+  @override
+  String get last90Days => '90 天';
+
+  @override
+  String get records => '记录';
+
+  @override
+  String get words => '字词';
+
+  @override
+  String get cards => '卡片';
+
+  @override
+  String get knowledgeUnits => '知识单元';
+
+  @override
+  String get completedTodos => '完成待办';
+
+  @override
+  String get activeDays => '活跃天数';
+
+  @override
+  String get streakDays => '连续记录';
+
+  @override
+  String get dailyRhythm => '每日节奏';
+
+  @override
+  String get recordToOutput => '记录到沉淀';
+
+  @override
+  String get sourceBreakdown => '来源分布';
+
+  @override
+  String get topThemes => '高频主题';
+
+  @override
+  String get textInput => '文本';
+
+  @override
+  String get imageInput => '图片';
+
+  @override
+  String get audioInput => '音频';
+
+  @override
+  String get noStatsYet => '暂无活动统计';
+
+  @override
+  String get tapDayForDetails => '点击某一天查看详情';
+
+  @override
+  String get dayDetails => '当天详情';
+
+  @override
   String loadStatsFailed(Object error) {
     return '加载统计数据失败: $error';
   }
@@ -907,6 +978,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chatHistory => '会话历史';
 
   @override
+  String get enterFullScreenTooltip => '全屏查看';
+
+  @override
+  String get exitFullScreenTooltip => '退出全屏';
+
+  @override
   String get noConversations => '暂无会话';
 
   @override
@@ -1023,9 +1100,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get scheduleAggregationEmptyHint => '点击更新，从真实时间卡片里整理日程和待办。';
-
-  @override
-  String get scheduleAggregationDirtyReason => '有新的日程相关内容，点击更新后重新整理。';
 
   @override
   String get scheduleAggregationLoadFailed => '加载日程数据失败';
@@ -1549,6 +1623,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get providerZhipu => 'Zhipu GLM (智谱)';
 
   @override
+  String get providerDeepSeek => 'DeepSeek (官方 API)';
+
+  @override
   String get providerMinimax => 'MiniMax';
 
   @override
@@ -1666,6 +1743,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get advancedSettings => '高级设置';
 
   @override
+  String get testConnectionSuccess => '连接成功';
+
+  @override
+  String get testConnectionFailed => '连接失败';
+
+  @override
+  String get testTypeText => '文本';
+
+  @override
+  String get testTypeVision => '视觉';
+
+  @override
+  String get testButton => '测试';
+
+  @override
+  String get testing => '测试中...';
+
+  @override
   String get proxyUrlOptional => '代理 URL (可选)';
 
   @override
@@ -1736,6 +1831,48 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get failureReason => '失败原因';
+
+  @override
+  String get cardGenerationFailedTitle => '卡片生成失败';
+
+  @override
+  String get cardGenerationFailedDescription => '原始记录已保存，可以重新生成卡片，不会重复创建记录。';
+
+  @override
+  String get regenerateCard => '重新生成卡片';
+
+  @override
+  String get cardRegenerationStarted => '已开始重新生成卡片';
+
+  @override
+  String get cardRegenerationFailed => '未能开始重新生成卡片';
+
+  @override
+  String get cardRegeneratingTitle => '正在重新生成卡片';
+
+  @override
+  String get cardRegeneratingDescription => 'Memex 正在根据已保存的原始记录重建这张卡片。';
+
+  @override
+  String failedCardsRetryTitle(num count) {
+    return '$count 张卡片生成失败';
+  }
+
+  @override
+  String get failedCardsRetryDescription => '原始记录都已保存。可以从已保存的记录重新生成这些卡片。';
+
+  @override
+  String get retryAllFailedCards => '全部重试';
+
+  @override
+  String failedCardsRetryStarted(Object count) {
+    return '已开始重新生成 $count 张失败卡片';
+  }
+
+  @override
+  String failedCardsRetryPartial(Object retried, Object failed) {
+    return '已开始 $retried 个重试，$failed 张卡片需要处理。';
+  }
 
   @override
   String get unknownError => '发生未知错误';
@@ -2875,9 +3012,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get earlyUpdateDownloadAndInstall => '下载并安装';
 
   @override
+  String get earlyUpdateDownloadInProgress => '正在下载更新...';
+
+  @override
   String earlyUpdateDownloadingPercent(Object percent) {
     return '正在下载更新：$percent%';
   }
+
+  @override
+  String get earlyUpdateDownloadReadyToInstall => '更新包已下载，可直接安装。';
 
   @override
   String get earlyUpdateInstallDownloadedPackage => '安装已下载包';
@@ -2910,4 +3053,32 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get earlyUpdateReleaseNotes => '更新说明';
+
+  @override
+  String get dismissAllNotifications => '清除全部';
+
+  @override
+  String get dismissByType => '按类型清除';
+
+  @override
+  String get dismissTypeSystemAction => '日程提醒';
+
+  @override
+  String get dismissTypeClarification => '澄清确认';
+
+  @override
+  String get dismissTypeCardUpdate => '卡片更新';
+
+  @override
+  String get dismissAllConfirm => '确定清除全部通知？';
+
+  @override
+  String dismissTypeConfirm(Object type) {
+    return '确定清除所有$type通知？';
+  }
+
+  @override
+  String dismissedCount(Object count) {
+    return '已清除 $count 条';
+  }
 }

@@ -152,10 +152,8 @@ class TimelineViewModel extends ChangeNotifier {
     eventBus.addHandler(EventBusMessageType.cardUpdated, _handleCardUpdated);
     eventBus.addHandler(EventBusMessageType.cardAdded, _handleCardAdded);
     eventBus.addHandler(
-        EventBusMessageType.attachmentsChanged, _handleAttachmentsChanged);
-    eventBus.addHandler(
-      EventBusMessageType.scheduleAggregationDirty,
-      _handleScheduleBriefingChanged,
+      EventBusMessageType.attachmentsChanged,
+      _handleAttachmentsChanged,
     );
     eventBus.addHandler(
       EventBusMessageType.scheduleAggregationUpdated,
@@ -213,6 +211,7 @@ class TimelineViewModel extends ChangeNotifier {
         failureReason: message.failureReason,
       );
       updateCard(updatedCard);
+      unawaited(_refreshPendingCount());
       fetchTags();
     }
   }
@@ -232,11 +231,13 @@ class TimelineViewModel extends ChangeNotifier {
   }
 
   Future<void> _loadAttachmentsForCards(
-      List<TimelineCardModel> cardList) async {
+    List<TimelineCardModel> cardList,
+  ) async {
     if (cardList.isEmpty) return;
     final factIds = cardList.map((c) => c.id).toList();
-    final map =
-        await CardAttachmentService.instance.getAttachmentsForFacts(factIds);
+    final map = await CardAttachmentService.instance.getAttachmentsForFacts(
+      factIds,
+    );
     attachments.addAll(map);
     // Don't call notifyListeners here — caller is responsible.
   }
@@ -248,9 +249,10 @@ class TimelineViewModel extends ChangeNotifier {
   }
 
   Future<void> _refreshPendingCount() async {
-    final pending =
-        await CardAttachmentService.instance.getPendingAttachments();
-    pendingAttachmentCount = pending.length;
+    final pending = await CardAttachmentService.instance
+        .getPendingAttachments();
+    final failedCardCount = await _router.countFailedCardGenerations();
+    pendingAttachmentCount = pending.length + (failedCardCount > 0 ? 1 : 0);
     notifyListeners();
   }
 
@@ -262,8 +264,10 @@ class TimelineViewModel extends ChangeNotifier {
     final hasProcessing = cards.any((c) => c.status == 'processing');
     if (hasProcessing && _pollingTimer == null) {
       _logger.info('Starting polling for processing cards');
-      _pollingTimer =
-          Timer.periodic(pollingInterval, (_) => _pollProcessingCards());
+      _pollingTimer = Timer.periodic(
+        pollingInterval,
+        (_) => _pollProcessingCards(),
+      );
     } else if (!hasProcessing && _pollingTimer != null) {
       _stopPolling();
     }
@@ -281,8 +285,10 @@ class TimelineViewModel extends ChangeNotifier {
   }
 
   void _pollProcessingCards() {
-    final processingIds =
-        cards.where((c) => c.status == 'processing').map((c) => c.id).toList();
+    final processingIds = cards
+        .where((c) => c.status == 'processing')
+        .map((c) => c.id)
+        .toList();
     if (processingIds.isEmpty) {
       _stopPolling();
       return;
@@ -357,10 +363,10 @@ class TimelineViewModel extends ChangeNotifier {
       onOk: (newCards) async {
         _currentPage++;
         final loadedHasMore = newCards.length >= pageLimit;
-        cards = await _withScheduleBriefingCard(
-          [...cards, ...newCards],
-          hasMoreAfterList: loadedHasMore,
-        );
+        cards = await _withScheduleBriefingCard([
+          ...cards,
+          ...newCards,
+        ], hasMoreAfterList: loadedHasMore);
         hasMore = loadedHasMore;
         _startPollingIfNeeded();
         await _loadAttachmentsForCards(newCards);
@@ -398,10 +404,7 @@ class TimelineViewModel extends ChangeNotifier {
 
   Future<void> _refreshScheduleBriefingCard() async {
     if (!_shouldShowScheduleBriefing) return;
-    cards = await _withScheduleBriefingCard(
-      cards,
-      hasMoreAfterList: hasMore,
-    );
+    cards = await _withScheduleBriefingCard(cards, hasMoreAfterList: hasMore);
     notifyListeners();
   }
 
@@ -421,10 +424,10 @@ class TimelineViewModel extends ChangeNotifier {
       onOk: (newCards) async {
         _currentPage++;
         final loadedHasMore = newCards.length >= pageLimit;
-        cards = await _withScheduleBriefingCard(
-          [...cards, ...newCards],
-          hasMoreAfterList: loadedHasMore,
-        );
+        cards = await _withScheduleBriefingCard([
+          ...cards,
+          ...newCards,
+        ], hasMoreAfterList: loadedHasMore);
         hasMore = loadedHasMore;
         await _loadAttachmentsForCards(newCards);
       },
@@ -446,13 +449,13 @@ class TimelineViewModel extends ChangeNotifier {
     if (_eventBusSetup) {
       final eventBus = EventBusService.instance;
       eventBus.removeHandler(
-          EventBusMessageType.cardUpdated, _handleCardUpdated);
+        EventBusMessageType.cardUpdated,
+        _handleCardUpdated,
+      );
       eventBus.removeHandler(EventBusMessageType.cardAdded, _handleCardAdded);
       eventBus.removeHandler(
-          EventBusMessageType.attachmentsChanged, _handleAttachmentsChanged);
-      eventBus.removeHandler(
-        EventBusMessageType.scheduleAggregationDirty,
-        _handleScheduleBriefingChanged,
+        EventBusMessageType.attachmentsChanged,
+        _handleAttachmentsChanged,
       );
       eventBus.removeHandler(
         EventBusMessageType.scheduleAggregationUpdated,
