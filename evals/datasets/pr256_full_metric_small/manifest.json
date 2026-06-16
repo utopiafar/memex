@@ -1,0 +1,39 @@
+{
+  "name": "pr256_full_metric_small",
+  "description": "PR #256 full-metric synthetic dataset. Ground truth is generated together with operations so the replay can compute deterministic GT/Trace metrics and emit LLM judge tasks for subjective metrics.",
+  "generated_by": "evals/bin/generate_pr256_full_metric_dataset.dart",
+  "schema_version": "pr256_full_metric.v1",
+  "persona_count": 3,
+  "records_per_persona": 48,
+  "record_count": 144,
+  "recommended_small_gate": {
+    "persona_count": 3,
+    "records_per_persona": 48
+  },
+  "required_scale_gate": {
+    "persona_count_min": 8,
+    "records_per_persona_min": 400
+  },
+  "oracle_strategy": {
+    "ground_truth_generated_with_data": [
+      "agent routes",
+      "card fields/entities/time",
+      "memory must-write/must-not-write",
+      "related facts",
+      "retrieval sources",
+      "tool selection/args/minimality",
+      "read-only compliance",
+      "coverage quotas"
+    ],
+    "llm_judge_tasks_emitted_for": [
+      "card_title_relevance_score",
+      "unsupported_claim_absence",
+      "grounded_answer_rate",
+      "pkm_append_coherence",
+      "comment_relevance_score",
+      "comment_boundary_safety",
+      "insight_novelty_score",
+      "insight_actionability_score"
+    ]
+  }
+}

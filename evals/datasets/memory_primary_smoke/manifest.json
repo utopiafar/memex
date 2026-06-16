@@ -1,0 +1,9 @@
+{
+  "dataset_id": "memory_primary_smoke",
+  "version": 1,
+  "description": "Small real full-chain replay smoke dataset for comparing legacy_pkm and memory_primary.",
+  "case_file": "cases.jsonl",
+  "case_count": 1,
+  "operation_count": 4,
+  "evidence_goal": "Exercise real Memex submitInput, task queue settling, card materialization, Memory Primary writes, and report generation."
+}
