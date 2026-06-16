@@ -79,8 +79,9 @@ class FileSystemService {
 
     _instance = FileSystemService._(dataRoot: dataRoot);
     await LocalAssetServer.startServer(dataRoot: dataRoot, preferredPort: 0);
-    getLogger('FileSystemService')
-        .info('FileSystemService switched to new data root: $dataRoot');
+    getLogger(
+      'FileSystemService',
+    ).info('FileSystemService switched to new data root: $dataRoot');
   }
 
   /// Creates a file-system service for background workers without replacing
@@ -106,13 +107,16 @@ class FileSystemService {
       final normalizedDataRoot = path.normalize(rootPath ?? dataRoot);
       final normalizedAbsolutePath = path.normalize(absolutePath);
       if (normalizedAbsolutePath.startsWith(normalizedDataRoot)) {
-        final relative =
-            path.relative(normalizedAbsolutePath, from: normalizedDataRoot);
+        final relative = path.relative(
+          normalizedAbsolutePath,
+          from: normalizedDataRoot,
+        );
         return relative;
       }
     } catch (e) {
       _logger.warning(
-          'Failed to convert absolute path to relative: $absolutePath, error: $e');
+        'Failed to convert absolute path to relative: $absolutePath, error: $e',
+      );
     }
     return absolutePath;
   }
@@ -221,11 +225,13 @@ class FileSystemService {
   ///   ArgumentError: IffactIdformatinvalid
   String getCardPath(String userId, String factId) {
     // Extract date and ts_xxx from fact_id (format: 2025/11/23.md#ts_1)
-    final match =
-        RegExp(r'(\d{4})/(\d{2})/(\d{2})\.md#ts_(\d+)$').firstMatch(factId);
+    final match = RegExp(
+      r'(\d{4})/(\d{2})/(\d{2})\.md#ts_(\d+)$',
+    ).firstMatch(factId);
     if (match == null) {
       throw ArgumentError(
-          'Invalid fact_id format: $factId, expected format: YYYY/MM/DD.md#ts_N');
+        'Invalid fact_id format: $factId, expected format: YYYY/MM/DD.md#ts_N',
+      );
     }
 
     final year = match.group(1)!;
@@ -282,9 +288,11 @@ class FileSystemService {
       }
 
       // Next day
-      currentDate =
-          DateTime(currentDate.year, currentDate.month, currentDate.day)
-              .add(const Duration(days: 1));
+      currentDate = DateTime(
+        currentDate.year,
+        currentDate.month,
+        currentDate.day,
+      ).add(const Duration(days: 1));
     }
 
     return cardFiles;
@@ -301,8 +309,11 @@ class FileSystemService {
   /// Safely update card file (locked read-modify-write). Serializes concurrent updates per card.
   /// [updateFn] receives current card data, returns updated data. Returns null if card not found.
   Future<CardData?> updateCardFile(
-      String userId, String cardId, CardData Function(CardData) updateFn,
-      {bool createIfNotExists = false}) async {
+    String userId,
+    String cardId,
+    CardData Function(CardData) updateFn, {
+    bool createIfNotExists = false,
+  }) async {
     final lock = await _getCardLock(userId, cardId);
 
     return lock.synchronized(() async {
@@ -339,8 +350,12 @@ class FileSystemService {
 
       final updatedData = updateFn(currentData);
       final success = await _safeWriteCardFileInternal(
-          userId, cardId, updatedData,
-          beforeSnapshot: beforeMap, op: op);
+        userId,
+        cardId,
+        updatedData,
+        beforeSnapshot: beforeMap,
+        op: op,
+      );
       if (success) {
         return updatedData;
       } else {
@@ -351,15 +366,23 @@ class FileSystemService {
 
   /// Safely write card file (atomic write with lock). For read-modify-write use updateCardFile.
   Future<bool> safeWriteCardFile(
-      String userId, String cardId, CardData data) async {
+    String userId,
+    String cardId,
+    CardData data,
+  ) async {
     final lock = await _getCardLock(userId, cardId);
 
     return lock.synchronized(() async {
       final previous = await readCardFile(userId, cardId);
       final beforeMap = previous?.toJson();
       final op = previous == null ? DataChangeOp.insert : DataChangeOp.update;
-      return await _safeWriteCardFileInternal(userId, cardId, data,
-          beforeSnapshot: beforeMap, op: op);
+      return await _safeWriteCardFileInternal(
+        userId,
+        cardId,
+        data,
+        beforeSnapshot: beforeMap,
+        op: op,
+      );
     });
   }
 
@@ -375,8 +398,10 @@ class FileSystemService {
     required Map<String, dynamic>? before,
     required Map<String, dynamic>? after,
   }) async {
-    assert(before != null || after != null,
-        'Card publish invariant violated: both before and after are null');
+    assert(
+      before != null || after != null,
+      'Card publish invariant violated: both before and after are null',
+    );
     try {
       await GlobalEventBus.instance.publish(
         userId: userId,
@@ -402,8 +427,12 @@ class FileSystemService {
   /// On success, builds the enriched `afterMap` for the change event, updates
   /// the card cache, and publishes via [_publishCardChange].
   Future<bool> _safeWriteCardFileInternal(
-      String userId, String cardId, CardData data,
-      {Map<String, dynamic>? beforeSnapshot, required DataChangeOp op}) async {
+    String userId,
+    String cardId,
+    CardData data, {
+    Map<String, dynamic>? beforeSnapshot,
+    required DataChangeOp op,
+  }) async {
     try {
       final cardPath = getCardPath(userId, cardId);
       final parentDir = path.dirname(cardPath);
@@ -413,8 +442,9 @@ class FileSystemService {
       }
 
       final tempDir = Directory(parentDir);
-      final tempFile =
-          File(path.join(tempDir.path, '${path.basename(cardPath)}.tmp'));
+      final tempFile = File(
+        path.join(tempDir.path, '${path.basename(cardPath)}.tmp'),
+      );
 
       final yamlContent = _mapToYaml(data.toJson());
       await tempFile.writeAsString(yamlContent, encoding: utf8);
@@ -468,7 +498,10 @@ class FileSystemService {
 
   /// Update the card cache in the local database
   Future<void> updateCardCache(
-      String userId, String factId, CardData cardData) async {
+    String userId,
+    String factId,
+    CardData cardData,
+  ) async {
     try {
       if (!_isRebuilding && await AppDatabase.instance.cardDao.isCacheEmpty()) {
         _logger.info('Card cache is empty, triggering rebuild...');
@@ -488,8 +521,9 @@ class FileSystemService {
       // We need the relative path for the card.
       // Since we know the structure, we can reconstruct it from the factId.
       // factId: YYYY/MM/DD.md#ts_N
-      final match =
-          RegExp(r'(\d{4})/(\d{2})/(\d{2})\.md#ts_(\d+)$').firstMatch(factId);
+      final match = RegExp(
+        r'(\d{4})/(\d{2})/(\d{2})\.md#ts_(\d+)$',
+      ).firstMatch(factId);
       if (match == null) {
         _logger.warning('Invalid fact_id format for cache update: $factId');
         return;
@@ -498,8 +532,12 @@ class FileSystemService {
       final month = match.group(2)!;
       final day = match.group(3)!;
       final tsPart = 'ts_${match.group(4)!}';
-      final relativePath =
-          path.join('Cards', year, month, '${day}_$tsPart.yaml');
+      final relativePath = path.join(
+        'Cards',
+        year,
+        month,
+        '${day}_$tsPart.yaml',
+      );
 
       final entry = CardCacheCompanion(
         factId: drift.Value(factId),
@@ -535,9 +573,9 @@ class FileSystemService {
 
           // Delete from cache
           try {
-            await (AppDatabase.instance.delete(AppDatabase.instance.cardCache)
-                  ..where((tbl) => tbl.factId.equals(cardId)))
-                .go();
+            await (AppDatabase.instance.delete(
+              AppDatabase.instance.cardCache,
+            )..where((tbl) => tbl.factId.equals(cardId))).go();
           } catch (e) {
             _logger.warning('Failed to delete card from cache $cardId: $e');
           }
@@ -632,7 +670,9 @@ class FileSystemService {
 
   /// Convert fs:// path to local HTTP URL (client mode). Maps to backend TimelineService.convert_fs_to_http.
   static Future<String> convertFsToLocalHttp(
-      String fsPath, String userId) async {
+    String fsPath,
+    String userId,
+  ) async {
     if (!fsPath.startsWith('fs://')) {
       return fsPath;
     }
@@ -647,7 +687,8 @@ class FileSystemService {
           now.difference(_lastServerCheckTime!) > const Duration(seconds: 1)) {
         final instance = FileSystemService.instance;
         await LocalAssetServer.checkAndRestartIfNeeded(
-            dataRoot: instance.dataRoot);
+          dataRoot: instance.dataRoot,
+        );
         _lastServerCheckTime = now;
       }
 
@@ -659,25 +700,31 @@ class FileSystemService {
         final instance = FileSystemService.instance;
         // Use random port (preferredPort: 0)
         port = await LocalAssetServer.startServer(
-            dataRoot: instance.dataRoot, preferredPort: 0);
+          dataRoot: instance.dataRoot,
+          preferredPort: 0,
+        );
         _lastServerCheckTime = DateTime.now();
       }
 
       // build HTTP URL
       // URL format: http://127.0.0.1:port/assets/{userId}/{filename}?token={token}
       final encodedUserId = Uri.encodeComponent(userId);
-      final encodedFilename =
-          filename.split('/').map(Uri.encodeComponent).join('/');
+      final encodedFilename = filename
+          .split('/')
+          .map(Uri.encodeComponent)
+          .join('/');
       final token = LocalAssetServer.accessToken;
       if (token == null) {
-        getLogger('FileSystemService')
-            .warning('Access token unavailable, cannot generate secure URL');
+        getLogger(
+          'FileSystemService',
+        ).warning('Access token unavailable, cannot generate secure URL');
         return 'http://127.0.0.1:$port/assets/$encodedUserId/$encodedFilename?token=$token';
       }
       return 'http://127.0.0.1:$port/assets/$encodedUserId/$encodedFilename?token=$token';
     } catch (e) {
-      getLogger('FileSystemService')
-          .severe('Failed to start local asset server: $e');
+      getLogger(
+        'FileSystemService',
+      ).severe('Failed to start local asset server: $e');
       return fsPath;
     }
   }
@@ -689,7 +736,11 @@ class FileSystemService {
     }
 
     // Match fs:// paths in src, href, etc.
-    final pattern = RegExp(r'fs://[^\s"' r"'" r'<>]+');
+    final pattern = RegExp(
+      r'fs://[^\s"'
+      r"'"
+      r'<>]+',
+    );
     final matches = pattern.allMatches(htmlContent);
 
     if (matches.isEmpty) {
@@ -698,7 +749,8 @@ class FileSystemService {
     }
 
     _logger.info(
-        'replaceFsInHtml: Found ${matches.length} fs:// path(s) to replace');
+      'replaceFsInHtml: Found ${matches.length} fs:// path(s) to replace',
+    );
 
     String result = htmlContent;
     for (final match in matches) {
@@ -713,48 +765,47 @@ class FileSystemService {
 
   /// Render HTML template with data
   String renderHtmlTemplate(String htmlTemplate, Map<String, dynamic> data) {
-    return htmlTemplate.replaceAllMapped(
-      RegExp(r'\{\{(\w+(?:\.\w+)*)\}\}'),
-      (Match match) {
-        final varName = match.group(1)!.trim();
-        dynamic value = data;
+    return htmlTemplate.replaceAllMapped(RegExp(r'\{\{(\w+(?:\.\w+)*)\}\}'), (
+      Match match,
+    ) {
+      final varName = match.group(1)!.trim();
+      dynamic value = data;
 
-        final keys = varName.split('.');
-        for (var i = 0; i < keys.length; i++) {
-          final key = keys[i];
-          if (value is Map) {
-            value = value[key];
-          } else if (value is List) {
-            try {
-              final index = int.parse(key);
-              if (index >= 0 && index < value.length) {
-                value = value[index];
-              } else {
-                value = null;
-              }
-            } catch (_) {
+      final keys = varName.split('.');
+      for (var i = 0; i < keys.length; i++) {
+        final key = keys[i];
+        if (value is Map) {
+          value = value[key];
+        } else if (value is List) {
+          try {
+            final index = int.parse(key);
+            if (index >= 0 && index < value.length) {
+              value = value[index];
+            } else {
               value = null;
             }
-          } else {
+          } catch (_) {
             value = null;
           }
-
-          if (value == null) break;
+        } else {
+          value = null;
         }
 
-        if (value == null) return '';
+        if (value == null) break;
+      }
 
-        if (value is Map || value is List) {
-          try {
-            return jsonEncode(value);
-          } catch (_) {
-            return value.toString();
-          }
+      if (value == null) return '';
+
+      if (value is Map || value is List) {
+        try {
+          return jsonEncode(value);
+        } catch (_) {
+          return value.toString();
         }
+      }
 
-        return value.toString();
-      },
-    );
+      return value.toString();
+    });
   }
 
   /// Convert Map to YAML (manual impl; yaml package only provides parse, not serialize).
@@ -776,8 +827,12 @@ class FileSystemService {
           buffer.writeln('$indentStr$key: {}');
         } else {
           buffer.writeln('$indentStr$key:');
-          buffer.write(_mapToYamlString(Map<String, dynamic>.from(value),
-              indent: indent + 1));
+          buffer.write(
+            _mapToYamlString(
+              Map<String, dynamic>.from(value),
+              indent: indent + 1,
+            ),
+          );
         }
       } else if (value is List) {
         if (value.isEmpty) {
@@ -790,8 +845,12 @@ class FileSystemService {
                 buffer.writeln('$indentStr  - {}');
               } else {
                 buffer.writeln('$indentStr  -');
-                buffer.write(_mapToYamlString(Map<String, dynamic>.from(item),
-                    indent: indent + 2));
+                buffer.write(
+                  _mapToYamlString(
+                    Map<String, dynamic>.from(item),
+                    indent: indent + 2,
+                  ),
+                );
               }
             } else {
               buffer.writeln('$indentStr  - ${_valueToString(item)}');
@@ -814,8 +873,16 @@ class FileSystemService {
       // Quote if special chars or looks like number (YAML would parse as int)
       final isNumeric = RegExp(r'^-?\d+(\.\d+)?$').hasMatch(value);
       // Bool/null keywords parsed as non-string in YAML
-      final isKeyword = {'true', 'false', 'null', '~', 'yes', 'no', 'on', 'off'}
-          .contains(value.toLowerCase());
+      final isKeyword = {
+        'true',
+        'false',
+        'null',
+        '~',
+        'yes',
+        'no',
+        'on',
+        'off',
+      }.contains(value.toLowerCase());
 
       if (value.contains(':') ||
           value.contains('\n') ||
@@ -851,8 +918,11 @@ class FileSystemService {
   }
 
   /// Write YAML file (overwrite optional).
-  Future<void> writeYamlFile(String absolutePath, Map<String, dynamic> data,
-      {bool overwrite = true}) async {
+  Future<void> writeYamlFile(
+    String absolutePath,
+    Map<String, dynamic> data, {
+    bool overwrite = true,
+  }) async {
     final file = File(absolutePath);
     if (!overwrite && await file.exists()) {
       throw ApiException('File already exists: $absolutePath');
@@ -871,8 +941,9 @@ class FileSystemService {
   /// Resolve a skill directory path (relative to workspace) to an absolute path.
   /// [skillDirectoryPath] is stored as e.g. `_UserSettings/skills/my-agent`.
   String resolveSkillPath(String userId, String skillDirectoryPath) {
-    return path
-        .normalize(path.join(getWorkspacePath(userId), skillDirectoryPath));
+    return path.normalize(
+      path.join(getWorkspacePath(userId), skillDirectoryPath),
+    );
   }
 
   /// Ensure the skill directory is accessible from within [workingDirectory].
@@ -906,7 +977,8 @@ class FileSystemService {
     final skillDir = Directory(normalizedSkill);
     if (!await skillDir.exists()) {
       _logger.warning(
-          'Skill directory does not exist, skipping sync: $normalizedSkill');
+        'Skill directory does not exist, skipping sync: $normalizedSkill',
+      );
       return SkillSyncResult(
         effectivePath: normalizedSkill,
         originalPath: normalizedSkill,
@@ -940,15 +1012,18 @@ class FileSystemService {
 
     final copyDir = Directory(syncResult.effectivePath);
     if (!await copyDir.exists()) {
-      _logger
-          .warning('Skill working copy no longer exists, skipping sync-back: '
-              '${syncResult.effectivePath}');
+      _logger.warning(
+        'Skill working copy no longer exists, skipping sync-back: '
+        '${syncResult.effectivePath}',
+      );
       return;
     }
 
     await _rsyncDirectory(syncResult.effectivePath, syncResult.originalPath);
-    _logger.info('Synced skill changes back: '
-        '${syncResult.effectivePath} -> ${syncResult.originalPath}');
+    _logger.info(
+      'Synced skill changes back: '
+      '${syncResult.effectivePath} -> ${syncResult.originalPath}',
+    );
   }
 
   /// Recursively sync [srcRoot] to [destRoot] (rsync-like).
@@ -962,8 +1037,10 @@ class FileSystemService {
     // Collect all source relative paths for stale-file cleanup.
     final sourceRelPaths = <String>{};
 
-    await for (final entity
-        in srcDir.list(recursive: true, followLinks: false)) {
+    await for (final entity in srcDir.list(
+      recursive: true,
+      followLinks: false,
+    )) {
       final relPath = path.relative(entity.path, from: srcRoot);
       sourceRelPaths.add(relPath);
 
@@ -1001,8 +1078,10 @@ class FileSystemService {
     // Remove stale files/dirs in dest that no longer exist in source.
     if (await destDir.exists()) {
       final destEntities = <FileSystemEntity>[];
-      await for (final entity
-          in destDir.list(recursive: true, followLinks: false)) {
+      await for (final entity in destDir.list(
+        recursive: true,
+        followLinks: false,
+      )) {
         destEntities.add(entity);
       }
       // Process in reverse order (deepest first) so dirs are empty before removal.
@@ -1028,7 +1107,9 @@ class FileSystemService {
   /// [workingDirectory] is stored as e.g. '' (workspace root) or 'my-data'.
   /// Creates the directory recursively if it does not exist.
   Future<String> resolveWorkingDirectory(
-      String userId, String workingDirectory) async {
+    String userId,
+    String workingDirectory,
+  ) async {
     final absPath = workingDirectory.isEmpty
         ? getWorkspacePath(userId)
         : path.normalize(path.join(getWorkspacePath(userId), workingDirectory));
@@ -1060,9 +1141,7 @@ class FileSystemService {
         return decoded;
       }
       if (decoded is Map) {
-        return decoded.map(
-          (key, value) => MapEntry(key.toString(), value),
-        );
+        return decoded.map((key, value) => MapEntry(key.toString(), value));
       }
     } catch (e) {
       _logger.warning('Failed to read profile meta: $e');
@@ -1071,7 +1150,9 @@ class FileSystemService {
   }
 
   Future<void> writeProfileMeta(
-      String userId, Map<String, dynamic> profileMeta) async {
+    String userId,
+    Map<String, dynamic> profileMeta,
+  ) async {
     final settingsPath = getUserSettingsPath(userId);
     await ensureDirectory(settingsPath);
     final filePath = getProfileMetaPath(userId);
@@ -1086,7 +1167,11 @@ class FileSystemService {
 
   /// Add user custom location (lat, lng, name).
   Future<bool> addUserLocation(
-      String userId, double lat, double lng, String name) async {
+    String userId,
+    double lat,
+    double lng,
+    String name,
+  ) async {
     try {
       final settingsPath = getUserSettingsPath(userId);
       await ensureDirectory(settingsPath);
@@ -1147,8 +1232,12 @@ class FileSystemService {
   }
 
   /// Get nearest user custom location (threshold in meters, default 50). Returns place name or null.
-  Future<String?> getNearestUserLocation(String userId, double lat, double lng,
-      [double thresholdMeters = 50.0]) async {
+  Future<String?> getNearestUserLocation(
+    String userId,
+    double lat,
+    double lng, [
+    double thresholdMeters = 50.0,
+  ]) async {
     try {
       final settingsPath = getUserSettingsPath(userId);
       final locationsFile = path.join(settingsPath, 'user_locations.yaml');
@@ -1188,8 +1277,12 @@ class FileSystemService {
           continue;
         }
 
-        final dist =
-            _calculateDistance(lat, lng, locLat.toDouble(), locLng.toDouble());
+        final dist = _calculateDistance(
+          lat,
+          lng,
+          locLat.toDouble(),
+          locLng.toDouble(),
+        );
 
         if (dist < minDist) {
           minDist = dist;
@@ -1199,7 +1292,8 @@ class FileSystemService {
 
       if (minDist <= thresholdMeters) {
         _logger.info(
-            "Found nearest location '$nearestName' at ${minDist.toStringAsFixed(2)}m");
+          "Found nearest location '$nearestName' at ${minDist.toStringAsFixed(2)}m",
+        );
         return nearestName;
       }
 
@@ -1212,7 +1306,9 @@ class FileSystemService {
 
   /// Get user custom location by name. Returns (lat, lng, name) or null.
   Future<Map<String, dynamic>?> getUserLocationByName(
-      String userId, String name) async {
+    String userId,
+    String name,
+  ) async {
     try {
       final settingsPath = getUserSettingsPath(userId);
       final locationsFile = path.join(settingsPath, 'user_locations.yaml');
@@ -1238,11 +1334,7 @@ class FileSystemService {
 
       for (final loc in locations) {
         if (loc['name'] == name) {
-          return {
-            'lat': loc['lat'],
-            'lng': loc['lng'],
-            'name': loc['name'],
-          };
+          return {'lat': loc['lat'], 'lng': loc['lng'], 'name': loc['name']};
         }
       }
 
@@ -1255,11 +1347,16 @@ class FileSystemService {
 
   /// Distance between two points (Haversine), in meters.
   double _calculateDistance(
-      double lat1, double lng1, double lat2, double lng2) {
+    double lat1,
+    double lng1,
+    double lat2,
+    double lng2,
+  ) {
     const R = 6371000.0; // Earth radius in meters
     final dLat = _toRadians(lat2 - lat1);
     final dLon = _toRadians(lng2 - lng1);
-    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
         math.cos(_toRadians(lat1)) *
             math.cos(_toRadians(lat2)) *
             math.sin(dLon / 2) *
@@ -1280,8 +1377,9 @@ class FileSystemService {
     for (final item in list) {
       if (item is Map) {
         buffer.writeln('$indentStr-');
-        buffer.write(_mapToYamlString(Map<String, dynamic>.from(item),
-            indent: indent + 2));
+        buffer.write(
+          _mapToYamlString(Map<String, dynamic>.from(item), indent: indent + 2),
+        );
       } else {
         buffer.writeln('$indentStr- ${_valueToString(item)}');
       }
@@ -1294,6 +1392,18 @@ class FileSystemService {
   /// Get_Systemdirectory path
   String getSystemPath(String userId) {
     return path.join(getWorkspacePath(userId), '_System');
+  }
+
+  String getMemoryPrimaryPath(String userId) {
+    return path.join(getSystemPath(userId), 'memory_primary');
+  }
+
+  String getMemoryAtomsPath(String userId) {
+    return path.join(getMemoryPrimaryPath(userId), 'memory_atoms.json');
+  }
+
+  String getMemoryChangeLogPath(String userId) {
+    return path.join(getMemoryPrimaryPath(userId), 'memory_change_log.jsonl');
   }
 
   /// Unified media pool directory — all user-uploaded images/audio/etc.
@@ -1367,8 +1477,9 @@ class FileSystemService {
         mStr = batchId;
       } else {
         try {
-          final match = RegExp(r'(\d{4})/(\d{2})/(\d{2})\.md#ts_(\d+)')
-              .firstMatch(factId);
+          final match = RegExp(
+            r'(\d{4})/(\d{2})/(\d{2})\.md#ts_(\d+)',
+          ).firstMatch(factId);
           if (match != null) {
             final year = match.group(1)!;
             final month = match.group(2)!;
@@ -1416,8 +1527,9 @@ class FileSystemService {
     if (extraInfo == null) {
       if (assetType == 'img') {
         try {
-          final safety =
-              await AssetSafetyService.instance.inspectFile(sourcePath);
+          final safety = await AssetSafetyService.instance.inspectFile(
+            sourcePath,
+          );
           if (safety.width != null && safety.height != null) {
             extraInfo = '${safety.width}x${safety.height}';
           }
@@ -1432,8 +1544,8 @@ class FileSystemService {
             // wait for duration to be parsed
             final durationStr = await player.getDuration();
             if (durationStr != null) {
-              final durationSeconds =
-                  (durationStr.inMilliseconds / 1000).ceil();
+              final durationSeconds = (durationStr.inMilliseconds / 1000)
+                  .ceil();
               extraInfo = '$durationSeconds';
             }
           } finally {
@@ -1485,7 +1597,7 @@ class FileSystemService {
 
   /// Read daily fact file and parse YAML frontmatter. Returns (yamlData, bodyContent); (null, raw) if no frontmatter.
   Future<({Map<String, dynamic>? yamlData, String bodyContent})>
-      readDailyFactFile(String userId, DateTime date) async {
+  readDailyFactFile(String userId, DateTime date) async {
     final filePath = getDailyFactPath(userId, date);
 
     if (!await _baseService.exists(filePath)) {
@@ -1495,8 +1607,10 @@ class FileSystemService {
     try {
       final content = await _baseService.readFile(filePath);
 
-      final yamlPattern =
-          RegExp(r'^---\s*\n(.*?)\n---\s*\n(.*)$', dotAll: true);
+      final yamlPattern = RegExp(
+        r'^---\s*\n(.*?)\n---\s*\n(.*)$',
+        dotAll: true,
+      );
       final match = yamlPattern.firstMatch(content);
 
       if (match != null) {
@@ -1507,7 +1621,7 @@ class FileSystemService {
           final yamlData = _parseYaml(yamlStr);
           return (
             yamlData: yamlData.isEmpty ? null : yamlData,
-            bodyContent: bodyContent
+            bodyContent: bodyContent,
           );
         } catch (e) {
           _logger.warning('Failed to parse yaml frontmatter: $e');
@@ -1606,11 +1720,13 @@ class FileSystemService {
 
   /// Parse date from fact_id
   DateTime parseFactIdDate(String factId) {
-    final match =
-        RegExp(r'(\d{4})/(\d{2})/(\d{2})\.md#ts_\d+$').firstMatch(factId);
+    final match = RegExp(
+      r'(\d{4})/(\d{2})/(\d{2})\.md#ts_\d+$',
+    ).firstMatch(factId);
     if (match == null) {
       throw ArgumentError(
-          'Invalid fact_id format: $factId, expected format: YYYY/MM/DD.md#ts_N');
+        'Invalid fact_id format: $factId, expected format: YYYY/MM/DD.md#ts_N',
+      );
     }
 
     final year = int.parse(match.group(1)!);
@@ -1699,7 +1815,10 @@ class FileSystemService {
   }
 
   Future<void> updateDailyFactYamlData(
-      String userId, DateTime date, Map<String, dynamic> data) async {
+    String userId,
+    DateTime date,
+    Map<String, dynamic> data,
+  ) async {
     final filePath = getDailyFactPath(userId, date);
     final parentDir = path.dirname(filePath);
 
@@ -1730,7 +1849,10 @@ class FileSystemService {
   }
 
   Future<void> appendToDailyFactFile(
-      String userId, DateTime date, String content) async {
+    String userId,
+    DateTime date,
+    String content,
+  ) async {
     final filePath = getDailyFactPath(userId, date);
     final parentDir = path.dirname(filePath);
 
@@ -1805,7 +1927,9 @@ class FileSystemService {
 
   /// Read chart template HTML file
   Future<String?> readChartTemplateHtml(
-      String userId, String templateId) async {
+    String userId,
+    String templateId,
+  ) async {
     final chartTemplatesPath = getChartTemplatesPath(userId);
     final templatePath = path.join(chartTemplatesPath, templateId);
     final viewPath = path.join(templatePath, 'view.html');
@@ -1823,7 +1947,9 @@ class FileSystemService {
   }
 
   Future<String?> readKnowledgeInsightCardTemplateHtml(
-      String userId, String templateId) async {
+    String userId,
+    String templateId,
+  ) async {
     return readChartTemplateHtml(userId, templateId);
   }
 
@@ -1891,7 +2017,9 @@ class FileSystemService {
 
   /// Append new tag definitions (add if name not found)
   Future<void> appendNewTags(
-      String userId, List<Map<String, dynamic>> newTags) async {
+    String userId,
+    List<Map<String, dynamic>> newTags,
+  ) async {
     if (newTags.isEmpty) {
       return;
     }
@@ -1901,8 +2029,9 @@ class FileSystemService {
 
     // Read existing tags and index
     final existingTags = await readTagsFile(userId);
-    final existingNames =
-        existingTags.map((tag) => tag['name'] as String).toSet();
+    final existingNames = existingTags
+        .map((tag) => tag['name'] as String)
+        .toSet();
 
     var appendedCount = 0;
     for (final tag in newTags) {
@@ -1946,7 +2075,9 @@ class FileSystemService {
 
   /// Read knowledge insight card file (YAML)
   Future<Map<String, dynamic>?> readKnowledgeInsightCard(
-      String userId, String cardId) async {
+    String userId,
+    String cardId,
+  ) async {
     final filePath = getKnowledgeInsightCardPath(userId, cardId);
 
     if (!await _baseService.exists(filePath)) {
@@ -2001,7 +2132,8 @@ class FileSystemService {
 
   /// List all knowledge insight cards
   Future<List<Map<String, dynamic>>> listKnowledgeInsightCards(
-      String userId) async {
+    String userId,
+  ) async {
     final dirPath = getKnowledgeInsightsCardsPath(userId);
     if (!await _baseService.exists(dirPath)) {
       return [];
@@ -2051,8 +2183,9 @@ class FileSystemService {
       return lines
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty && !e.startsWith('#')) // Ignore comments
-          .map((e) =>
-              e.replaceAll(RegExp(r'^-\s*'), '')) // Remove bullet if present
+          .map(
+            (e) => e.replaceAll(RegExp(r'^-\s*'), ''),
+          ) // Remove bullet if present
           .toSet() // Unique
           .toList();
     } catch (e) {
@@ -2084,7 +2217,9 @@ class FileSystemService {
 
   /// Delete specified insight tags
   Future<void> deleteInsightTags(
-      String userId, List<String> tagsToDelete) async {
+    String userId,
+    List<String> tagsToDelete,
+  ) async {
     final filePath = getInsightTagsPath(userId);
     final currentTags = await readInsightTags(userId);
     final tagSet = currentTags.toSet();
@@ -2281,11 +2416,13 @@ class FileSystemService {
 
               // Build sort key (date, ts number)
               final cardDate = DateTime(year, month, day);
-              cardFilesWithSortKey.add(_CardFileSortKey(
-                date: cardDate,
-                tsNumber: tsNumber,
-                path: cardPath,
-              ));
+              cardFilesWithSortKey.add(
+                _CardFileSortKey(
+                  date: cardDate,
+                  tsNumber: tsNumber,
+                  path: cardPath,
+                ),
+              );
             } catch (e) {
               _logger.warning('Failed to parse card filename $cardPath: $e');
               continue;
@@ -2313,7 +2450,9 @@ class FileSystemService {
 
   /// Extract raw content for the given fact_id from facts file. Returns FactContentResult or null if not found.
   Future<FactContentResult?> extractFactContentFromFile(
-      String userId, String factId) async {
+    String userId,
+    String factId,
+  ) async {
     // Parse date from fact_id
     final factDate = parseFactIdDate(factId);
     final simpleFactId = extractSimpleFactId(factId);
@@ -2328,8 +2467,9 @@ class FileSystemService {
 
       // Find matching entry in body_content (format: ## <id:ts_3> HH:MM:SS). Pattern: ## <id:ts_3> or ## <id:2025/11/26.md#ts_3>
       final escapedFactId = RegExp.escape(simpleFactId);
-      final pattern =
-          RegExp('##\\s*<id:$escapedFactId>\\s*(\\d{2}:\\d{2}:\\d{2})');
+      final pattern = RegExp(
+        '##\\s*<id:$escapedFactId>\\s*(\\d{2}:\\d{2}:\\d{2})',
+      );
 
       final match = pattern.firstMatch(bodyContent);
       if (match == null) {
@@ -2358,8 +2498,9 @@ class FileSystemService {
 
       // Find next entry start position (or end of file)
       final remainingContent = bodyContent.substring(contentStartPos);
-      final nextMatch =
-          RegExp(r'##\s*<id:ts_\d+>').firstMatch(remainingContent);
+      final nextMatch = RegExp(
+        r'##\s*<id:ts_\d+>',
+      ).firstMatch(remainingContent);
       final entryContent = nextMatch != null
           ? remainingContent.substring(0, nextMatch.start).trim()
           : remainingContent.trim();
@@ -2367,8 +2508,9 @@ class FileSystemService {
       // Extract analysis result from media asset analysis files (image/audio markdown links)
       final assetAnalyses = <Map<String, dynamic>>[];
       final assetOcrTexts = <Map<String, dynamic>>[];
-      final assetPattern =
-          RegExp(r'(?:!\[(?:图片|image)\]|\[(?:音频|audio)\])\(fs://([^)]+)\)');
+      final assetPattern = RegExp(
+        r'(?:!\[(?:图片|image)\]|\[(?:音频|audio)\])\(fs://([^)]+)\)',
+      );
       final assetMatches = assetPattern.allMatches(entryContent);
 
       if (assetMatches.isNotEmpty) {
@@ -2384,8 +2526,9 @@ class FileSystemService {
             final analysisFilePath = path.join(assetsPath, analysisFilename);
 
             if (await _baseService.exists(analysisFilePath)) {
-              final analysisContent =
-                  (await _baseService.readFile(analysisFilePath)).trim();
+              final analysisContent = (await _baseService.readFile(
+                analysisFilePath,
+              )).trim();
               if (analysisContent.isNotEmpty) {
                 assetAnalyses.add({
                   'index': idx,
@@ -2395,8 +2538,9 @@ class FileSystemService {
               }
             }
           } catch (e) {
-            _logger
-                .warning('Failed to read asset analysis file $assetFile: $e');
+            _logger.warning(
+              'Failed to read asset analysis file $assetFile: $e',
+            );
           }
 
           // Read OCR text if .ocr.txt file exists
@@ -2405,8 +2549,9 @@ class FileSystemService {
             final ocrFilePath = path.join(assetsPath, ocrFilename);
 
             if (await _baseService.exists(ocrFilePath)) {
-              final ocrContent =
-                  (await _baseService.readFile(ocrFilePath)).trim();
+              final ocrContent = (await _baseService.readFile(
+                ocrFilePath,
+              )).trim();
               if (ocrContent.isNotEmpty) {
                 assetOcrTexts.add({
                   'index': idx,
@@ -2462,8 +2607,10 @@ class FileSystemService {
   }
 
   /// Get recently modified PKM files
-  Future<List<Map<String, dynamic>>> getRecentPkmFiles(String userId,
-      {int limit = 10}) async {
+  Future<List<Map<String, dynamic>>> getRecentPkmFiles(
+    String userId, {
+    int limit = 10,
+  }) async {
     final pkmPath = getPkmPath(userId);
     final dir = Directory(pkmPath);
 
@@ -2511,8 +2658,9 @@ class FileSystemService {
     }
 
     // Sort by modified desc
-    fileList
-        .sort((a, b) => (b['modified'] as int).compareTo(a['modified'] as int));
+    fileList.sort(
+      (a, b) => (b['modified'] as int).compareTo(a['modified'] as int),
+    );
 
     // Take limit
     return fileList.take(limit).toList();
@@ -2523,8 +2671,11 @@ class FileSystemService {
   /// This is a brute-force search that reads every text file in the PKM
   /// directory. It does not depend on any index and always reflects the
   /// current file-system state.
-  Future<List<Map<String, dynamic>>> grepPkmFiles(String userId, String query,
-      {int limit = 50}) async {
+  Future<List<Map<String, dynamic>>> grepPkmFiles(
+    String userId,
+    String query, {
+    int limit = 50,
+  }) async {
     final pkmPath = getPkmPath(userId);
     final dir = Directory(pkmPath);
 
@@ -2567,7 +2718,8 @@ class FileSystemService {
             contentMatch = true;
             final start = (idx - 40).clamp(0, content.length);
             final end = (idx + query.length + 60).clamp(0, content.length);
-            snippet = (start > 0 ? '...' : '') +
+            snippet =
+                (start > 0 ? '...' : '') +
                 content.substring(start, end).replaceAll('\n', ' ') +
                 (end < content.length ? '...' : '');
           }
@@ -2590,7 +2742,9 @@ class FileSystemService {
 
   /// Get count of child items under given PKM paths (batch).
   Future<Map<String, int>> countPkmItems(
-      String userId, List<String> paths) async {
+    String userId,
+    List<String> paths,
+  ) async {
     final pkmRoot = getPkmPath(userId);
     final result = <String, int>{};
 
@@ -2628,8 +2782,9 @@ class FileSystemService {
         final dir = Directory(fullPath);
         if (await dir.exists()) {
           try {
-            final entities =
-                await dir.list(recursive: false, followLinks: false).toList();
+            final entities = await dir
+                .list(recursive: false, followLinks: false)
+                .toList();
             // Filter out hidden files
             final count = entities
                 .where((e) => !path.basename(e.path).startsWith('.'))
@@ -2657,10 +2812,9 @@ class FileSystemService {
       if (await _baseService.exists(path)) {
         final content = await _baseService.readFile(path);
         if (content.isNotEmpty) {
-          existing.addAll(content
-              .split('\n')
-              .map((e) => e.trim())
-              .where((e) => e.isNotEmpty));
+          existing.addAll(
+            content.split('\n').map((e) => e.trim()).where((e) => e.isNotEmpty),
+          );
         }
       }
 
@@ -2677,7 +2831,9 @@ class FileSystemService {
 
   /// Check which hashes have not been processed yet
   Future<List<String>> checkUnprocessedHashes(
-      String userId, List<String> hashes) async {
+    String userId,
+    List<String> hashes,
+  ) async {
     if (hashes.isEmpty) return [];
     final path = getProcessedHashesPath(userId);
 

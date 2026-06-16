@@ -333,6 +333,7 @@ class LLMCallRecordService {
     int totalCachedForRate = 0;
     int totalThoughtTokens = 0;
     int totalTokens = 0;
+    int totalEmptyResponseTurns = 0;
 
     // Aggregate directly from the calls in each record.
     for (final record in records) {
@@ -367,6 +368,7 @@ class LLMCallRecordService {
               'cached_tokens_for_rate': 0,
               'thought_tokens': 0,
               'total_tokens': 0,
+              'empty_response_turns': 0,
             };
 
         // Helper to accumulate into a stat bucket.
@@ -385,6 +387,10 @@ class LLMCallRecordService {
           stat['thought_tokens'] =
               (stat['thought_tokens'] as int) + thoughtTokens;
           stat['total_tokens'] = (stat['total_tokens'] as int) + tokens;
+          if (_isEmptyResponseTurn(call)) {
+            stat['empty_response_turns'] =
+                (stat['empty_response_turns'] as int) + 1;
+          }
         }
 
         // Aggregate by day.
@@ -418,6 +424,9 @@ class LLMCallRecordService {
         }
         totalThoughtTokens += thoughtTokens;
         totalTokens += tokens;
+        if (_isEmptyResponseTurn(call)) {
+          totalEmptyResponseTurns++;
+        }
       }
     }
 
@@ -431,11 +440,19 @@ class LLMCallRecordService {
         'cached_tokens_for_rate': totalCachedForRate,
         'thought_tokens': totalThoughtTokens,
         'total_tokens': totalTokens,
+        'empty_response_turns': totalEmptyResponseTurns,
       },
       'by_day': dailyStats,
       'by_month': monthlyStats,
       'by_agent': agentStats,
       'by_scene': sceneStats,
     };
+  }
+
+  bool _isEmptyResponseTurn(Object? call) {
+    if (call is! Map) return false;
+    final metadata = call['metadata'];
+    if (metadata is! Map) return false;
+    return metadata['empty_response_turn'] == true;
   }
 }

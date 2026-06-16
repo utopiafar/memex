@@ -51,6 +51,9 @@ import 'package:memex/data/repositories/retry_failed_cards.dart'
     as retry_failed_cards_endpoint;
 import 'package:memex/data/services/task_handlers/analyze_assets_handler.dart';
 import 'package:memex/data/services/task_handlers/card_agent_handler.dart';
+import 'package:memex/data/services/task_handlers/card_insight_handler.dart';
+import 'package:memex/data/services/task_handlers/memory_primary_handler.dart';
+import 'package:memex/data/services/task_handlers/para_projection_handler.dart';
 import 'package:memex/data/services/task_handlers/pkm_agent_handler.dart';
 import 'package:memex/data/services/task_handlers/ask_clarification_handler.dart';
 import 'package:memex/data/services/task_handlers/fts_index_handler.dart';
@@ -142,6 +145,19 @@ class MemexRouter {
         handleCardAgentImpl,
       );
       LocalTaskExecutor.instance.registerHandler(
+        'memory_primary_task',
+        handleMemoryPrimaryImpl,
+      );
+      LocalTaskExecutor.instance.registerHandler(
+        'card_insight_task',
+        handleCardInsightImpl,
+      );
+      LocalTaskExecutor.instance.registerHandler(
+        'para_projection_task',
+        handleParaProjectionImpl,
+        concurrencyPolicy: TaskConcurrencyPolicy.byUser(),
+      );
+      LocalTaskExecutor.instance.registerHandler(
         'pkm_agent_task',
         handlePkmAgentImpl,
       );
@@ -203,6 +219,9 @@ class MemexRouter {
       // Generic failure handler for all other agent tasks — emits ErrorNotificationMessage
       for (final taskType in [
         'pkm_agent_task',
+        'memory_primary_task',
+        'card_insight_task',
+        'para_projection_task',
         'comment_agent_task',
         'knowledge_insight_task',
         'schedule_aggregator_task',
@@ -222,7 +241,7 @@ class MemexRouter {
       }
 
       // Register event subscriptions after task handlers are ready.
-      _registerEventSubscriptions();
+      await _registerEventSubscriptions();
 
       // Initialize custom agent handler and register user-defined agents.
       initCustomAgentHandler();
@@ -246,10 +265,15 @@ class MemexRouter {
   }
 
   String?
-  _targetUserIdForInit; // Track the user ID we are currently initializing for
+      _targetUserIdForInit; // Track the user ID we are currently initializing for
 
-  void _registerEventSubscriptions() {
+  Future<void> _registerEventSubscriptions() async {
     final eventBus = GlobalEventBus.instance;
+    _clearBuiltInUserInputSubscriptions(eventBus);
+    final pipelineConfig = await UserStorage.getAgentPipelineConfig();
+    _logger.info(
+      'Registering agent pipeline subscriptions: ${pipelineConfig.mode.storageValue}',
+    );
 
     eventBus.subscribe(
       eventType: SystemEventTypes.userInputSubmitted,
@@ -280,51 +304,109 @@ class MemexRouter {
             'markdown_entry': p.markdownEntry,
             'created_at_ts': p.createdAtTs,
             'location_context_reminder': p.locationContextReminder,
+            'pipeline_mode': pipelineConfig.mode.storageValue,
           });
         },
       ),
     );
 
-    eventBus.subscribe(
-      eventType: SystemEventTypes.userInputSubmitted,
-      subscription: EventTaskSubscription(
-        subscriptionId: 'pkm_agent',
-        taskType: 'pkm_agent_task',
-        dependsOn: const ['analyze_assets'],
-        payloadBuilder: (_, event) {
-          final p = event.payload as UserInputSubmittedPayload;
-          return Future.value({
-            'fact_id': p.factId,
-            'combined_text': p.combinedText,
-            'created_at_ts': p.pkmCreatedAtTs,
-            'location_context_reminder': p.locationContextReminder,
-          });
-        },
-        dependenciesBuilder: (_, __) async {
-          final lastPkmTaskId = await LocalTaskExecutor.instance
-              .getLastTaskByType('pkm_agent_task');
-          return lastPkmTaskId == null ? const [] : [lastPkmTaskId];
-        },
-      ),
-    );
+    if (pipelineConfig.runsLegacyPkm) {
+      eventBus.subscribe(
+        eventType: SystemEventTypes.userInputSubmitted,
+        subscription: EventTaskSubscription(
+          subscriptionId: 'pkm_agent',
+          taskType: 'pkm_agent_task',
+          dependsOn: const ['analyze_assets'],
+          payloadBuilder: (_, event) {
+            final p = event.payload as UserInputSubmittedPayload;
+            return Future.value({
+              'fact_id': p.factId,
+              'combined_text': p.combinedText,
+              'created_at_ts': p.pkmCreatedAtTs,
+              'location_context_reminder': p.locationContextReminder,
+            });
+          },
+          dependenciesBuilder: (_, __) async {
+            final lastPkmTaskId = await LocalTaskExecutor.instance
+                .getLastTaskByType('pkm_agent_task');
+            return lastPkmTaskId == null ? const [] : [lastPkmTaskId];
+          },
+        ),
+      );
 
-    eventBus.subscribe(
-      eventType: SystemEventTypes.userInputSubmitted,
-      subscription: EventTaskSubscription(
-        subscriptionId: 'comment_agent',
-        taskType: 'comment_agent_task',
-        dependsOn: const ['pkm_agent'],
-        payloadBuilder: (_, event) {
-          final p = event.payload as UserInputSubmittedPayload;
-          return Future.value({
-            'fact_id': p.factId,
-            'combined_text': p.combinedText,
-            'created_at_ts': p.createdAtTs,
-            'location_context_reminder': p.locationContextReminder,
-          });
-        },
-      ),
-    );
+      eventBus.subscribe(
+        eventType: SystemEventTypes.userInputSubmitted,
+        subscription: EventTaskSubscription(
+          subscriptionId: 'comment_agent',
+          taskType: 'comment_agent_task',
+          dependsOn: const ['pkm_agent'],
+          payloadBuilder: (_, event) {
+            final p = event.payload as UserInputSubmittedPayload;
+            return Future.value({
+              'fact_id': p.factId,
+              'combined_text': p.combinedText,
+              'created_at_ts': p.createdAtTs,
+              'location_context_reminder': p.locationContextReminder,
+            });
+          },
+        ),
+      );
+    } else if (pipelineConfig.runsMemoryPrimary) {
+      eventBus.subscribe(
+        eventType: SystemEventTypes.userInputSubmitted,
+        subscription: EventTaskSubscription(
+          subscriptionId: 'memory_primary',
+          taskType: 'memory_primary_task',
+          dependsOn: const ['analyze_assets'],
+          payloadBuilder: (_, event) {
+            final p = event.payload as UserInputSubmittedPayload;
+            return Future.value({
+              'fact_id': p.factId,
+              'combined_text': p.combinedText,
+              'created_at_ts': p.createdAtTs,
+              'location_context_reminder': p.locationContextReminder,
+            });
+          },
+        ),
+      );
+
+      eventBus.subscribe(
+        eventType: SystemEventTypes.userInputSubmitted,
+        subscription: EventTaskSubscription(
+          subscriptionId: 'card_insight_agent',
+          taskType: 'card_insight_task',
+          dependsOn: const ['card_agent', 'memory_primary'],
+          payloadBuilder: (_, event) {
+            final p = event.payload as UserInputSubmittedPayload;
+            return Future.value({
+              'fact_id': p.factId,
+              'combined_text': p.combinedText,
+              'created_at_ts': p.createdAtTs,
+              'location_context_reminder': p.locationContextReminder,
+            });
+          },
+        ),
+      );
+
+      eventBus.subscribe(
+        eventType: SystemEventTypes.userInputSubmitted,
+        subscription: EventTaskSubscription(
+          subscriptionId: 'comment_agent',
+          taskType: 'comment_agent_task',
+          dependsOn: const ['card_insight_agent'],
+          shouldEnqueue: _shouldEnqueueCommentAgent,
+          payloadBuilder: (_, event) {
+            final p = event.payload as UserInputSubmittedPayload;
+            return Future.value({
+              'fact_id': p.factId,
+              'combined_text': p.combinedText,
+              'created_at_ts': p.createdAtTs,
+              'location_context_reminder': p.locationContextReminder,
+            });
+          },
+        ),
+      );
+    }
 
     eventBus.subscribe(
       eventType: SystemEventTypes.userInputSubmitted,
@@ -420,6 +502,35 @@ class MemexRouter {
     );
   }
 
+  void _clearBuiltInUserInputSubscriptions(GlobalEventBus eventBus) {
+    const subscriptionIds = [
+      'analyze_assets',
+      'card_agent',
+      'pkm_agent',
+      'memory_primary',
+      'card_insight_agent',
+      'comment_agent',
+      'post_card_router',
+    ];
+    for (final subscriptionId in subscriptionIds) {
+      eventBus.unsubscribe(
+        eventType: SystemEventTypes.userInputSubmitted,
+        subscriptionId: subscriptionId,
+      );
+    }
+  }
+
+  Future<bool> _shouldEnqueueCommentAgent(
+    String userId,
+    SystemEvent event,
+  ) async {
+    final payload = event.payload;
+    if (payload is! UserInputSubmittedPayload) return true;
+    if (payload.combinedText.contains('@')) return true;
+    final settings = await CommentSettingsService.load(userId);
+    return settings.enableCharacterComment;
+  }
+
   Future<void> _ensureInitialized() async {
     // We double check if a user is logged in now, and if we need to re-init.
     final currentUser = await UserStorage.getUserId();
@@ -487,17 +598,19 @@ class MemexRouter {
     _logger.info('Resetting MemexRouter for logout');
     _targetUserIdForInit = null;
     _initFuture = null;
-    unawaited(AgentBackgroundTaskService.instance.stopMonitoring(
-      reason: 'logout',
-    ));
+    unawaited(
+      AgentBackgroundTaskService.instance.stopMonitoring(reason: 'logout'),
+    );
     LocalTaskExecutor.instance.stop();
     SearchService.instance.reset();
   }
 
   void dispose() {
-    unawaited(AgentBackgroundTaskService.instance.stopMonitoring(
-      reason: 'router_dispose',
-    ));
+    unawaited(
+      AgentBackgroundTaskService.instance.stopMonitoring(
+        reason: 'router_dispose',
+      ),
+    );
     LocalTaskExecutor.instance.stop();
   }
 
@@ -515,6 +628,7 @@ class MemexRouter {
     String? textHash,
     List<String>? imageHashes,
     String? audioHash,
+    DateTime? createdAt,
   }) async {
     await _ensureInitialized();
     _logger.info(
@@ -562,7 +676,11 @@ class MemexRouter {
       throw Exception('User not logged in, cannot submit local data');
     }
 
-    return submit_input_endpoint.submitInput(userId, content);
+    return submit_input_endpoint.submitInput(
+      userId,
+      content,
+      createdAt: createdAt,
+    );
   }
 
   Future<List<String>> checkProcessedHashes(List<String> hashes) async {
@@ -715,6 +833,29 @@ class MemexRouter {
     await _ensureInitialized();
     _logger.info('LocalMode: retryAllFailedCardGenerations called');
     return retry_failed_cards_endpoint.retryAllFailedCardGenerations();
+  }
+
+  Future<Map<String, dynamic>> rebuildMemoryPrimary({int? limit}) async {
+    await _ensureInitialized();
+    final userId = await UserStorage.getUserId();
+    if (userId == null) {
+      throw Exception('User not logged in, cannot rebuild Memory Primary');
+    }
+    return rebuildMemoryPrimaryFromFacts(userId: userId, limit: limit);
+  }
+
+  Future<String> enqueueParaProjection({bool dryRun = false}) async {
+    await _ensureInitialized();
+    final userId = await UserStorage.getUserId();
+    if (userId == null) {
+      throw Exception('User not logged in, cannot project Memory Primary');
+    }
+    return LocalTaskExecutor.instance.enqueueTask(
+      userId: userId,
+      taskType: 'para_projection_task',
+      payload: {'dry_run': dryRun},
+      bizId: 'manual:para_projection:${DateTime.now().microsecondsSinceEpoch}',
+    );
   }
 
   Future<Map<String, dynamic>> postComment(
@@ -1056,8 +1197,8 @@ class MemexRouter {
             id,
           );
           if (cardData != null) {
-            final currentSortOrder = (cardData['sort_order'] as num? ?? 0)
-                .toInt();
+            final currentSortOrder =
+                (cardData['sort_order'] as num? ?? 0).toInt();
             if (currentSortOrder != i) {
               cardData['sort_order'] = i;
               await fileSystemService.writeKnowledgeInsightCard(
@@ -1159,23 +1300,24 @@ class MemexRouter {
     required String itemId,
     required String subtaskTitle,
     required bool completed,
-  }) => runResultVoid(() async {
-    await _ensureInitialized();
-    final userId = await UserStorage.getUserId();
-    if (userId == null) {
-      throw Exception('User not logged in');
-    }
+  }) =>
+      runResultVoid(() async {
+        await _ensureInitialized();
+        final userId = await UserStorage.getUserId();
+        if (userId == null) {
+          throw Exception('User not logged in');
+        }
 
-    await ScheduleStateService.instance.setSubtaskCompletion(
-      userId: userId,
-      pendingId: itemId,
-      subtaskTitle: subtaskTitle,
-      completed: completed,
-    );
-    EventBusService.instance.emitEvent(
-      ScheduleAggregationUpdatedMessage(aggregationId: 'schedule_state'),
-    );
-  });
+        await ScheduleStateService.instance.setSubtaskCompletion(
+          userId: userId,
+          pendingId: itemId,
+          subtaskTitle: subtaskTitle,
+          completed: completed,
+        );
+        EventBusService.instance.emitEvent(
+          ScheduleAggregationUpdatedMessage(aggregationId: 'schedule_state'),
+        );
+      });
 
   Future<bool> updateCardTime(String cardId, int timestamp) async {
     await _ensureInitialized();
@@ -1610,8 +1752,7 @@ class MemexRouter {
     }
 
     final lower = avatar.toLowerCase();
-    final isRelativeImagePath =
-        !avatar.startsWith('/') &&
+    final isRelativeImagePath = !avatar.startsWith('/') &&
         (lower.endsWith('.png') ||
             lower.endsWith('.jpg') ||
             lower.endsWith('.jpeg') ||
@@ -1674,38 +1815,38 @@ class MemexRouter {
   Future<void> resetAllAgentConfigs() => UserStorage.resetAllAgentConfigs();
 
   Future<Result<void>> updateKnowledgeInsights() => runResultVoid(() async {
-    await _ensureInitialized();
-    final userId = await UserStorage.getUserId();
-    if (userId == null) {
-      throw Exception('User not logged in');
-    }
+        await _ensureInitialized();
+        final userId = await UserStorage.getUserId();
+        if (userId == null) {
+          throw Exception('User not logged in');
+        }
 
-    await GlobalEventBus.instance.publish(
-      userId: userId,
-      event: SystemEvent(
-        type: SystemEventTypes.knowledgeInsightRefreshRequested,
-        source: 'memex_router.updateKnowledgeInsights',
-        payload: const {},
-      ),
-    );
-  });
+        await GlobalEventBus.instance.publish(
+          userId: userId,
+          event: SystemEvent(
+            type: SystemEventTypes.knowledgeInsightRefreshRequested,
+            source: 'memex_router.updateKnowledgeInsights',
+            payload: const {},
+          ),
+        );
+      });
 
   Future<Result<void>> refreshScheduleAggregation() => runResultVoid(() async {
-    await _ensureInitialized();
-    final userId = await UserStorage.getUserId();
-    if (userId == null) {
-      throw Exception('User not logged in');
-    }
+        await _ensureInitialized();
+        final userId = await UserStorage.getUserId();
+        if (userId == null) {
+          throw Exception('User not logged in');
+        }
 
-    await GlobalEventBus.instance.publish(
-      userId: userId,
-      event: SystemEvent(
-        type: SystemEventTypes.scheduleAggregationRequested,
-        source: 'memex_router.refreshScheduleAggregation',
-        payload: const {},
-      ),
-    );
-  });
+        await GlobalEventBus.instance.publish(
+          userId: userId,
+          event: SystemEvent(
+            type: SystemEventTypes.scheduleAggregationRequested,
+            source: 'memex_router.refreshScheduleAggregation',
+            payload: const {},
+          ),
+        );
+      });
 
   Future<List<Task>> getTasks({int limit = 10, int offset = 0}) =>
       LocalTaskExecutor.instance.getTasks(limit: limit, offset: offset);

@@ -5,8 +5,10 @@ import 'package:memex/agent/context/user_knowledge_context_service.dart';
 import 'package:memex/agent/memory/character_memory_service.dart';
 import 'package:memex/agent/memory/memory_management.dart';
 import 'package:memex/data/services/file_system_service.dart';
+import 'package:memex/data/services/memory_primary_service.dart';
 import 'package:memex/domain/models/character_model.dart';
 import 'package:memex/utils/time_context.dart';
+import 'package:memex/utils/user_storage.dart';
 import 'package:path/path.dart' as p;
 
 class CharacterContextSnapshot {
@@ -46,13 +48,17 @@ class CharacterContextAssembler {
       userId: userId,
       characterId: character.id,
     );
-    final characterWorldRaw =
-        await memoryService.buildTriggeredWorldEntriesText(
-      userId: userId,
-      characterId: character.id,
+    final characterWorldRaw = await memoryService
+        .buildTriggeredWorldEntriesText(
+          userId: userId,
+          characterId: character.id,
+          queryHint: queryHint,
+        );
+    final userProfileRaw = await _loadUserProfile(
+      userId,
+      sourceAgent,
       queryHint: queryHint,
     );
-    final userProfileRaw = await _loadUserProfile(userId, sourceAgent);
     final recentTimelineRaw = await _loadRecentTimeline(
       userId,
       character.id,
@@ -64,8 +70,10 @@ class CharacterContextAssembler {
       userId,
       character.id,
     );
-    final archivedCount =
-        await memoryService.countArchivedTimelineLines(userId, character.id);
+    final archivedCount = await memoryService.countArchivedTimelineLines(
+      userId,
+      character.id,
+    );
 
     // Prepend archived event count into the checkpoints text
     String checkpointsText = checkpointsRaw;
@@ -74,11 +82,8 @@ class CharacterContextAssembler {
           '($archivedCount archived events available via HistorySearch)\n\n$checkpointsRaw';
     }
 
-    final knowledgeCardsRaw =
-        await UserKnowledgeContextService.instance.buildKnowledgeCards(
-      userId: userId,
-      queryHint: queryHint,
-    );
+    final knowledgeCardsRaw = await UserKnowledgeContextService.instance
+        .buildKnowledgeCards(userId: userId, queryHint: queryHint);
 
     // Only knowledge and world entries get hard-capped here.
     // userProfile, characterMemories, checkpoints, and timeline pass through
@@ -108,8 +113,19 @@ class CharacterContextAssembler {
   }
 
   static Future<String> _loadUserProfile(
-      String userId, String sourceAgent) async {
+    String userId,
+    String sourceAgent, {
+    String queryHint = '',
+  }) async {
     try {
+      final config = await UserStorage.getAgentPipelineConfig();
+      if (config.runsMemoryPrimary) {
+        return MemoryPrimaryService.instance.buildRecallPromptBlock(
+          userId: userId,
+          query: queryHint,
+          limit: 12,
+        );
+      }
       final mm = await MemoryManagement.createDefault(
         userId: userId,
         sourceAgent: sourceAgent,
@@ -156,10 +172,7 @@ class CharacterContextAssembler {
   }
 
   /// Render timeline JSON lines into human-readable text for LLM consumption.
-  static String renderTimeline(
-    List<String> lines, {
-    String? excludeThreadId,
-  }) {
+  static String renderTimeline(List<String> lines, {String? excludeThreadId}) {
     final events = <Map<String, dynamic>>[];
     for (final line in lines) {
       try {
@@ -198,7 +211,8 @@ class CharacterContextAssembler {
         if (b.isNotEmpty) b.writeln('');
         if (scene == CharacterMemoryScene.comment.name) {
           b.writeln(
-              '### Post Comment Thread · $ts · ${threadId.isEmpty ? 'unknown thread' : threadId}');
+            '### Post Comment Thread · $ts · ${threadId.isEmpty ? 'unknown thread' : threadId}',
+          );
         } else {
           b.writeln('### Direct Chat · $ts');
         }
@@ -213,13 +227,15 @@ class CharacterContextAssembler {
         case 'characterComment':
           final replyTo = event['reply_to_id'] as String?;
           b.writeln(
-              '[$ts] Character commented${replyTo == null ? '' : ' (reply to $replyTo)'}:');
+            '[$ts] Character commented${replyTo == null ? '' : ' (reply to $replyTo)'}:',
+          );
           b.writeln(content);
           break;
         case 'userCommentReply':
           final replyTo = event['reply_to_id'] as String?;
           b.writeln(
-              '[$ts] User replied${replyTo == null ? '' : ' (reply to $replyTo)'}:');
+            '[$ts] User replied${replyTo == null ? '' : ' (reply to $replyTo)'}:',
+          );
           b.writeln(content);
           break;
         case 'userChatMessage':

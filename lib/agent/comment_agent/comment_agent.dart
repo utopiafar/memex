@@ -13,10 +13,12 @@ import 'package:memex/domain/models/character_model.dart';
 import 'package:memex/data/services/character_service.dart';
 import 'package:memex/data/services/file_system_service.dart';
 import 'package:memex/data/services/file_operation_service.dart';
+import 'package:memex/data/services/memory_primary_service.dart';
 import 'package:memex/utils/logger.dart';
 import 'package:logging/logging.dart';
 import 'package:memex/utils/tavern_macro.dart';
 import 'package:memex/utils/time_context.dart';
+import 'package:memex/utils/user_storage.dart';
 
 class CommentAgent {
   static final Logger _logger = getLogger('CommentAgent');
@@ -73,8 +75,8 @@ class CommentAgent {
     );
     if (withMemoryManagement) {
       tools.addAll(memoryManagement.buildMemoryManagementTools());
-      memoryManagementPrompt =
-          await memoryManagement.buildMemoryManagementPrompt();
+      memoryManagementPrompt = await memoryManagement
+          .buildMemoryManagementPrompt();
     }
 
     // Build character context — userProfile and characterMemories go into skill
@@ -117,7 +119,16 @@ class CommentAgent {
       }
     } else {
       // No character — fall back to user memory as profile.
-      userProfile = await memoryManagement.buildMemoryPrompt();
+      if (await _usesMemoryPrimary()) {
+        userProfile = await MemoryPrimaryService.instance
+            .buildRecallPromptBlock(
+              userId: userId,
+              query: rawInputContent,
+              limit: 12,
+            );
+      } else {
+        userProfile = await memoryManagement.buildMemoryPrompt();
+      }
     }
 
     final skill = CommentAgentSkill(
@@ -192,6 +203,7 @@ class CommentAgent {
     pkmContext = await _loadPkmContextIfNeeded(
       userId: userId,
       factId: factId,
+      queryHint: rawInputContent,
       existingContext: pkmContext,
     );
     final systemReminder = _buildSystemReminder(
@@ -347,7 +359,7 @@ class CommentAgent {
     final knowledge = pkmContext?.trim() ?? '';
     if (knowledge.isNotEmpty) {
       b.writeln('');
-      b.writeln('## Knowledge Base Context');
+      b.writeln('## Related Memory / Knowledge Context');
       b.writeln(
         'Reference only. Use it only if relevant to your persona and this comment.',
       );
@@ -388,10 +400,18 @@ class CommentAgent {
   static Future<String> _loadPkmContextIfNeeded({
     required String userId,
     required String factId,
+    required String queryHint,
     String? existingContext,
   }) async {
     if (existingContext != null && existingContext.trim().isNotEmpty) {
       return existingContext;
+    }
+    if (await _usesMemoryPrimary()) {
+      return MemoryPrimaryService.instance.buildRecallPromptBlock(
+        userId: userId,
+        query: queryHint,
+        limit: 8,
+      );
     }
     final fileService = FileSystemService.instance;
     return _findPkmContext(
@@ -437,5 +457,10 @@ class CommentAgent {
     }
 
     return buffer.toString();
+  }
+
+  static Future<bool> _usesMemoryPrimary() async {
+    final config = await UserStorage.getAgentPipelineConfig();
+    return config.runsMemoryPrimary;
   }
 }

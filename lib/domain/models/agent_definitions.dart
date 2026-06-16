@@ -2,6 +2,9 @@ class AgentDefinitions {
   static const String analyzeAssets = 'analyze_assets';
   static const String cardAgent = 'card_agent';
   static const String pkmAgent = 'pkm_agent';
+  static const String memoryExtractAgent = 'memory_extract_agent';
+  static const String cardInsightAgent = 'card_insight_agent';
+  static const String paraProjectionAgent = 'para_projection_agent';
   static const String knowledgeInsightAgent = 'knowledge_insight_agent';
   static const String commentAgent = 'comment_agent';
   static const String chatAgent = 'chat_agent';
@@ -18,6 +21,9 @@ class AgentDefinitions {
     analyzeAssets: 'Media analysis',
     cardAgent: 'Cards',
     pkmAgent: 'PKM',
+    memoryExtractAgent: 'Memory Extract',
+    cardInsightAgent: 'Card Insight',
+    paraProjectionAgent: 'PARA Projection',
     knowledgeInsightAgent: 'Insights',
     commentAgent: 'Comments',
     chatAgent: 'Chat',

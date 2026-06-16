@@ -42,9 +42,37 @@ void addAgentLogger(AgentController controller) {
         usage: event.response.usage!,
         model: event.response.model,
         client: event.agent.client,
+        metadata: {
+          'stop_reason': event.stopReason,
+          'text_output_length': event.response.textOutput?.trim().length ?? 0,
+          'function_call_count': event.response.functionCalls.length,
+          'has_text_output':
+              event.response.textOutput?.trim().isNotEmpty == true,
+          'has_function_calls': event.response.functionCalls.isNotEmpty,
+          'empty_response_turn': _isEmptyOrInvalidLlmTurn(
+            textOutput: event.response.textOutput,
+            functionCallCount: event.response.functionCalls.length,
+            stopReason: event.stopReason,
+          ),
+        },
       );
     },
   );
+}
+
+bool _isEmptyOrInvalidLlmTurn({
+  required String? textOutput,
+  required int functionCallCount,
+  required String? stopReason,
+}) {
+  final hasText = textOutput?.trim().isNotEmpty == true;
+  final hasToolCall = functionCallCount > 0;
+  if (!hasText && !hasToolCall) return true;
+
+  final normalizedStopReason = stopReason?.toLowerCase().trim() ?? '';
+  return normalizedStopReason == 'malformed_function_call' ||
+      normalizedStopReason == 'invalid_tool_call' ||
+      normalizedStopReason == 'invalid_function_call';
 }
 
 void addAgentActivityCollector(AgentController controller) {
