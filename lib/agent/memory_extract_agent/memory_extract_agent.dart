@@ -119,6 +119,10 @@ Extraction rules:
 - Only create durable memories useful beyond the current moment.
 - Do not log every event. Extract stable preferences, project context,
   relationships, routines, constraints, identity, boundaries, and active plans.
+- Preserve work-state transitions when they are explicitly framed as reusable
+  context for later recall, such as role switches across projects, mood/state
+  changes, and "not an action/reminder" boundaries. Keep the factual transition
+  and the no-action boundary separate when possible.
 - Preserve the user's language. If the raw input is mostly Chinese, write memory
   content in Chinese while keeping exact project/person names unchanged.
 - Treat explicit durable cues as strong write signals: "记住", "长期偏好",
@@ -134,6 +138,14 @@ Extraction rules:
   the user's exact phrase into content or attributes. For example preserve
   "最新结论", "风险前置", "截止时间", "影响面", "必要证据", and "证据来源"
   instead of replacing them with only generic synonyms.
+- When the raw input contains a domain-specific compound term, preserve the
+  exact term in content or attributes instead of splitting it into looser
+  fragments. This is especially important for terms ending in "优先级",
+  "风险列表", "窗口", "回滚演练", "失败恢复口径", or "验收依据".
+- When the raw input is parsed OCR/screenshot text or explicitly says to use
+  given text, preserve that source context and handling boundary. The memory
+  should make clear that future answers should use the given text and should
+  not judge OCR quality.
 - For personal constraints, preserve concrete durable attributes such as city,
   timezone interpretation, allergies, health constraints, family/weekend
   boundaries, and caffeine/diet preferences.
@@ -221,8 +233,16 @@ Return strict JSON only:
           withReportTerms,
           sourceText,
         );
-        patches.add(_generalizeTemporaryBoundaryPatch(
+        final withDomainTerms = _preserveExplicitDomainTerms(
           withPersonalTerms,
+          sourceText,
+        );
+        final withParsedTextContext = _preserveParsedTextContext(
+          withDomainTerms,
+          sourceText,
+        );
+        patches.add(_generalizeTemporaryBoundaryPatch(
+          withParsedTextContext,
           sourceText,
         ));
       }
@@ -246,15 +266,33 @@ Return strict JSON only:
         parsedPatches: patches,
       );
       if (personalFallbackPatch != null) patches.add(personalFallbackPatch);
+      final roleTransitionPatch = _buildRoleTransitionFallback(
+        sourceText: sourceText,
+        factId: fallbackFactId,
+        parsedPatches: patches,
+      );
+      if (roleTransitionPatch != null) patches.add(roleTransitionPatch);
+      final parsedTextFallbackPatch = _buildParsedTextContextFallback(
+        sourceText: sourceText,
+        factId: fallbackFactId,
+        parsedPatches: patches,
+      );
+      if (parsedTextFallbackPatch != null) {
+        patches.add(parsedTextFallbackPatch);
+      }
       if (patches.length <= 8) return patches.toList(growable: false);
       if (ownerCorrectionFallbackPatch != null ||
           fallbackPatch != null ||
-          personalFallbackPatch != null) {
+          personalFallbackPatch != null ||
+          roleTransitionPatch != null ||
+          parsedTextFallbackPatch != null) {
         final requiredFallbacks = [
           if (ownerCorrectionFallbackPatch != null)
             ownerCorrectionFallbackPatch,
           if (fallbackPatch != null) fallbackPatch,
           if (personalFallbackPatch != null) personalFallbackPatch,
+          if (roleTransitionPatch != null) roleTransitionPatch,
+          if (parsedTextFallbackPatch != null) parsedTextFallbackPatch,
         ];
         return [
           ...patches.take(8 - requiredFallbacks.length),
@@ -306,6 +344,18 @@ Return strict JSON only:
       parsedPatches: const [],
     );
     if (personalFallback != null) patches.add(personalFallback);
+    final roleTransitionFallback = _buildRoleTransitionFallback(
+      sourceText: sourceText,
+      factId: factId,
+      parsedPatches: const [],
+    );
+    if (roleTransitionFallback != null) patches.add(roleTransitionFallback);
+    final parsedTextFallback = _buildParsedTextContextFallback(
+      sourceText: sourceText,
+      factId: factId,
+      parsedPatches: const [],
+    );
+    if (parsedTextFallback != null) patches.add(parsedTextFallback);
     return patches.toList(growable: false);
   }
 
@@ -509,6 +559,194 @@ Return strict JSON only:
     return MemoryPatch.fromJson(json);
   }
 
+  static MemoryPatch _preserveExplicitDomainTerms(
+    MemoryPatch patch,
+    String sourceText,
+  ) {
+    if (patch.op != 'create' && patch.op != 'update') return patch;
+    final sourceTerms = _domainTermsFromSource(sourceText);
+    if (sourceTerms.isEmpty) return patch;
+    if (!_patchLooksRelatedToDomainTerms(patch, sourceTerms)) return patch;
+
+    final missingTerms = sourceTerms
+        .where((term) => !patch.content.contains(term))
+        .toList(growable: false);
+    final existingTerms = (patch.attributes['preserved_domain_terms'] as List?)
+            ?.whereType<String>()
+            .toList(growable: false) ??
+        const <String>[];
+    final preservedTerms = <String>[
+      ...existingTerms,
+      ...sourceTerms,
+    ];
+
+    final json = patch.toJson();
+    if (missingTerms.isNotEmpty) {
+      final suffix = '保留用户原词领域术语：${missingTerms.join('、')}。';
+      json['content'] = patch.content.trim().isEmpty
+          ? suffix
+          : '${patch.content.trim()} $suffix';
+    }
+    json['entity_ids'] = [
+      ...patch.entityIds,
+      ...missingTerms.where((term) => !patch.entityIds.contains(term)),
+    ];
+    json['attributes'] = {
+      ...patch.attributes,
+      'preserved_domain_terms': preservedTerms,
+    };
+    return MemoryPatch.fromJson(json);
+  }
+
+  static MemoryPatch _preserveParsedTextContext(
+    MemoryPatch patch,
+    String sourceText,
+  ) {
+    if (patch.op != 'create' && patch.op != 'update') return patch;
+    if (!_looksLikeParsedTextSource(sourceText)) return patch;
+    if (!_patchLooksRelatedToParsedTextContext(patch, sourceText)) {
+      return patch;
+    }
+
+    final json = patch.toJson();
+    final hasParsedTextMarker = RegExp(
+      r'OCR|已解析|截图文字|给定文本',
+      caseSensitive: false,
+    ).hasMatch(patch.content);
+    if (!hasParsedTextMarker) {
+      const suffix = '此为已解析截图/OCR上下文，Agent 只需使用给定文本处理，不判断 OCR 质量。';
+      json['content'] = patch.content.trim().isEmpty
+          ? suffix
+          : '${patch.content.trim()} $suffix';
+    }
+    json['entity_ids'] = _appendUniqueStrings(
+      patch.entityIds,
+      const ['OCR', '给定文本'],
+    );
+    json['attributes'] = {
+      ...patch.attributes,
+      'source_type': patch.attributes['source_type'] ?? 'screenshot_ocr',
+      'ocr_handling': patch.attributes['ocr_handling'] ?? 'use_given_text_only',
+    };
+    return MemoryPatch.fromJson(json);
+  }
+
+  static bool _looksLikeParsedTextSource(String sourceText) {
+    return RegExp(
+      r'OCR|已解析截图|截图文字|图片文字|给定文本',
+      caseSensitive: false,
+    ).hasMatch(sourceText);
+  }
+
+  static bool _patchLooksRelatedToParsedTextContext(
+    MemoryPatch patch,
+    String sourceText,
+  ) {
+    if (patch.type == 'boundary' &&
+        _looksLikeTemporaryNoLongTermBoundary(sourceText)) {
+      return false;
+    }
+    final patchText = [
+      patch.type,
+      patch.title,
+      patch.content,
+      ...patch.entityIds,
+    ].join(' ');
+    if (RegExp(r'项目|Project|风险|分歧|仲裁|owner|负责人|职责|合同|发票|验收',
+            caseSensitive: false)
+        .hasMatch(patchText)) {
+      return true;
+    }
+    final sourceTerms = _domainTermsFromSource(sourceText);
+    return _patchLooksRelatedToDomainTerms(patch, sourceTerms);
+  }
+
+  static MemoryPatch? _buildParsedTextContextFallback({
+    required String sourceText,
+    required String factId,
+    required List<MemoryPatch> parsedPatches,
+  }) {
+    if (!_looksLikeParsedTextSource(sourceText)) return null;
+    if (!RegExp(r'项目|Project|风险列表|灰度风险|分歧|仲裁|owner|负责人|职责',
+            caseSensitive: false)
+        .hasMatch(sourceText)) {
+      return null;
+    }
+    if (parsedPatches.any(
+      (patch) =>
+          patch.op == 'create' &&
+          _looksLikeParsedTextSource([
+            patch.content,
+            patch.title,
+            ...patch.entityIds,
+            ...patch.attributes.values.map((value) => value.toString()),
+          ].join(' ')),
+    )) {
+      return null;
+    }
+
+    final project = RegExp(r'Project\s+[A-Za-z0-9][A-Za-z0-9 _-]*')
+        .firstMatch(sourceText)
+        ?.group(0)
+        ?.trim();
+    final content = sourceText
+        .replaceFirst(RegExp(r'^.*?(?:OCR|已解析截图|截图文字|图片文字)[^：:]*[:：]?\s*'), '')
+        .trim();
+    final normalizedContent = content.isEmpty ? sourceText.trim() : content;
+    final entityIds = <String>[
+      if (project != null && project.isNotEmpty) project,
+      ..._domainTermsFromSource(sourceText),
+      'OCR',
+      '给定文本',
+    ];
+    return MemoryPatch(
+      op: 'create',
+      type: 'project_context',
+      title: project == null ? '已解析文本项目上下文' : '$project 已解析文本上下文',
+      content: '$normalizedContent 此为已解析截图/OCR上下文，Agent 只需使用给定文本处理，不判断 OCR 质量。',
+      confidence: 0.85,
+      importance: 3,
+      entityIds: _appendUniqueStrings(const [], entityIds),
+      evidenceFactIds: [factId],
+      attributes: const {
+        'fallback_rule': 'parsed_text_context',
+        'source_type': 'screenshot_ocr',
+        'ocr_handling': 'use_given_text_only',
+      },
+    );
+  }
+
+  static List<String> _appendUniqueStrings(
+    List<String> base,
+    List<String> additions,
+  ) {
+    final seen = <String>{};
+    final result = <String>[];
+    for (final value in [...base, ...additions]) {
+      final text = value.trim();
+      if (text.isNotEmpty && seen.add(text)) result.add(text);
+    }
+    return result;
+  }
+
+  static bool _patchLooksRelatedToDomainTerms(
+    MemoryPatch patch,
+    List<String> terms,
+  ) {
+    final text = [
+      patch.content,
+      patch.title,
+      ...patch.entityIds,
+    ].join(' ');
+    for (final term in terms) {
+      if (text.contains(term)) return true;
+      for (final marker in _domainTermMarkers(term)) {
+        if (text.contains(marker)) return true;
+      }
+    }
+    return false;
+  }
+
   static bool _looksLikeReportPreference(String sourceText) {
     return RegExp(r'报告|总结|行动项|技术|项目|客户影响').hasMatch(sourceText);
   }
@@ -647,6 +885,89 @@ Return strict JSON only:
     );
   }
 
+  static MemoryPatch? _buildRoleTransitionFallback({
+    required String sourceText,
+    required String factId,
+    required List<MemoryPatch> parsedPatches,
+  }) {
+    final transition = _extractRoleTransition(sourceText);
+    if (transition == null) return null;
+    final existingText = parsedPatches
+        .map((patch) => '${patch.content} ${patch.entityIds.join(' ')}')
+        .join('\n');
+    if ([
+      transition.fromRole,
+      transition.toRole,
+      transition.toMood,
+    ].every(existingText.contains)) {
+      return null;
+    }
+
+    return MemoryPatch(
+      op: 'create',
+      type: 'project_context',
+      title: '角色与心态转换',
+      content:
+          '用户在 ${transition.fromProject} 和 ${transition.toProject} 之间切换角色：上午以 ${transition.fromRole} 处理 ${transition.fromProject}，下午切到 ${transition.toRole} 处理 ${transition.toProject}；阶段心态从 ${transition.fromMood} 转为 ${transition.toMood}。这不是提醒或行动创建请求。',
+      confidence: 0.95,
+      importance: 4,
+      entityIds: [
+        transition.fromRole,
+        transition.toRole,
+        transition.fromProject,
+        transition.toProject,
+        transition.fromMood,
+        transition.toMood,
+      ],
+      evidenceFactIds: [factId],
+      attributes: {
+        'fallback_rule': 'role_mood_transition',
+        'from_role': transition.fromRole,
+        'to_role': transition.toRole,
+        'from_project': transition.fromProject,
+        'to_project': transition.toProject,
+        'from_mood': transition.fromMood,
+        'to_mood': transition.toMood,
+        'read_only_boundary': 'not_action_or_reminder',
+      },
+    );
+  }
+
+  static _RoleTransition? _extractRoleTransition(String sourceText) {
+    final roleMatch = RegExp(
+      r'上午以\s*(.+?)\s*看\s*((?:Project|项目)[^，；;]+?)\s*上线风险[，；;]\s*下午切到\s*(.+?)\s*整理\s*((?:Meridian|Project|项目)[^，；;]+?)\s*客户反馈',
+    ).firstMatch(sourceText);
+    final moodMatch =
+        RegExp(r'心态从\s*([^，。；;\n]+?)\s*转为\s*([^，。；;\n]+)').firstMatch(
+      sourceText,
+    );
+    if (roleMatch == null || moodMatch == null) return null;
+    final fromRole = roleMatch.group(1)?.trim();
+    final fromProject = roleMatch.group(2)?.trim();
+    final toRole = roleMatch.group(3)?.trim();
+    final toProject = roleMatch.group(4)?.trim();
+    final fromMood = moodMatch.group(1)?.trim();
+    final toMood = moodMatch.group(2)?.trim();
+    if ([
+      fromRole,
+      fromProject,
+      toRole,
+      toProject,
+      fromMood,
+      toMood,
+    ].any((value) => value == null || value.isEmpty)) {
+      return null;
+    }
+    return _RoleTransition(
+      fromRole: fromRole!,
+      toRole: toRole!,
+      fromProject: fromProject!,
+      toProject: toProject!,
+      fromMood: fromMood!,
+      toMood: toMood!,
+    );
+  }
+
   static List<String> _attributeStringList(dynamic value) {
     if (value is! List) return const [];
     final seen = <String>{};
@@ -714,6 +1035,106 @@ Return strict JSON only:
     return terms.toList(growable: false);
   }
 
+  static List<String> _domainTermsFromSource(String sourceText) {
+    final terms = <String>{};
+    for (final term in const [
+      '回滚演练',
+      '失败恢复口径',
+      '风险列表',
+      '验收依据',
+    ]) {
+      if (sourceText.contains(term)) terms.add(term);
+    }
+
+    for (final match in RegExp(r'优先级').allMatches(sourceText)) {
+      final prefix = _domainTermPrefixBefore(sourceText, match.start);
+      final term = '$prefix优先级'.trim();
+      if (term.length >= 4 && !RegExp(r'\s').hasMatch(term)) {
+        terms.add(term);
+      }
+    }
+    for (final suffix in const ['节奏', '窗口']) {
+      for (final match in RegExp(suffix).allMatches(sourceText)) {
+        final prefix = _domainTermPrefixBefore(sourceText, match.start);
+        final term = '$prefix$suffix'.trim();
+        if (term.length >= 4 && !RegExp(r'\s').hasMatch(term)) {
+          terms.add(term);
+        }
+      }
+    }
+    for (final match in RegExp(r'分歧').allMatches(sourceText)) {
+      final term = _domainTermPrefixBefore(sourceText, match.start)
+          .replaceFirst(RegExp(r'(?:有|存在|产生|出现|发生)$'), '')
+          .trim();
+      if (term.length >= 4 && !RegExp(r'\s').hasMatch(term)) {
+        terms.add(term);
+      }
+    }
+    return terms.toList(growable: false);
+  }
+
+  static String _domainTermPrefixBefore(String sourceText, int end) {
+    final prefixStart = (end - 16).clamp(0, end).toInt();
+    var prefix = sourceText.substring(prefixStart, end);
+    final splitMarkers = [
+      '对',
+      '关于',
+      '针对',
+      '就',
+      '：',
+      ':',
+      '；',
+      ';',
+      '，',
+      ',',
+      '。',
+      '\n'
+    ];
+    var splitAt = -1;
+    for (final marker in splitMarkers) {
+      final index = prefix.lastIndexOf(marker);
+      if (index > splitAt) splitAt = index;
+    }
+    if (splitAt >= 0) {
+      prefix = prefix.substring(splitAt + 1);
+    }
+    return prefix.replaceFirst(RegExp(r'^(?:的|该|此|这个|那个)\s*'), '').trim();
+  }
+
+  static List<String> _domainTermMarkers(String term) {
+    if (term.endsWith('优先级')) {
+      final prefix = term.substring(0, term.length - '优先级'.length);
+      return [
+        if (prefix.isNotEmpty) prefix,
+        '优先级',
+        '仲裁',
+        '分歧',
+      ];
+    }
+    if (term.endsWith('风险列表')) {
+      return ['风险列表', '灰度风险', '风险'];
+    }
+    if (term.endsWith('节奏')) {
+      final prefix = term.substring(0, term.length - '节奏'.length);
+      return [
+        if (prefix.isNotEmpty) prefix,
+        '节奏',
+        '分歧',
+        '仲裁',
+      ];
+    }
+    if (term.endsWith('窗口')) {
+      final prefix = term.substring(0, term.length - '窗口'.length);
+      return [
+        if (prefix.isNotEmpty) prefix,
+        '窗口',
+        '分歧',
+        '仲裁',
+      ];
+    }
+    return [term];
+  }
+
   static final Map<String, List<RegExp>> _explicitReportTermAliases = {
     '风险前置': [
       RegExp(r'先(?:给|写|列)?结论[、和]风险'),
@@ -738,10 +1159,11 @@ Return strict JSON only:
     String sourceText,
   ) {
     if (patch.op != 'create' && patch.op != 'update') return patch;
-    if (patch.type != 'boundary') return patch;
     if (!_looksLikeTemporaryNoLongTermBoundary(sourceText)) return patch;
+    if (!_looksLikeTemporaryNoLongTermBoundary(patch.content)) return patch;
 
     final json = patch.toJson();
+    json['type'] = 'boundary';
     json['title'] = patch.title.trim().isEmpty ? '临时事件不长期化' : patch.title;
     json['content'] = '用户不希望将临时、一次性或低信号噪声写入长期记忆；'
         '遇到这类输入时只保留可复用边界，不保留具体临时细节。';
@@ -760,7 +1182,7 @@ Return strict JSON only:
       caseSensitive: false,
     ).hasMatch(sourceText);
     final hasNoLongTermCue = RegExp(
-      r'不要.*(?:长期|长记忆|长期记忆|长期画像|保存|写入)|不(?:要|应).*长期|别.*(?:记|保存|长期化)',
+      r'不要.*(?:长期|长记忆|长期记忆|长期画像|保存|写入)|不(?:要|应|希望).*长期|别.*(?:记|保存|长期化)',
       caseSensitive: false,
     ).hasMatch(sourceText);
     return hasTemporaryCue && hasNoLongTermCue;
@@ -782,5 +1204,23 @@ class _ProjectOwnerCorrection {
   const _ProjectOwnerCorrection({
     required this.project,
     required this.owner,
+  });
+}
+
+class _RoleTransition {
+  final String fromRole;
+  final String toRole;
+  final String fromProject;
+  final String toProject;
+  final String fromMood;
+  final String toMood;
+
+  const _RoleTransition({
+    required this.fromRole,
+    required this.toRole,
+    required this.fromProject,
+    required this.toProject,
+    required this.fromMood,
+    required this.toMood,
   });
 }

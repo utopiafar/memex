@@ -1,3 +1,5 @@
+// ignore_for_file: non_constant_identifier_names
+
 import 'dart:convert';
 
 import 'package:dart_agent_core/dart_agent_core.dart';
@@ -302,6 +304,11 @@ class TimelineCardSkill extends Skill {
                 logger.warning(
                     "Failed to parse content_creation_date: $content_creation_date");
               }
+            }
+            final inputCreatedAtTs = AgentCallToolContext
+                .current!.state.metadata['inputCreatedAtTs'];
+            if (timestamp == null && inputCreatedAtTs is int) {
+              timestamp = inputCreatedAtTs;
             }
 
             // 10. Update Card File

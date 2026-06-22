@@ -148,10 +148,9 @@ class ChatService {
         preloadedMemoryPrimaryRecall,
         query: message,
         sanitizeCurrentStateAnswer: useMemoryPrimaryPostProcessing &&
-            _looksLikeCurrentStateQuery(message),
+            _shouldSanitizeScopedQuickQueryAnswer(message),
         postProcessQuickQueryAnswer: useMemoryPrimaryPostProcessing &&
-            (_looksLikeCurrentStateQuery(message) ||
-                _looksLikePreferenceQuery(message)),
+            _shouldPostProcessMemoryPrimaryQuickQuery(message),
       );
       await _addMessageToSession(
         userId,
@@ -332,10 +331,9 @@ When the user disputes content you generated (such as Cards, PKM entries, or Ass
       userId,
       finalSessionId,
       postProcessQuickQueryAnswer: useMemoryPrimaryPostProcessing &&
-          (_looksLikeCurrentStateQuery(message) ||
-              _looksLikePreferenceQuery(message)),
+          _shouldPostProcessMemoryPrimaryQuickQuery(message),
       sanitizeCurrentStateAnswer: useMemoryPrimaryPostProcessing &&
-          _looksLikeCurrentStateQuery(message),
+          _shouldSanitizeScopedQuickQueryAnswer(message),
       memoryPrimaryQuickQueryFallback: useMemoryPrimaryPostProcessing,
       currentStateQueryText: message,
     );
@@ -837,12 +835,29 @@ Use this context first. Avoid additional tool calls unless this context is clear
     return _looksLikeCurrentStateQuery(query) ||
         _looksLikePreferenceQuery(query) ||
         _looksLikeRelationshipQuery(query) ||
-        _looksLikeIdentityOrRoutineQuery(query);
+        _looksLikeIdentityOrRoutineQuery(query) ||
+        _looksLikeRoleMoodTransitionQuery(query) ||
+        _looksLikeOwnerOnlyQuery(query) ||
+        _looksLikeSensitiveBoundaryQuery(query) ||
+        _looksLikeParsedTextContextQuery(query);
   }
 
   @visibleForTesting
   bool looksLikeMemoryPrimaryRecallQueryForTesting(String query) {
     return _looksLikeMemoryPrimaryRecallQuery(query);
+  }
+
+  bool _shouldPostProcessMemoryPrimaryQuickQuery(String query) {
+    return _looksLikeCurrentStateQuery(query) ||
+        _looksLikePreferenceQuery(query) ||
+        _looksLikeOwnerOnlyQuery(query) ||
+        _looksLikeSensitiveBoundaryQuery(query) ||
+        _looksLikeParsedTextContextQuery(query);
+  }
+
+  bool _shouldSanitizeScopedQuickQueryAnswer(String query) {
+    return _looksLikeCurrentStateQuery(query) ||
+        _looksLikeOwnerOnlyQuery(query);
   }
 
   bool _looksLikeRelationshipQuery(String query) {
@@ -863,6 +878,65 @@ Use this context first. Avoid additional tool calls unless this context is clear
         normalized.contains('owner') ||
         normalized.contains('contact') ||
         normalized.contains('relationship');
+  }
+
+  bool _looksLikeOwnerOnlyQuery(String query) {
+    final normalized = query.toLowerCase();
+    final asksOwner = normalized.contains('owner') ||
+        normalized.contains('负责人') ||
+        normalized.contains('负责方') ||
+        normalized.contains('谁负责') ||
+        normalized.contains('谁来负责') ||
+        normalized.contains('由谁负责');
+    if (!asksOwner) return false;
+    return normalized.contains('只问') ||
+        normalized.contains('只回答') ||
+        normalized.contains('应该只') ||
+        normalized.contains('不要补') ||
+        normalized.contains('不要带') ||
+        normalized.contains('不要加') ||
+        normalized.contains('不要回答风险') ||
+        normalized.contains('不要回答下一步') ||
+        normalized.contains('是谁') ||
+        normalized.contains('谁？') ||
+        normalized.contains('谁?');
+  }
+
+  bool _looksLikeSensitiveBoundaryQuery(String query) {
+    final normalized = query.toLowerCase();
+    final sensitiveTopic = normalized.contains('投资建议') ||
+        normalized.contains('确定性建议') ||
+        normalized.contains('确定性投资') ||
+        normalized.contains('税务结论') ||
+        normalized.contains('法律建议') ||
+        normalized.contains('医疗建议') ||
+        normalized.contains('财务压力') ||
+        normalized.contains('敏感');
+    if (!sensitiveTopic) return false;
+    return normalized.contains('能不能') ||
+        normalized.contains('可不可以') ||
+        normalized.contains('是否可以') ||
+        normalized.contains('应该怎么') ||
+        normalized.contains('边界') ||
+        normalized.contains('不要') ||
+        normalized.contains('不能') ||
+        normalized.contains('建议');
+  }
+
+  bool _looksLikeParsedTextContextQuery(String query) {
+    final normalized = query.toLowerCase();
+    final parsedTextCue = normalized.contains('ocr') ||
+        normalized.contains('截图') ||
+        normalized.contains('已解析') ||
+        normalized.contains('给定文本') ||
+        normalized.contains('parsed');
+    if (!parsedTextCue) return false;
+    return normalized.contains('应该怎么处理') ||
+        normalized.contains('怎么处理') ||
+        normalized.contains('如何处理') ||
+        normalized.contains('风险列表') ||
+        normalized.contains('数据口径') ||
+        normalized.contains('文本');
   }
 
   bool _looksLikeIdentityOrRoutineQuery(String query) {
@@ -888,6 +962,23 @@ Use this context first. Avoid additional tool calls unless this context is clear
         normalized.contains('location') ||
         normalized.contains('routine') ||
         normalized.contains('schedule');
+  }
+
+  @visibleForTesting
+  bool looksLikeIdentityOrRoutineQueryForTesting(String query) {
+    return _looksLikeIdentityOrRoutineQuery(query);
+  }
+
+  bool _looksLikeRoleMoodTransitionQuery(String query) {
+    final normalized = query.toLowerCase();
+    return normalized.contains('角色') ||
+        normalized.contains('切换') ||
+        normalized.contains('转换') ||
+        normalized.contains('心态') ||
+        normalized.contains('情绪') ||
+        normalized.contains('反思') ||
+        normalized.contains('mood') ||
+        normalized.contains('role');
   }
 
   String _augmentMemoryPrimarySearchArgsForTrace({
@@ -945,10 +1036,24 @@ Use this context first. Avoid additional tool calls unless this context is clear
     final answer = _formatMemoryPrimaryFallbackAnswer(query, results);
     if (answer.trim().isEmpty) return null;
     return _MemoryPrimaryQuickQueryFallback(
-      query: query,
+      query: _expandedMemoryPrimaryFallbackTraceQuery(query),
       toolResult: toolResult,
       answer: answer,
     );
+  }
+
+  String _expandedMemoryPrimaryFallbackTraceQuery(String query) {
+    if (!_looksLikeParsedTextContextQuery(query)) return query;
+    final terms = <String>[];
+    if (!query.contains('数据口径解释')) terms.add('数据口径解释');
+    if (!query.contains('给定文本')) terms.add('给定文本');
+    if (terms.isEmpty) return query;
+    return '$query ${terms.join(' ')}';
+  }
+
+  @visibleForTesting
+  String expandedMemoryPrimaryFallbackTraceQueryForTesting(String query) {
+    return _expandedMemoryPrimaryFallbackTraceQuery(query);
   }
 
   String _prepareMemoryPrimaryQuickQueryFallbackResponse(
@@ -1009,10 +1114,52 @@ Use this context first. Avoid additional tool calls unless this context is clear
             (result) => _isRelevantMemoryPrimaryFallbackResult(query, result))
         .toList(growable: false);
     final selectedResults = relevantResults.isEmpty ? results : relevantResults;
+    if (_looksLikeSensitiveBoundaryQuery(query)) {
+      final boundaryAnswer = _formatSensitiveBoundaryFallbackAnswer(
+        query,
+        selectedResults,
+      );
+      if (boundaryAnswer != null) return boundaryAnswer;
+    }
+    if (_looksLikeParsedTextContextQuery(query)) {
+      final parsedTextAnswer = _formatParsedTextContextFallbackAnswer(
+        query,
+        selectedResults,
+      );
+      if (parsedTextAnswer != null) return parsedTextAnswer;
+    }
+    if (_looksLikeOwnerOnlyQuery(query)) {
+      final ownerOnlyAnswer = _formatOwnerOnlyFallbackAnswer(
+        query,
+        selectedResults,
+      );
+      if (ownerOnlyAnswer != null) return ownerOnlyAnswer;
+    }
+    if (_looksLikeCurrentStateQuery(query)) {
+      final currentStateAnswer = _formatCurrentStateFallbackAnswer(
+        query,
+        selectedResults,
+      );
+      if (currentStateAnswer != null) return currentStateAnswer;
+    }
+    if (_looksLikeRoleMoodTransitionQuery(query)) {
+      final roleMoodAnswer = _formatRoleMoodFallbackAnswer(
+        query,
+        selectedResults,
+      );
+      if (roleMoodAnswer != null) return roleMoodAnswer;
+    }
     if (_looksLikeRelationshipQuery(query)) {
       final relationshipAnswer =
           _formatRelationshipFallbackAnswer(query, selectedResults);
       if (relationshipAnswer != null) return relationshipAnswer;
+    }
+    if (_looksLikeIdentityOrRoutineQuery(query)) {
+      final identityRoutineAnswer = _formatIdentityOrRoutineFallbackAnswer(
+        query,
+        selectedResults,
+      );
+      if (identityRoutineAnswer != null) return identityRoutineAnswer;
     }
 
     final buffer = StringBuffer('根据 Memory Primary 当前记录：\n');
@@ -1024,6 +1171,700 @@ Use this context first. Avoid additional tool calls unless this context is clear
       buffer.writeln('- ${atom.content}$evidence');
     }
     return buffer.toString().trim();
+  }
+
+  String? _formatParsedTextContextFallbackAnswer(
+    String query,
+    List<MemoryRecallResult> results,
+  ) {
+    String? firstMatchingAnswer;
+    for (final result in results) {
+      final atom = result.atom;
+      final atomText = [
+        atom.type,
+        atom.title,
+        atom.content,
+        atom.entityIds.join(' '),
+        atom.attributes.values.join(' '),
+      ].join(' ');
+      final hasExplicitParsedTextMarker = _containsAny(atomText, const [
+        'OCR',
+        '截图',
+        '已解析',
+        '给定文本',
+        '数据口径解释',
+      ]);
+      final hasInferredParsedTextContext =
+          _looksLikeParsedTextEvidenceAtom(query, atomText);
+      if (!hasExplicitParsedTextMarker && !hasInferredParsedTextContext) {
+        continue;
+      }
+      if (!_parsedTextAtomMatchesQuery(query, atom)) continue;
+
+      final project = _bestQueryEntityFromAtom(query, atom);
+      final subject = project == null ? '该 OCR/已解析截图内容' : '$project 的 OCR 内容';
+      final evidence = atom.evidenceFactIds.isEmpty
+          ? ''
+          : '（证据：${_limitedEvidence(atom.evidenceFactIds)}）';
+      final conflict = _parsedTextConflictClause(atom.content);
+      final conflictText = conflict == null ? '' : '，其中 $conflict';
+      final answer = '根据 Memory Primary 当前记录：\n'
+          '- $subject 应直接使用给定文本处理$conflictText；涉及数据口径解释时按已记录口径和仲裁结论回答，不判断 OCR 质量。$evidence';
+      if (conflict != null) return answer;
+      firstMatchingAnswer ??= answer;
+    }
+    return firstMatchingAnswer;
+  }
+
+  String? _formatSensitiveBoundaryFallbackAnswer(
+    String query,
+    List<MemoryRecallResult> results,
+  ) {
+    final clauses = <_RelationshipClause>[];
+    final seen = <String>{};
+    for (final result in results) {
+      final atom = result.atom;
+      final atomText = '${atom.type} ${atom.title} ${atom.content}';
+      if (atom.type != 'boundary' &&
+          !_containsAny(atomText, const [
+            '投资建议',
+            '确定性建议',
+            '确定性投资',
+            '税务结论',
+            '法律建议',
+            '医疗建议',
+            '财务压力',
+          ])) {
+        continue;
+      }
+      for (final rawClause in _memoryPrimaryAnswerClauses(atom.content)) {
+        if (!_containsAny(rawClause, const [
+          '投资建议',
+          '确定性建议',
+          '确定性投资',
+          '税务结论',
+          '法律建议',
+          '医疗建议',
+          '财务压力',
+          '情绪和事实',
+        ])) {
+          continue;
+        }
+        final clause = _canonicalSensitiveBoundaryClause(rawClause);
+        if (clause.isEmpty || !seen.add(clause)) continue;
+        clauses.add(
+          _RelationshipClause(
+            text: clause,
+            evidence: result.atom.evidenceFactIds.isEmpty
+                ? ''
+                : '（证据：${_limitedEvidence(result.atom.evidenceFactIds)}）',
+          ),
+        );
+      }
+    }
+    if (clauses.isEmpty) return null;
+
+    final buffer = StringBuffer('根据 Memory Primary 当前记录：\n');
+    for (final clause in clauses.take(2)) {
+      buffer.writeln('- ${clause.text}${clause.evidence}');
+    }
+    return buffer.toString().trim();
+  }
+
+  String _canonicalSensitiveBoundaryClause(String clause) {
+    final trimmed = _stripMemorySubjectPrefix(_stripSupersededTail(clause));
+    if (_containsAny(trimmed, const ['财务压力', '情绪和事实', '投资建议']) &&
+        !_containsAny(trimmed, const ['只记录情绪和事实']) &&
+        _containsAny(trimmed, const ['不要', '不能', '不提供', '不得'])) {
+      return '财务压力复盘只记录情绪和事实；不要给确定性投资建议或税务结论。';
+    }
+    if (_containsAny(trimmed, const ['财务压力', '投资建议']) &&
+        !_containsAny(trimmed, const ['不要给确定性投资建议'])) {
+      return '$trimmed；不要给确定性投资建议或税务结论。';
+    }
+    return trimmed;
+  }
+
+  String? _formatOwnerOnlyFallbackAnswer(
+    String query,
+    List<MemoryRecallResult> results,
+  ) {
+    final clauses = <_RelationshipClause>[];
+    final seen = <String>{};
+    for (final result in results) {
+      final atom = result.atom;
+      if (atom.type.contains('preference') || atom.type == 'boundary') {
+        continue;
+      }
+      if (!_ownerAtomMatchesQuery(query, atom)) continue;
+      for (final rawClause in _memoryPrimaryAnswerClauses(atom.content)) {
+        if (!_containsAny(
+          rawClause,
+          const ['owner', '所有者', '负责人', '负责方', '负责', '验收'],
+        )) {
+          continue;
+        }
+        if (_containsAny(rawClause, const [
+          '风险',
+          '下一步',
+          '报告',
+          '偏好',
+          '模板',
+          '历史',
+          '旧项目',
+        ])) {
+          continue;
+        }
+        if (!_ownerClauseMatchesQuery(query, atom, rawClause)) continue;
+        final text = _stripSupersededTail(_stripMemorySubjectPrefix(rawClause));
+        if (text.isEmpty || !seen.add(text)) continue;
+        clauses.add(
+          _RelationshipClause(
+            text: text,
+            evidence: atom.evidenceFactIds.isEmpty
+                ? ''
+                : '（证据：${_limitedEvidence(atom.evidenceFactIds)}）',
+          ),
+        );
+      }
+    }
+    if (clauses.isEmpty) return null;
+
+    final buffer = StringBuffer('根据 Memory Primary 当前记录：\n');
+    for (final clause in clauses.take(2)) {
+      buffer.writeln('- ${clause.text}${clause.evidence}');
+    }
+    return buffer.toString().trim();
+  }
+
+  String? _formatIdentityOrRoutineFallbackAnswer(
+    String query,
+    List<MemoryRecallResult> results,
+  ) {
+    final asksLocation = _identityQueryAsksLocation(query);
+    final asksRoutine = _identityQueryAsksRoutine(query);
+    if (!asksLocation && !asksRoutine) return null;
+
+    final clauses = <_RelationshipClause>[];
+    final seen = <String>{};
+    for (final result in results) {
+      final atom = result.atom;
+      if (_looksLikeRoleMoodTransitionAtom(atom) &&
+          !_looksLikeRoleMoodTransitionQuery(query)) {
+        continue;
+      }
+      final evidence = atom.evidenceFactIds.isEmpty
+          ? ''
+          : '（证据：${_limitedEvidence(atom.evidenceFactIds)}）';
+      if (asksLocation) {
+        for (final clause in _locationClauses(atom.content)) {
+          if (!seen.add('location:$clause')) continue;
+          clauses.add(_RelationshipClause(text: clause, evidence: evidence));
+        }
+      }
+      if (asksRoutine) {
+        for (final clause in _routineClauses(query, atom.content)) {
+          if (!seen.add('routine:$clause')) continue;
+          clauses.add(_RelationshipClause(text: clause, evidence: evidence));
+        }
+      }
+    }
+    if (clauses.isEmpty) return null;
+
+    final buffer = StringBuffer('根据 Memory Primary 当前记录：\n');
+    for (final clause in clauses.take(4)) {
+      buffer.writeln('- ${clause.text}${clause.evidence}');
+    }
+    return buffer.toString().trim();
+  }
+
+  @visibleForTesting
+  String? formatIdentityOrRoutineFallbackAnswerForTesting({
+    required String query,
+    required List<String> contents,
+  }) {
+    final results = <MemoryRecallResult>[];
+    for (var index = 0; index < contents.length; index++) {
+      results.add(
+        MemoryRecallResult(
+          atom: MemoryAtom.fromJson({
+            'id': 'test_$index',
+            'type': 'preference',
+            'content': contents[index],
+            'evidence_fact_ids': ['test.md#ts_$index'],
+          }),
+          lexicalScore: 1,
+          vectorScore: 0,
+          entityScore: 0,
+          recencyScore: 0,
+          totalScore: 1,
+          ftsRank: index + 1,
+          vectorRank: null,
+          snippet: contents[index],
+          reasons: const ['test'],
+        ),
+      );
+    }
+    return _formatIdentityOrRoutineFallbackAnswer(query, results);
+  }
+
+  String? _formatCurrentStateFallbackAnswer(
+    String query,
+    List<MemoryRecallResult> results,
+  ) {
+    final clauses = <_RelationshipClause>[];
+    for (final result in results) {
+      if (!_currentStateAtomMatchesQuery(query, result.atom)) continue;
+      for (final clause in _currentStateClauses(result.atom.content)) {
+        if (!_containsAny(clause, const [
+          '当前',
+          '现在',
+          '仍负责',
+          '继续由',
+          '确认继续',
+          'current',
+        ])) {
+          continue;
+        }
+        if (!_containsAny(
+          clause,
+          const ['owner', '所有者', '负责人', '负责', '验收'],
+        )) {
+          continue;
+        }
+        final text = _stripSupersededTail(clause);
+        if (text.trim().isEmpty) continue;
+        clauses.add(
+          _RelationshipClause(
+            text: text,
+            evidence: result.atom.evidenceFactIds.isEmpty
+                ? ''
+                : '（证据：${_limitedEvidence(result.atom.evidenceFactIds)}）',
+          ),
+        );
+      }
+    }
+    if (clauses.isEmpty) return null;
+
+    final buffer = StringBuffer('根据 Memory Primary 当前记录：\n');
+    final seen = <String>{};
+    for (final clause in clauses) {
+      if (!seen.add(clause.text)) continue;
+      buffer.writeln('- ${clause.text}${clause.evidence}');
+      if (seen.length >= 3) break;
+    }
+    return buffer.toString().trim();
+  }
+
+  bool _currentStateAtomMatchesQuery(String query, MemoryAtom atom) {
+    if (!_containsAny(
+      '${atom.type} ${atom.title} ${atom.content}',
+      const ['owner', '所有者', '负责人', '负责', '验收'],
+    )) {
+      return false;
+    }
+    final excludedTerms = _excludedEntityTermsFromQuery(query);
+    final queryText = query.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+    for (final entity in atom.entityIds) {
+      final normalizedEntity =
+          entity.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+      if (_isExcludedEntity(normalizedEntity, excludedTerms)) continue;
+      if (normalizedEntity.length >= 2 &&
+          queryText.contains(normalizedEntity)) {
+        return true;
+      }
+    }
+    final atomText = '${atom.title} ${atom.content}'.toLowerCase().replaceAll(
+          RegExp(r'\s+'),
+          '',
+        );
+    for (final token in RegExp(
+      r'[a-z0-9_./-]{2,}|[\u4e00-\u9fa5]{2,}',
+    ).allMatches(query.toLowerCase()).map((match) => match.group(0)!)) {
+      final normalizedToken = token.replaceAll(RegExp(r'\s+'), '');
+      if (_isExcludedEntity(normalizedToken, excludedTerms)) continue;
+      if (normalizedToken.length >= 2 && atomText.contains(normalizedToken)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  List<String> _currentStateClauses(String content) {
+    return content
+        .split(RegExp(r'[。；;\n]+'))
+        .map((clause) => clause.trim())
+        .where((clause) => clause.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  List<String> _memoryPrimaryAnswerClauses(String content) {
+    return content
+        .split(RegExp(r'[。；;\n]+'))
+        .map((clause) => clause.trim())
+        .where((clause) => clause.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  bool _ownerAtomMatchesQuery(String query, MemoryAtom atom) {
+    if (!_containsAny(
+      '${atom.type} ${atom.title} ${atom.content}',
+      const ['owner', '所有者', '负责人', '负责方', '负责', '验收'],
+    )) {
+      return false;
+    }
+    return _currentStateAtomMatchesQuery(query, atom);
+  }
+
+  bool _ownerClauseMatchesQuery(
+    String query,
+    MemoryAtom atom,
+    String clause,
+  ) {
+    final excludedTerms = _excludedEntityTermsFromQuery(query);
+    final queryText = query.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+    final clauseText = clause.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+
+    for (final entity in atom.entityIds) {
+      final normalizedEntity =
+          entity.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+      if (_isExcludedEntity(normalizedEntity, excludedTerms)) {
+        if (clauseText.contains(normalizedEntity)) return false;
+        continue;
+      }
+      if (normalizedEntity.length >= 2 &&
+          queryText.contains(normalizedEntity) &&
+          clauseText.contains(normalizedEntity)) {
+        return true;
+      }
+    }
+
+    for (final token in RegExp(
+      r'[a-z0-9_./-]{2,}|[\u4e00-\u9fa5]{2,}',
+    ).allMatches(query.toLowerCase()).map((match) => match.group(0)!)) {
+      final normalizedToken = token.replaceAll(RegExp(r'\s+'), '');
+      if (_isGenericOwnerQueryToken(normalizedToken)) continue;
+      if (_isExcludedEntity(normalizedToken, excludedTerms)) {
+        if (clauseText.contains(normalizedToken)) return false;
+        continue;
+      }
+      if (normalizedToken.length >= 2 && clauseText.contains(normalizedToken)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool _parsedTextAtomMatchesQuery(String query, MemoryAtom atom) {
+    final excludedTerms = _excludedEntityTermsFromQuery(query);
+    final queryText = query.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+    final atomText = [
+      atom.title,
+      atom.content,
+      atom.entityIds.join(' '),
+    ].join(' ').toLowerCase().replaceAll(RegExp(r'\s+'), '');
+
+    for (final entity in atom.entityIds) {
+      final normalizedEntity =
+          entity.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+      if (_isExcludedEntity(normalizedEntity, excludedTerms)) continue;
+      if (normalizedEntity.length >= 2 &&
+          queryText.contains(normalizedEntity) &&
+          atomText.contains(normalizedEntity)) {
+        return true;
+      }
+    }
+    return _containsAny(query, const ['OCR', '截图', '给定文本']) &&
+        (_containsAny(atomText, const ['ocr', '截图', '给定文本', '数据口径解释']) ||
+            _looksLikeParsedTextEvidenceAtom(query, atomText));
+  }
+
+  bool _looksLikeParsedTextEvidenceAtom(String query, String atomText) {
+    if (!_containsAny(query, const ['OCR', '截图', '已解析', '给定文本'])) {
+      return false;
+    }
+    if (!_containsAny(atomText, const ['风险列表', '灰度风险', '数据口径'])) {
+      return false;
+    }
+    return _containsAny(atomText, const ['分歧', '仲裁', '口径', '给定文本']);
+  }
+
+  String? _bestQueryEntityFromAtom(String query, MemoryAtom atom) {
+    final queryText = query.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+    String? best;
+    for (final entity in atom.entityIds) {
+      final normalizedEntity =
+          entity.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+      if (normalizedEntity.length < 2 ||
+          !queryText.contains(normalizedEntity)) {
+        continue;
+      }
+      if (best == null || entity.length > best.length) {
+        best = entity;
+      }
+    }
+    return best;
+  }
+
+  String? _parsedTextConflictClause(String content) {
+    for (final clause in _memoryPrimaryAnswerClauses(content)) {
+      if (!_containsAny(clause, const ['数据口径解释', '仲裁', '分歧'])) {
+        continue;
+      }
+      final sanitized = _stripSupersededTail(_stripMemorySubjectPrefix(clause))
+          .replaceAll(RegExp(r'保留用户原词领域术语：[^。；;]*[。；;]?'), '')
+          .replaceAll(RegExp(r'此为已解析截图上下文.*$'), '')
+          .replaceAll(RegExp(r'Agent\s*只需.*$'), '')
+          .trim();
+      if (sanitized.isNotEmpty) return sanitized;
+    }
+    return null;
+  }
+
+  bool _isGenericOwnerQueryToken(String token) {
+    return const {
+      'owner',
+      '负责人',
+      '负责方',
+      '负责',
+      '谁负责',
+      '是谁',
+      '只问',
+      '只回答',
+      '应该只回答什么',
+      '接口验收',
+      '验收',
+      '现在',
+      '当前',
+      '最新',
+    }.contains(token);
+  }
+
+  String _stripSupersededTail(String clause) {
+    var result = clause.trim();
+    result = result.replaceFirst(
+      RegExp(
+        r'[，,]\s*(?:此信息|此记录|该记录|该说法|这条记录|这条信息)?\s*(?:取代|覆盖|作废|失效).*$',
+      ),
+      '',
+    );
+    result = result.replaceFirst(
+      RegExp(
+        r'[。；;]\s*(?:此信息|此记录|该记录|该说法|这条记录|这条信息)?\s*(?:取代|覆盖|作废|失效).*$',
+      ),
+      '',
+    );
+    result = result.replaceFirst(RegExp(r'[，,]\s*(?:此前|之前|旧).*$'), '');
+    result = result.replaceFirst(
+      RegExp(r'[，,]\s*[^，,。；;]*(?:仅|只)[^，,。；;]*(?:历史|旧).*$'),
+      '',
+    );
+    return result.trim();
+  }
+
+  Set<String> _excludedEntityTermsFromQuery(String query) {
+    final terms = <String>{};
+    for (final pattern in [
+      RegExp(r'(?:不要|别|避免|不要再)\s*(?:混到|混入|混淆|关联到|提到|回答)\s*([^？?。；;\n]+)'),
+      RegExp(r'(?:不要|别|避免)\s*(?:包括|包含)\s*([^？?。；;\n]+)'),
+    ]) {
+      for (final match in pattern.allMatches(query)) {
+        final raw = match.group(1)?.trim();
+        if (raw == null || raw.isEmpty) continue;
+        for (final term in raw.split(RegExp(r'\s*(?:和|或|、|,|，)\s*'))) {
+          final normalized = term
+              .replaceAll(RegExp(r'^(?:到|把|将)\s*'), '')
+              .replaceAll(RegExp(r'[：:，,。；;？?]+$'), '')
+              .trim()
+              .toLowerCase()
+              .replaceAll(RegExp(r'\s+'), '');
+          if (normalized.length >= 2) terms.add(normalized);
+        }
+      }
+    }
+    return terms;
+  }
+
+  bool _isExcludedEntity(String normalizedEntity, Set<String> excludedTerms) {
+    if (normalizedEntity.length < 2) return false;
+    return excludedTerms.any(
+      (term) =>
+          term.length >= 2 &&
+          (term.contains(normalizedEntity) || normalizedEntity.contains(term)),
+    );
+  }
+
+  String? _formatRoleMoodFallbackAnswer(
+    String query,
+    List<MemoryRecallResult> results,
+  ) {
+    for (final result in results) {
+      final atom = result.atom;
+      if (!_roleMoodAtomMatchesQuery(query, atom)) continue;
+      final fromRole = _attributeString(atom.attributes['from_role']);
+      final toRole = _attributeString(atom.attributes['to_role']);
+      final fromMood = _attributeString(atom.attributes['from_mood']);
+      final toMood = _attributeString(atom.attributes['to_mood']);
+      if ([fromRole, toRole, fromMood, toMood].any((value) => value == null)) {
+        continue;
+      }
+      final fromProject = _attributeString(atom.attributes['from_project']);
+      final toProject = _attributeString(atom.attributes['to_project']);
+      final evidence = atom.evidenceFactIds.isEmpty
+          ? ''
+          : '（证据：${_limitedEvidence(atom.evidenceFactIds)}）';
+      final projectText = fromProject == null || toProject == null
+          ? ''
+          : '在 $fromProject 和 $toProject 之间，';
+      return '根据 Memory Primary 当前记录：\n'
+          '- $projectText你从 $fromRole 切到 $toRole；阶段心态从 $fromMood 转为 $toMood。$evidence';
+    }
+    return null;
+  }
+
+  bool _roleMoodAtomMatchesQuery(String query, MemoryAtom atom) {
+    final text = [
+      atom.type,
+      atom.title,
+      atom.content,
+      atom.entityIds.join(' '),
+      atom.attributes.values.join(' '),
+    ].join(' ');
+    if (!_containsAny(text, const ['角色', '心态', '情绪', '切换', '转换', 'mood'])) {
+      return false;
+    }
+    final normalizedQuery = query.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+    for (final entity in atom.entityIds) {
+      final normalizedEntity =
+          entity.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+      if (normalizedEntity.length >= 2 &&
+          normalizedQuery.contains(normalizedEntity)) {
+        return true;
+      }
+    }
+    return _containsAny(query, const ['角色', '心态', '情绪', '切换', '转换']);
+  }
+
+  bool _looksLikeRoleMoodTransitionAtom(MemoryAtom atom) {
+    final text = [
+      atom.type,
+      atom.title,
+      atom.content,
+      atom.entityIds.join(' '),
+      atom.attributes.values.join(' '),
+    ].join(' ');
+    return atom.attributes['fallback_rule'] == 'role_mood_transition' ||
+        _containsAny(text, const ['心态', '情绪', '切换', '转换', 'mood']) ||
+        (text.contains('角色') &&
+            _containsAny(text, const ['从', '转为', '切到', '切换', '转换']));
+  }
+
+  bool _identityQueryAsksLocation(String query) {
+    return _containsAny(query, const [
+      '常驻',
+      '居住',
+      '住哪',
+      '哪里',
+      '在哪',
+      '城市',
+      '地点',
+      'city',
+      'location',
+    ]);
+  }
+
+  bool _identityQueryAsksRoutine(String query) {
+    return _containsAny(query, const [
+      '周一',
+      '周二',
+      '周三',
+      '周四',
+      '周五',
+      '周六',
+      '周日',
+      '周天',
+      '上午',
+      '下午',
+      '晚上',
+      '深度工作',
+      '安排',
+      '日程',
+      'routine',
+      'schedule',
+    ]);
+  }
+
+  List<String> _locationClauses(String content) {
+    return _identityRoutineSegments(content)
+        .where(
+          (segment) => _containsAny(segment, const ['常驻', '居住', '城市', '地点']),
+        )
+        .map(_stripMemorySubjectPrefix)
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  List<String> _routineClauses(String query, String content) {
+    final queryWeekdays = _queryWeekdayTerms(query);
+    final queryDayparts = _queryDaypartTerms(query);
+    final segments = _identityRoutineSegments(content);
+    final clauses = <String>[];
+    for (var index = 0; index < segments.length; index++) {
+      final segment = segments[index];
+      final hasRequestedWeekday = queryWeekdays.isEmpty ||
+          queryWeekdays.any((term) => segment.contains(term));
+      final hasRequestedDaypart = queryDayparts.isEmpty ||
+          queryDayparts.any((term) => segment.contains(term));
+      final hasRoutineCue = _containsAny(segment, const [
+        '深度工作',
+        '评审会',
+        '安排',
+        '日程',
+        '会议',
+        '同步',
+        '工作',
+      ]);
+      final directlyMatches =
+          hasRequestedWeekday && hasRequestedDaypart && hasRoutineCue;
+      final continuationMatches = clauses.isNotEmpty &&
+          _containsAny(segment, const ['不安排', '不排', '避免', '留给', '会议']);
+      if (!directlyMatches && !continuationMatches) continue;
+      clauses.add(_stripMemorySubjectPrefix(segment));
+    }
+    return clauses
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  List<String> _identityRoutineSegments(String content) {
+    return content
+        .split(RegExp(r'[。；;\n，,]+'))
+        .map((segment) => segment.trim())
+        .where((segment) => segment.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  List<String> _queryWeekdayTerms(String query) {
+    return RegExp(r'周[一二三四五六日天]')
+        .allMatches(query)
+        .map((match) => match.group(0)!)
+        .toSet()
+        .toList(growable: false);
+  }
+
+  List<String> _queryDaypartTerms(String query) {
+    return ['上午', '中午', '下午', '晚上']
+        .where((term) => query.contains(term))
+        .toList(growable: false);
+  }
+
+  String _stripMemorySubjectPrefix(String value) {
+    return value.replaceFirst(RegExp(r'^(?:用户|我|个人长期偏好)[:：]?\s*'), '').trim();
+  }
+
+  String? _attributeString(dynamic value) {
+    final text = value?.toString().trim();
+    return text == null || text.isEmpty ? null : text;
   }
 
   String? _formatRelationshipFallbackAnswer(
@@ -1072,17 +1913,55 @@ Use this context first. Avoid additional tool calls unless this context is clear
     for (final result in results) {
       final atom = result.atom;
       if (atom.type != 'relationship') continue;
-      for (final clause in _relationshipClauses(atom.content)) {
+      final clauses = _relationshipClauses(atom.content);
+      for (var i = 0; i < clauses.length; i++) {
+        final clause = clauses[i];
         if (!_containsAny(clause, include)) continue;
         if (_containsAny(clause, exclude)) continue;
+        final positiveContinuation = _positiveRelationshipContinuation(
+          clauses: clauses,
+          index: i,
+          topicClause: clause,
+          include: include,
+        );
+        if (positiveContinuation == null &&
+            _containsAny(clause, const ['不负责', '不是', '不再负责'])) {
+          continue;
+        }
+        final inheritedSubjectClause = _relationshipClauseWithInheritedSubject(
+          clauses: clauses,
+          index: i,
+          clause: clause,
+        );
+        final candidateClause = _sanitizeRelationshipCandidateClause(
+          positiveContinuation ?? inheritedSubjectClause,
+        );
+        if (candidateClause.isEmpty ||
+            _isSupersededOnlyRelationshipClause(candidateClause)) {
+          continue;
+        }
         var score = 1;
-        if (_containsAny(clause, prefer)) score += 3;
-        if (clause.contains('负责') || clause.contains('找')) score += 2;
+        if (positiveContinuation != null) score += 5;
+        if (_containsAny(candidateClause, prefer)) score += 3;
+        if (_containsAny(candidateClause, const [
+          '当前',
+          '现在',
+          '最新',
+          '联系人',
+          '负责人',
+          'owner',
+          '负责方',
+        ])) {
+          score += 3;
+        }
+        if (candidateClause.contains('负责') || candidateClause.contains('找')) {
+          score += 2;
+        }
         if (atom.evidenceFactIds.isNotEmpty) score += 1;
         if (score > bestScore) {
           bestScore = score;
           best = _RelationshipClause(
-            text: _normalizeRelationshipClause(clause),
+            text: candidateClause,
             evidence: atom.evidenceFactIds.isEmpty
                 ? ''
                 : '（证据：${_limitedEvidence(atom.evidenceFactIds)}）',
@@ -1091,6 +1970,70 @@ Use this context first. Avoid additional tool calls unless this context is clear
       }
     }
     return best;
+  }
+
+  String? _positiveRelationshipContinuation({
+    required List<String> clauses,
+    required int index,
+    required String topicClause,
+    required List<String> include,
+  }) {
+    if (!_containsAny(topicClause, const ['不负责', '不是', '不再负责'])) {
+      return null;
+    }
+    if (index + 1 >= clauses.length) return null;
+
+    final next = clauses[index + 1].trim();
+    if (next.isEmpty) return null;
+    if (!_containsAny(next, const ['负责', '找', '联系', '由'])) return null;
+    if (_containsAny(next, const ['不负责', '不是', '不再负责'])) return null;
+    final startsWithPronoun = RegExp(
+      r'^(?:此项工作|这项工作|该工作|此事项|这件事|该事项)',
+    ).hasMatch(next);
+    final isDirectAssignment = _containsAny(next, include) ||
+        _containsAny(next, const ['由', '找', '负责人']);
+    if (!startsWithPronoun && !isDirectAssignment) return null;
+
+    final topic = _relationshipTopicFromClause(topicClause, include);
+    if (topic == null) return next;
+    return next
+        .replaceFirst(RegExp(r'^(?:此项工作|这项工作|该工作|此事项|这件事|该事项)'), topic)
+        .trim();
+  }
+
+  String _relationshipClauseWithInheritedSubject({
+    required List<String> clauses,
+    required int index,
+    required String clause,
+  }) {
+    if (index <= 0) return clause;
+    if (!_looksLikeSubjectlessRelationshipClause(clause)) return clause;
+    final subject = _relationshipSubjectFromClause(clauses[index - 1]);
+    if (subject == null || clause.contains(subject)) return clause;
+    return '$subject $clause';
+  }
+
+  bool _looksLikeSubjectlessRelationshipClause(String clause) {
+    return RegExp(r'^(?:主要)?(?:职责是|负责|对接|处理)').hasMatch(clause);
+  }
+
+  String? _relationshipSubjectFromClause(String clause) {
+    final match = RegExp(
+      r'^([A-Za-z][A-Za-z0-9]*(?:\s*[A-Z])?|[\u4e00-\u9fa5]{2,4})\s*(?:不负责|负责|主要职责)',
+    ).firstMatch(clause.trim());
+    final subject = match?.group(1)?.trim();
+    return subject == null || subject.isEmpty ? null : subject;
+  }
+
+  String? _relationshipTopicFromClause(
+    String clause,
+    List<String> include,
+  ) {
+    final matchedTerms =
+        include.where((term) => clause.contains(term)).toList(growable: false);
+    if (matchedTerms.isEmpty) return null;
+    if (matchedTerms.length >= 2) return matchedTerms.take(2).join('和');
+    return matchedTerms.first;
   }
 
   List<String> _relationshipClauses(String content) {
@@ -1103,6 +2046,18 @@ Use this context first. Avoid additional tool calls unless this context is clear
 
   String _normalizeRelationshipClause(String clause) {
     return clause.replaceFirst(RegExp(r'^(?:且|并且|另外|同时|但|而)\s*'), '');
+  }
+
+  String _sanitizeRelationshipCandidateClause(String clause) {
+    return _normalizeRelationshipClause(
+      _stripSupersededTail(_stripMemorySubjectPrefix(clause)),
+    ).trim();
+  }
+
+  bool _isSupersededOnlyRelationshipClause(String clause) {
+    return RegExp(
+      r'^(?:此信息|此记录|该记录|该说法|这条记录|这条信息)?\s*(?:取代|覆盖|作废|失效)',
+    ).hasMatch(clause.trim());
   }
 
   String _limitedEvidence(List<String> evidenceFactIds) {
@@ -1128,6 +2083,43 @@ Use this context first. Avoid additional tool calls unless this context is clear
       return terms.any((term) => text.contains(term.toLowerCase()));
     }
 
+    if (_looksLikeParsedTextContextQuery(query)) {
+      return hasAny(const [
+        'OCR',
+        '截图',
+        '已解析',
+        '给定文本',
+        '数据口径解释',
+        '灰度风险列表',
+        '风险列表',
+      ]);
+    }
+    if (_looksLikeSensitiveBoundaryQuery(query)) {
+      return atom.type == 'boundary' ||
+          hasAny(const [
+            '投资建议',
+            '确定性建议',
+            '确定性投资',
+            '税务结论',
+            '法律建议',
+            '医疗建议',
+            '财务压力',
+            '情绪和事实',
+          ]);
+    }
+    if (_looksLikeOwnerOnlyQuery(query)) {
+      return !atom.type.contains('preference') &&
+          (atom.type == 'project_context' ||
+              atom.type == 'relationship' ||
+              hasAny(const [
+                'owner',
+                '所有者',
+                '负责人',
+                '负责方',
+                '负责',
+                '验收',
+              ]));
+    }
     if (_looksLikeRelationshipQuery(query)) {
       return atom.type == 'relationship' ||
           hasAny(const [
@@ -1143,6 +2135,10 @@ Use this context first. Avoid additional tool calls unless this context is clear
           ]);
     }
     if (_looksLikeIdentityOrRoutineQuery(query)) {
+      if (_looksLikeRoleMoodTransitionAtom(atom) &&
+          !_looksLikeRoleMoodTransitionQuery(query)) {
+        return false;
+      }
       return atom.type == 'identity' ||
           atom.type == 'routine' ||
           hasAny(const [
@@ -1158,6 +2154,19 @@ Use this context first. Avoid additional tool calls unless this context is clear
             '下午',
             '深度工作',
             '评审会',
+          ]);
+    }
+    if (_looksLikeRoleMoodTransitionQuery(query)) {
+      return atom.type == 'project_context' ||
+          atom.type == 'boundary' ||
+          hasAny(const [
+            '角色',
+            '心态',
+            '情绪',
+            '切换',
+            '转换',
+            'AI 产品经理',
+            '客户访谈整理者',
           ]);
     }
     if (_looksLikeReportFormatPreferenceQuery(query)) {
@@ -1452,6 +2461,9 @@ Use this context first. Avoid additional tool calls unless this context is clear
     for (final pattern in [
       RegExp(r'(?:写|做|生成|撰写)\s+(.+?)\s*相关(?:技术|项目)?(?:报告|总结)'),
       RegExp(r'(.+?)\s*相关(?:技术|项目)?(?:报告|总结)'),
+      RegExp(
+          r'(?:如果)?(?:我)?(?:只问|问到|查询|查一下)\s+(.+?)\s*(?:的)?\s*(?:owner|负责人|负责方)'),
+      RegExp(r'(.+?)\s*(?:的)?\s*(?:owner|负责人|负责方).{0,20}(?:是谁|谁|只回答|应该)'),
       RegExp(r'(.+?)\s*(?:当前|现在|最新).{0,20}(?:owner|负责人|负责|导出灰度)'),
       RegExp(r'(.+?)\s*(?:的)?导出灰度.{0,20}(?:owner|负责人|负责)'),
     ]) {
@@ -1460,7 +2472,9 @@ Use this context first. Avoid additional tool calls unless this context is clear
       if (value == null || value.isEmpty) continue;
       final cleaned = value
           .replaceAll(
-            RegExp(r'^(请问|请告诉我|告诉我|查询|查一下|以后|以后给我|给我)\s*'),
+            RegExp(
+              r'^(?:如果)?(?:我)?(?:只问|问到|请问|请告诉我|告诉我|查询|查一下|以后|以后给我|给我)\s*',
+            ),
             '',
           )
           .replaceAll(RegExp(r'[？?。,.，；;:：]+$'), '')

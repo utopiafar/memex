@@ -12,10 +12,7 @@ import 'package:memex/utils/time_context.dart';
 final getCurrentTimeTool = Tool(
   name: 'getCurrentTime',
   description: 'Get current time and week id',
-  parameters: {
-    'type': 'object',
-    'properties': {},
-  },
+  parameters: {'type': 'object', 'properties': {}},
   executable: () {
     final now = DateTime.now();
 
@@ -35,15 +32,13 @@ final getPkmOverviewTool = Tool(
   name: 'get_pkm_overview',
   description:
       'Get current directory structure and file information of the PKM knowledge base.',
-  parameters: {
-    'type': 'object',
-    'properties': {},
-  },
+  parameters: {'type': 'object', 'properties': {}},
   executable: () async {
     final context = AgentCallToolContext.current;
     if (context == null) {
       throw StateError(
-          "get_pkm_overview must be called within an agent execution context.");
+        "get_pkm_overview must be called within an agent execution context.",
+      );
     }
     final userId = context.state.metadata['userId'] as String;
     final fileService = FileSystemService.instance;
@@ -110,7 +105,8 @@ Returns ranked memories with score, type, content, entities, and evidence fact i
       final context = AgentCallToolContext.current;
       if (context == null) {
         throw StateError(
-            'search_memory_primary must be called within an agent execution context.');
+          'search_memory_primary must be called within an agent execution context.',
+        );
       }
       final userId = context.state.metadata['userId'] as String;
       final requestedTypes = types
@@ -147,13 +143,37 @@ Returns ranked memories with score, type, content, entities, and evidence fact i
         }
         if (atom.evidenceFactIds.isNotEmpty) {
           buffer.writeln(
-              '  evidence_fact_ids: ${atom.evidenceFactIds.join(', ')}');
+            '  evidence_fact_ids: ${atom.evidenceFactIds.join(', ')}',
+          );
         }
         if (result.reasons.isNotEmpty) {
           buffer.writeln('  reasons: ${result.reasons.join(', ')}');
         }
+        if (result.retrievalSources.isNotEmpty) {
+          buffer.writeln(
+            '  retrieval_sources: ${result.retrievalSources.join(', ')}',
+          );
+        }
+        final ranks = [
+          if (result.ftsRank != null) 'fts=${result.ftsRank}',
+          if (result.vectorRank != null) 'vector=${result.vectorRank}',
+        ];
+        if (ranks.isNotEmpty) {
+          buffer.writeln('  retrieval_ranks: ${ranks.join(', ')}');
+        }
       }
       buffer.writeln('</memory_primary_context>');
+      final directAnswerCandidates = _directAnswerCandidatesForTool(
+        query,
+        results,
+      );
+      if (directAnswerCandidates.isNotEmpty) {
+        buffer.writeln('<direct_answer_candidates>');
+        for (final candidate in directAnswerCandidates) {
+          buffer.writeln('- $candidate');
+        }
+        buffer.writeln('</direct_answer_candidates>');
+      }
       if (currentStateQuery) {
         buffer.writeln('<system-reminder>');
         buffer.writeln(
@@ -258,6 +278,33 @@ Future<List<MemoryRecallResult>> searchMemoryPrimaryForTool({
     });
   }
 
+  if (_looksLikeRoleMoodTransitionQuery(query)) {
+    for (final expandedQuery in _roleMoodExpandedQueriesForTool(query)) {
+      final roleMoodResults = await MemoryPrimaryService.instance.searchMemory(
+        userId: userId,
+        query: expandedQuery,
+        limit: limit,
+        types: const {'project_context', 'boundary'},
+      );
+      _mergeMemoryRecallResults(roleMoodResults, into: merged);
+    }
+    final directRoleMoodResults = await _directTermMatchResults(
+      userId: userId,
+      query: query,
+      terms: _roleMoodTermsForQuery(query),
+      preferredTypes: const {'project_context', 'boundary'},
+      types: types,
+      reason: 'role_mood_term_match',
+    );
+    _mergeMemoryRecallResults(directRoleMoodResults, into: merged);
+    merged.sort((a, b) {
+      final boostDiff = _roleMoodResultBoost(query, b.atom) -
+          _roleMoodResultBoost(query, a.atom);
+      if (boostDiff != 0) return boostDiff;
+      return b.totalScore.compareTo(a.totalScore);
+    });
+  }
+
   if (_looksLikePreferenceQuery(query)) {
     for (final expandedQuery in const [
       '技术报告 报告格式 格式偏好 结论 风险 下一步 背景 风险前置',
@@ -326,8 +373,9 @@ Future<List<MemoryRecallResult>> _directTermMatchResults({
     final searchable = '${atom.type} ${atom.title} ${atom.content} '
         '${atom.entityIds.join(' ')}';
     final hits = effectiveTerms
-        .where((term) =>
-            term.trim().isNotEmpty && _containsAny(searchable, [term]))
+        .where(
+          (term) => term.trim().isNotEmpty && _containsAny(searchable, [term]),
+        )
         .toList(growable: false);
     if (hits.isEmpty) continue;
     final typeBoost = preferredTypes.contains(atom.type) ? 0.12 : 0.0;
@@ -344,6 +392,8 @@ Future<List<MemoryRecallResult>> _directTermMatchResults({
         totalScore: (0.58 + lexicalScore * 0.24 + typeBoost + evidenceBoost)
             .clamp(0.0, 1.0)
             .toDouble(),
+        ftsRank: i + 1,
+        vectorRank: null,
         snippet: atom.content.length > 360
             ? '${atom.content.substring(0, 360)}...'
             : atom.content,
@@ -431,6 +481,19 @@ bool _looksLikeIdentityOrRoutineQuery(String query) {
   ]);
 }
 
+bool _looksLikeRoleMoodTransitionQuery(String query) {
+  return _containsAny(query, const [
+    '角色',
+    '切换',
+    '转换',
+    '心态',
+    '情绪',
+    '反思',
+    'mood',
+    'role',
+  ]);
+}
+
 bool _looksLikeRelationshipQuery(String query) {
   final normalized = query.toLowerCase();
   return normalized.contains('找谁') ||
@@ -468,10 +531,10 @@ List<String> _relationshipExpandedQueriesForTool(String query) {
 List<String> _relationshipTermsForQuery(String query) {
   final terms = <String>[];
   if (_containsAny(query, const ['产品评审', '体验文案', '评审', '文案'])) {
-    terms.addAll(const ['产品评审', '体验文案', 'Maya', 'MayaB']);
+    terms.addAll(const ['产品评审', '体验文案', '评审', '文案']);
   }
   if (_containsAny(query, const ['合同付款', '发票确认', '付款', '发票'])) {
-    terms.addAll(const ['合同付款', '发票确认', '付款', '发票', 'Noor', 'NoorB']);
+    terms.addAll(const ['合同付款', '发票确认', '付款', '发票']);
   }
   if (_containsAny(query, const ['owner', '负责人', '负责'])) {
     terms.addAll(const ['owner', '负责人', '负责']);
@@ -528,7 +591,7 @@ List<String> _identityRoutineTermsForQuery(String query) {
     'city',
     'location',
   ])) {
-    terms.addAll(const ['常驻', '居住', '城市', '上海', '深圳', '北京', '杭州']);
+    terms.addAll(const ['常驻', '居住', '城市', '长期居住']);
   }
   if (_containsAny(query, const [
     '周一',
@@ -545,10 +608,45 @@ List<String> _identityRoutineTermsForQuery(String query) {
     'routine',
     'schedule',
   ])) {
-    terms.addAll(
-        const ['周一', '周二', '周三', '周四', '上午', '下午', '深度工作', '评审会', '日程']);
+    terms.addAll(const [
+      '周一',
+      '周二',
+      '周三',
+      '周四',
+      '上午',
+      '下午',
+      '深度工作',
+      '评审会',
+      '日程',
+    ]);
   }
   return terms;
+}
+
+List<String> _roleMoodExpandedQueriesForTool(String query) {
+  final expanded = <String>[
+    '角色转换 心态 情绪 切换 反思 不是行动 不创建提醒',
+  ];
+  if (_containsAny(query, const ['Project', 'Meridian', '项目'])) {
+    expanded.add('Project Orion Meridian 角色 心态 客户访谈 整理 上线风险');
+  }
+  final normalizedQuery = query.replaceAll(RegExp(r'\s+'), '');
+  return expanded
+      .where((item) => item.replaceAll(RegExp(r'\s+'), '') != normalizedQuery)
+      .toList(growable: false);
+}
+
+List<String> _roleMoodTermsForQuery(String query) {
+  final terms = <String>['角色', '心态', '切换', '转换'];
+  for (final token in RegExp(
+    r'[A-Za-z][A-Za-z0-9_ ./-]{1,40}|[\u4e00-\u9fa5]{2,}',
+  ).allMatches(query).map((match) => match.group(0)!.trim())) {
+    if (token.length >= 2 &&
+        _containsAny(token, const ['Project', 'Meridian', '产品经理', '客户访谈'])) {
+      terms.add(token);
+    }
+  }
+  return terms.toSet().toList(growable: false);
 }
 
 List<String> _preferenceTermsForQuery(String query) {
@@ -625,8 +723,16 @@ int _identityRoutineResultBoost(String query, MemoryAtom atom) {
   if (_containsAny(content, const ['常驻', '居住', '城市', '长期居住'])) {
     boost += 3;
   }
-  if (_containsAny(
-      content, const ['周一', '周二', '周三', '周四', '周五', '深度工作', '日程', '安排'])) {
+  if (_containsAny(content, const [
+    '周一',
+    '周二',
+    '周三',
+    '周四',
+    '周五',
+    '深度工作',
+    '日程',
+    '安排',
+  ])) {
     boost += 3;
   }
   if (atom.type == 'boundary') boost -= 8;
@@ -663,6 +769,21 @@ int _relationshipResultBoost(String query, MemoryAtom atom) {
   return boost;
 }
 
+int _roleMoodResultBoost(String query, MemoryAtom atom) {
+  final content = '${atom.type} ${atom.title} ${atom.content} '
+      '${atom.entityIds.join(' ')} ${atom.attributes.values.join(' ')}';
+  var boost = 0;
+  if (atom.type == 'project_context') boost += 4;
+  if (_containsAny(content, const ['角色', '心态', '切换', '转换'])) boost += 8;
+  if (_containsAny(
+      content, const ['from_role', 'to_role', 'from_mood', 'to_mood'])) {
+    boost += 8;
+  }
+  if (_queryEntityOverlap(query, atom) > 0) boost += 4;
+  if (atom.evidenceFactIds.isNotEmpty) boost += 1;
+  return boost;
+}
+
 bool _looksLikeProjectOwnerQuery(String query) {
   final normalized = query.toLowerCase();
   final asksOwner = normalized.contains('owner') || normalized.contains('负责人');
@@ -670,14 +791,7 @@ bool _looksLikeProjectOwnerQuery(String query) {
   final asksSpecificProject =
       normalized.contains('project') || normalized.contains('项目');
   if (!asksSpecificProject) return false;
-  if (_containsAny(query, const [
-    '产品评审',
-    '体验文案',
-    '合同付款',
-    '发票确认',
-    '付款',
-    '发票',
-  ])) {
+  if (_containsAny(query, const ['产品评审', '体验文案', '合同付款', '发票确认', '付款', '发票'])) {
     return false;
   }
   return true;
@@ -687,8 +801,10 @@ int _queryEntityOverlap(String query, MemoryAtom atom) {
   final normalizedQuery = query.toLowerCase().replaceAll(RegExp(r'\s+'), '');
   var hits = 0;
   for (final entity in atom.entityIds) {
-    final normalizedEntity =
-        entity.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+    final normalizedEntity = entity.toLowerCase().replaceAll(
+          RegExp(r'\s+'),
+          '',
+        );
     if (normalizedEntity.length >= 2 &&
         normalizedQuery.contains(normalizedEntity)) {
       hits += 1;
@@ -697,10 +813,9 @@ int _queryEntityOverlap(String query, MemoryAtom atom) {
   if (hits > 0) return hits;
   final title = atom.title.toLowerCase().replaceAll(RegExp(r'\s+'), '');
   final content = atom.content.toLowerCase().replaceAll(RegExp(r'\s+'), '');
-  for (final token in RegExp(r'[a-z0-9_./-]{2,}|[\u4e00-\u9fa5]{2,}')
-      .allMatches(query.toLowerCase())
-      .map((match) => match.group(0)!)
-      .take(12)) {
+  for (final token in RegExp(
+    r'[a-z0-9_./-]{2,}|[\u4e00-\u9fa5]{2,}',
+  ).allMatches(query.toLowerCase()).map((match) => match.group(0)!).take(12)) {
     final normalizedToken = token.replaceAll(RegExp(r'\s+'), '');
     if (normalizedToken.length >= 2 &&
         (title.contains(normalizedToken) ||
@@ -725,22 +840,13 @@ bool _looksLikeCurrentStateQuery(String query) {
 String _redactSupersededValuesForCurrentState(String content) {
   var redacted = content;
   for (final pattern in [
-    RegExp(
-      r'(?:之前|此前|先前)关于[^。；;]*?(?:覆盖|作废|失效|不准确|superseded)[^。；;]*[。；;]?',
-    ),
-    RegExp(
-      r'(?:曾有|原来|旧记录)[^。；;]*?(?:覆盖|作废|失效|不准确|superseded)[^。；;]*[。；;]?',
-    ),
-    RegExp(
-      r'(?:覆盖|作废|失效|不准确|superseded)[^。；;]*?(?:之前|此前|先前|旧)[^。；;]*[。；;]?',
-    ),
+    RegExp(r'(?:之前|此前|先前)关于[^。；;]*?(?:覆盖|作废|失效|不准确|superseded)[^。；;]*[。；;]?'),
+    RegExp(r'(?:曾有|原来|旧记录)[^。；;]*?(?:覆盖|作废|失效|不准确|superseded)[^。；;]*[。；;]?'),
+    RegExp(r'(?:覆盖|作废|失效|不准确|superseded)[^。；;]*?(?:之前|此前|先前|旧)[^。；;]*[。；;]?'),
   ]) {
     redacted = redacted.replaceAll(pattern, '此前相关旧说法已被覆盖。');
   }
-  return redacted.replaceAll(
-    RegExp(r'(。此前相关旧说法已被覆盖。)+'),
-    '。此前相关旧说法已被覆盖。',
-  );
+  return redacted.replaceAll(RegExp(r'(。此前相关旧说法已被覆盖。)+'), '。此前相关旧说法已被覆盖。');
 }
 
 int _preferenceConstraintBoost(String content) {
@@ -881,4 +987,164 @@ List<String> _preferenceConstraintsForTool(
     }
   }
   return constraints.toList(growable: false);
+}
+
+List<String> _directAnswerCandidatesForTool(
+  String query,
+  List<MemoryRecallResult> results,
+) {
+  if (_looksLikeCurrentStateQuery(query)) {
+    final candidates = <String>[];
+    final excludedTerms = _excludedEntityTermsForTool(query);
+    for (final result in results) {
+      if (_queryEntityOverlapExcludingForTool(
+            query,
+            result.atom,
+            excludedTerms,
+          ) <=
+          0) {
+        continue;
+      }
+      for (final clause in _currentStateClausesForTool(result.atom.content)) {
+        if (!_containsAny(clause, const [
+          '当前',
+          '现在',
+          '仍负责',
+          '继续由',
+          '确认继续',
+          'current',
+        ])) {
+          continue;
+        }
+        if (!_containsAny(clause, const ['owner', '负责人', '负责', '验收'])) {
+          continue;
+        }
+        final text = _stripSupersededTailForTool(clause);
+        if (text.isEmpty) continue;
+        final evidence = result.atom.evidenceFactIds.isEmpty
+            ? ''
+            : ' evidence_fact_ids=${result.atom.evidenceFactIds.join(', ')}';
+        candidates.add('$text$evidence');
+      }
+    }
+    if (candidates.isNotEmpty) return candidates.toSet().take(5).toList();
+  }
+
+  if (_looksLikeRoleMoodTransitionQuery(query)) {
+    final candidates = <String>[];
+    for (final result in results) {
+      final attrs = result.atom.attributes;
+      final fromRole = _attributeStringForTool(attrs['from_role']);
+      final toRole = _attributeStringForTool(attrs['to_role']);
+      final fromMood = _attributeStringForTool(attrs['from_mood']);
+      final toMood = _attributeStringForTool(attrs['to_mood']);
+      if ([fromRole, toRole, fromMood, toMood].any((value) => value == null)) {
+        continue;
+      }
+      final fromProject = _attributeStringForTool(attrs['from_project']);
+      final toProject = _attributeStringForTool(attrs['to_project']);
+      final projectText = fromProject == null || toProject == null
+          ? ''
+          : '$fromProject -> $toProject; ';
+      final evidence = result.atom.evidenceFactIds.isEmpty
+          ? ''
+          : ' evidence_fact_ids=${result.atom.evidenceFactIds.join(', ')}';
+      candidates.add(
+        '${projectText}roles: $fromRole -> $toRole; mood: $fromMood -> $toMood.$evidence',
+      );
+    }
+    if (candidates.isNotEmpty) return candidates.toSet().take(5).toList();
+  }
+
+  return const [];
+}
+
+List<String> _currentStateClausesForTool(String content) {
+  return content
+      .split(RegExp(r'[。；;\n]+'))
+      .map((clause) => clause.trim())
+      .where((clause) => clause.isNotEmpty)
+      .toList(growable: false);
+}
+
+String _stripSupersededTailForTool(String clause) {
+  var result = clause.trim();
+  result = result.replaceFirst(RegExp(r'[，,]\s*(?:覆盖|作废|失效).*$'), '');
+  result = result.replaceFirst(RegExp(r'[，,]\s*(?:此前|之前|旧).*$'), '');
+  return result.trim();
+}
+
+String? _attributeStringForTool(dynamic value) {
+  final text = value?.toString().trim();
+  return text == null || text.isEmpty ? null : text;
+}
+
+int _queryEntityOverlapExcludingForTool(
+  String query,
+  MemoryAtom atom,
+  Set<String> excludedTerms,
+) {
+  final normalizedQuery = query.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+  var hits = 0;
+  for (final entity in atom.entityIds) {
+    final normalizedEntity = entity.toLowerCase().replaceAll(
+          RegExp(r'\s+'),
+          '',
+        );
+    if (_isExcludedEntityForTool(normalizedEntity, excludedTerms)) continue;
+    if (normalizedEntity.length >= 2 &&
+        normalizedQuery.contains(normalizedEntity)) {
+      hits += 1;
+    }
+  }
+  if (hits > 0) return hits;
+  final title = atom.title.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+  final content = atom.content.toLowerCase().replaceAll(RegExp(r'\s+'), '');
+  for (final token in RegExp(
+    r'[a-z0-9_./-]{2,}|[\u4e00-\u9fa5]{2,}',
+  ).allMatches(query.toLowerCase()).map((match) => match.group(0)!).take(12)) {
+    final normalizedToken = token.replaceAll(RegExp(r'\s+'), '');
+    if (_isExcludedEntityForTool(normalizedToken, excludedTerms)) continue;
+    if (normalizedToken.length >= 2 &&
+        (title.contains(normalizedToken) ||
+            content.contains(normalizedToken))) {
+      hits += 1;
+    }
+  }
+  return hits;
+}
+
+Set<String> _excludedEntityTermsForTool(String query) {
+  final terms = <String>{};
+  for (final pattern in [
+    RegExp(r'(?:不要|别|避免|不要再)\s*(?:混到|混入|混淆|关联到|提到|回答)\s*([^？?。；;\n]+)'),
+    RegExp(r'(?:不要|别|避免)\s*(?:包括|包含)\s*([^？?。；;\n]+)'),
+  ]) {
+    for (final match in pattern.allMatches(query)) {
+      final raw = match.group(1)?.trim();
+      if (raw == null || raw.isEmpty) continue;
+      for (final term in raw.split(RegExp(r'\s*(?:和|或|、|,|，)\s*'))) {
+        final normalized = term
+            .replaceAll(RegExp(r'^(?:到|把|将)\s*'), '')
+            .replaceAll(RegExp(r'[：:，,。；;？?]+$'), '')
+            .trim()
+            .toLowerCase()
+            .replaceAll(RegExp(r'\s+'), '');
+        if (normalized.length >= 2) terms.add(normalized);
+      }
+    }
+  }
+  return terms;
+}
+
+bool _isExcludedEntityForTool(
+  String normalizedEntity,
+  Set<String> excludedTerms,
+) {
+  if (normalizedEntity.length < 2) return false;
+  return excludedTerms.any(
+    (term) =>
+        term.length >= 2 &&
+        (term.contains(normalizedEntity) || normalizedEntity.contains(term)),
+  );
 }

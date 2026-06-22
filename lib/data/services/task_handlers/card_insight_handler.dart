@@ -52,6 +52,7 @@ Future<CardInsightDraft> processWithCardInsightAgent({
         text: draft.text,
         summary: draft.summary,
         relatedFacts: draft.relatedFactIds
+            .where(CardInsightAgent.isTimelineFactId)
             .map((id) => RelatedFact(id: id))
             .toList(growable: false),
       ),

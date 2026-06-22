@@ -105,6 +105,7 @@ Future<CardRunCompletionEvidence> processWithCardAgent({
       userId: userId,
       factId: factId,
       instruction: userMessageContent,
+      inputDateTime: inputDateTime,
     );
 
     _logger.info('Card Agent task completed for $factId');

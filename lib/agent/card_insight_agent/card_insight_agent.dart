@@ -115,7 +115,8 @@ class CardInsightAgent {
       ).timeout(_llmGenerationTimeout);
       final draft = _parseDraft(
         response.textOutput ?? '',
-        allowedRelatedFactIds: relatedFacts.map((e) => e.factId).toSet(),
+        allowedRelatedFactIds:
+            relatedFacts.map((e) => e.factId).where(isTimelineFactId).toSet(),
       );
       if (draft != null) {
         return _withBackfilledRelatedFacts(draft, relatedFacts);
@@ -217,7 +218,7 @@ Return strict JSON only:
       if (rawRelatedMemory is List) {
         for (final item in rawRelatedMemory) {
           final id = item.toString().trim();
-          if (id.startsWith('mem_')) relatedMemory.add(id);
+          if (_isMemoryId(id)) relatedMemory.add(id);
         }
       }
       if (text.isEmpty && summary.isEmpty) return null;
@@ -245,8 +246,18 @@ Return strict JSON only:
       labels: labels,
     );
     final synthesis = _fallbackSynthesis(labels, compact);
-    final relatedIds =
-        relatedFacts.take(_maxRelatedFactIds).map((e) => e.factId).toList();
+    final relatedIds = <String>[];
+    final relatedMemoryIds = <String>[];
+    for (final candidate in relatedFacts) {
+      final id = candidate.factId;
+      if (isTimelineFactId(id)) {
+        if (relatedIds.length < _maxRelatedFactIds) relatedIds.add(id);
+      } else if (_isMemoryId(id)) {
+        if (relatedMemoryIds.length < _maxRelatedMemoryIds) {
+          relatedMemoryIds.add(id);
+        }
+      }
+    }
     final relatedLine = _relatedContextLine(relatedFacts);
     final body = [
       insightLead,
@@ -258,6 +269,7 @@ Return strict JSON only:
       text: body,
       summary: summary,
       relatedFactIds: relatedIds,
+      relatedMemoryIds: relatedMemoryIds,
       fallback: true,
     );
   }
@@ -267,24 +279,45 @@ Return strict JSON only:
     List<RelatedFactCandidate> candidates,
   ) {
     final seen = <String>{};
+    final seenMemory = <String>{};
     final relatedIds = <String>[];
+    final relatedMemoryIds = <String>[];
+
+    void addRelatedFact(String id) {
+      if (!isTimelineFactId(id)) return;
+      if (relatedIds.length >= _maxRelatedFactIds) return;
+      if (seen.add(id)) relatedIds.add(id);
+    }
+
+    void addRelatedMemory(String id) {
+      if (!_isMemoryId(id)) return;
+      if (relatedMemoryIds.length >= _maxRelatedMemoryIds) return;
+      if (seenMemory.add(id)) relatedMemoryIds.add(id);
+    }
+
+    for (final id in draft.relatedMemoryIds) {
+      addRelatedMemory(id);
+    }
 
     final supportiveCandidates =
         candidates.where(_isSupportiveCandidate).toList(growable: false);
 
     for (final candidate in supportiveCandidates) {
-      if (relatedIds.length >= _maxRelatedFactIds) break;
-      if (seen.add(candidate.factId)) relatedIds.add(candidate.factId);
+      addRelatedFact(candidate.factId);
+      addRelatedMemory(candidate.factId);
+      if (relatedIds.length >= _maxRelatedFactIds &&
+          relatedMemoryIds.length >= _maxRelatedMemoryIds) {
+        break;
+      }
     }
 
     for (final id in draft.relatedFactIds) {
-      if (relatedIds.length >= _maxRelatedFactIds) break;
-      if (seen.add(id)) relatedIds.add(id);
+      addRelatedFact(id);
     }
 
     if (relatedIds.isEmpty) {
       for (final candidate in candidates.take(3)) {
-        if (seen.add(candidate.factId)) relatedIds.add(candidate.factId);
+        addRelatedFact(candidate.factId);
       }
     }
 
@@ -292,7 +325,7 @@ Return strict JSON only:
       text: draft.text,
       summary: draft.summary,
       relatedFactIds: relatedIds,
-      relatedMemoryIds: draft.relatedMemoryIds,
+      relatedMemoryIds: relatedMemoryIds,
       fallback: draft.fallback,
     );
   }
@@ -489,7 +522,10 @@ Return strict JSON only:
   }
 
   static String? _relatedContextLine(List<RelatedFactCandidate> relatedFacts) {
-    final count = relatedFacts.take(_maxRelatedFactIds).length;
+    final count = relatedFacts
+        .where((e) => isTimelineFactId(e.factId))
+        .take(_maxRelatedFactIds)
+        .length;
     if (count == 0) return null;
     return '相关上下文：已关联 $count 条候选记录，用于校验历史说法、当前口径和边界；具体证据保留在结构化 related_facts 中。';
   }
@@ -514,8 +550,22 @@ Return strict JSON only:
   }
 
   static const _maxRelatedFactIds = 8;
+  static const _maxRelatedMemoryIds = 8;
   static const _overallGenerationTimeout = Duration(seconds: 75);
   static const _llmGenerationTimeout = Duration(seconds: 45);
+
+  static final RegExp _timelineFactIdPattern = RegExp(
+    r'^\d{4}/\d{2}/\d{2}\.md#ts_\d+$',
+  );
+  static final RegExp _memoryIdPattern = RegExp(r'^mem_\d+$');
+
+  static bool isTimelineFactId(String id) {
+    return _timelineFactIdPattern.hasMatch(id.trim());
+  }
+
+  static bool _isMemoryId(String id) {
+    return _memoryIdPattern.hasMatch(id.trim());
+  }
 
   static bool get _llmInsightEnabled {
     final value = Platform.environment['MEMEX_CARD_INSIGHT_ENABLE_LLM']

@@ -88,6 +88,7 @@ class CardAgent {
     required ModelConfig modelConfig,
     required String userId,
     required String factId,
+    DateTime? inputDateTime,
   }) async {
     final fileService = FileSystemService.instance;
 
@@ -96,12 +97,16 @@ class CardAgent {
     final sessionId = "card_${userId}_$factIdSafe";
 
     // Load or create agent state
-    final state = await loadOrCreateAgentState(sessionId, {
+    final metadata = {
       'userId': userId,
       'factId': factId,
       'scene': 'input',
       'sceneId': factId,
-    });
+      if (inputDateTime != null)
+        'inputCreatedAtTs': inputDateTime.millisecondsSinceEpoch ~/ 1000,
+    };
+    final state = await loadOrCreateAgentState(sessionId, metadata);
+    state.metadata.addAll(metadata);
 
     final controller = AgentController();
     addAgentLogger(controller);
@@ -151,6 +156,7 @@ class CardAgent {
     required String userId,
     required String factId,
     required String instruction,
+    DateTime? inputDateTime,
   }) async {
     // Ensure we have a valid cached responseId with matching hashCode
     final cachedResponseId = await AgentCacheHelper.ensureValidCachedResponseId(
@@ -191,6 +197,7 @@ class CardAgent {
       modelConfig: finalModelConfig,
       userId: userId,
       factId: factId,
+      inputDateTime: inputDateTime,
     );
 
     final timelineCardMetadata =

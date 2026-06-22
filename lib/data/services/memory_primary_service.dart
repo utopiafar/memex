@@ -313,6 +313,8 @@ class MemoryRecallResult {
   final double entityScore;
   final double recencyScore;
   final double totalScore;
+  final int? ftsRank;
+  final int? vectorRank;
   final String snippet;
   final List<String> reasons;
 
@@ -323,9 +325,15 @@ class MemoryRecallResult {
     required this.entityScore,
     required this.recencyScore,
     required this.totalScore,
+    required this.ftsRank,
+    required this.vectorRank,
     required this.snippet,
     required this.reasons,
   });
+
+  List<String> get retrievalSources {
+    return [if (ftsRank != null) 'fts', if (vectorRank != null) 'vector'];
+  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -337,6 +345,11 @@ class MemoryRecallResult {
       'evidence_fact_ids': atom.evidenceFactIds,
       'snippet': snippet,
       'reasons': reasons,
+      'retrieval_sources': retrievalSources,
+      'retrieval_ranks': {
+        if (ftsRank != null) 'fts': ftsRank,
+        if (vectorRank != null) 'vector': vectorRank,
+      },
       'scores': {
         'lexical': lexicalScore,
         'vector': vectorScore,
@@ -346,6 +359,91 @@ class MemoryRecallResult {
       },
     };
   }
+}
+
+class _MemorySearchCandidate {
+  const _MemorySearchCandidate({
+    required this.index,
+    required this.atom,
+    required this.lexicalScore,
+    required this.vectorScore,
+    required this.entityScore,
+    required this.recencyScore,
+  });
+
+  final int index;
+  final MemoryAtom atom;
+  final double lexicalScore;
+  final double vectorScore;
+  final double entityScore;
+  final double recencyScore;
+}
+
+class _MemoryRetrievalRanks {
+  int? ftsRank;
+  int? vectorRank;
+}
+
+const int _memoryRrfRankConstant = 60;
+
+double _reciprocalRankFusionScore(_MemoryRetrievalRanks ranks) {
+  var score = 0.0;
+  final ftsRank = ranks.ftsRank;
+  if (ftsRank != null) {
+    score += 1 / (_memoryRrfRankConstant + ftsRank);
+  }
+  final vectorRank = ranks.vectorRank;
+  if (vectorRank != null) {
+    score += 1 / (_memoryRrfRankConstant + vectorRank);
+  }
+  return score;
+}
+
+int _compareFtsCandidates(_MemorySearchCandidate a, _MemorySearchCandidate b) {
+  return _compareCandidateFields(a, b, [
+    (candidate) => candidate.lexicalScore,
+    (candidate) => candidate.entityScore,
+    (candidate) => candidate.atom.importance.clamp(1, 5).toDouble(),
+    (candidate) => candidate.recencyScore,
+  ]);
+}
+
+int _compareVectorCandidates(
+  _MemorySearchCandidate a,
+  _MemorySearchCandidate b,
+) {
+  return _compareCandidateFields(a, b, [
+    (candidate) => candidate.vectorScore,
+    (candidate) => candidate.lexicalScore,
+    (candidate) => candidate.entityScore,
+    (candidate) => candidate.atom.importance.clamp(1, 5).toDouble(),
+    (candidate) => candidate.recencyScore,
+  ]);
+}
+
+int _compareMemoryRecallResults(MemoryRecallResult a, MemoryRecallResult b) {
+  final comparisons = [
+    b.totalScore.compareTo(a.totalScore),
+    b.lexicalScore.compareTo(a.lexicalScore),
+    b.vectorScore.compareTo(a.vectorScore),
+    b.entityScore.compareTo(a.entityScore),
+    b.atom.importance.compareTo(a.atom.importance),
+    b.recencyScore.compareTo(a.recencyScore),
+    a.atom.id.compareTo(b.atom.id),
+  ];
+  return comparisons.firstWhere((value) => value != 0, orElse: () => 0);
+}
+
+int _compareCandidateFields(
+  _MemorySearchCandidate a,
+  _MemorySearchCandidate b,
+  List<double Function(_MemorySearchCandidate)> fields,
+) {
+  for (final field in fields) {
+    final comparison = field(b).compareTo(field(a));
+    if (comparison != 0) return comparison;
+  }
+  return a.index.compareTo(b.index);
 }
 
 class MemoryPrimaryService {
@@ -382,9 +480,14 @@ class MemoryPrimaryService {
 
       for (final patch in patches) {
         final op = patch.op.trim().toLowerCase();
-        final inheritedAttributes = _preservedAttributesFromSuperseded(
+        final compatibleSupersedes = _scopeCompatibleSupersedes(
           atoms,
           patch.supersedesMemoryIds,
+          patch,
+        );
+        final inheritedAttributes = _preservedAttributesFromSuperseded(
+          atoms,
+          compatibleSupersedes,
         );
         final patchAttributes = _mergeAttributes(
           inheritedAttributes,
@@ -417,7 +520,7 @@ class MemoryPrimaryService {
           continue;
         }
 
-        for (final supersededId in patch.supersedesMemoryIds) {
+        for (final supersededId in compatibleSupersedes) {
           final index = _findAtomIndex(atoms, supersededId);
           if (index < 0) continue;
           atoms[index] = atoms[index].copyWith(
@@ -435,44 +538,52 @@ class MemoryPrimaryService {
           final index = _findAtomIndex(atoms, patch.memoryId);
           if (index < 0) continue;
           final current = atoms[index];
-          final attributes = _mergeAttributes(
-            current.attributes,
-            patchAttributes,
-          );
-          final rawContent = patch.content.isEmpty
-              ? current.content
-              : _preserveRelationshipResponsibilities(
-                  current: current,
-                  patch: patch,
-                  nextContent: patch.content,
-                );
-          final content = _appendPreservedTerms(rawContent, attributes);
-          final updated = current.copyWith(
-            type: patch.type,
-            title: patch.title.isEmpty ? current.title : patch.title,
-            content: content,
-            status: patch.status,
-            confidence: patch.confidence,
-            importance: patch.importance,
-            entityIds: _mergeStrings(current.entityIds, patch.entityIds),
-            evidenceFactIds: _mergeStrings(
-              current.evidenceFactIds,
-              patch.evidenceFactIds,
-            ),
-            validFrom: patch.validFrom,
-            validUntil: patch.validUntil,
-            updatedAt: now,
-            sourceAgent: sourceAgent,
-            attributes: attributes,
-          );
-          atoms[index] = updated;
-          changed.add(updated);
-          continue;
+          if (!_memoryScopesCompatible(current, patch)) {
+            _logger.info(
+              'Ignored cross-scope memory update from ${current.id} '
+              'to ${patch.title.isEmpty ? patch.content : patch.title}',
+            );
+          } else {
+            final attributes = _mergeAttributes(
+              current.attributes,
+              patchAttributes,
+            );
+            final rawContent = patch.content.isEmpty
+                ? current.content
+                : _preserveRelationshipResponsibilities(
+                    current: current,
+                    patch: patch,
+                    nextContent: patch.content,
+                  );
+            final content = _appendPreservedTerms(rawContent, attributes);
+            final updated = current.copyWith(
+              type: patch.type,
+              title: patch.title.isEmpty ? current.title : patch.title,
+              content: content,
+              status: patch.status,
+              confidence: patch.confidence,
+              importance: patch.importance,
+              entityIds: _mergeStrings(current.entityIds, patch.entityIds),
+              evidenceFactIds: _mergeStrings(
+                current.evidenceFactIds,
+                patch.evidenceFactIds,
+              ),
+              validFrom: patch.validFrom,
+              validUntil: patch.validUntil,
+              updatedAt: now,
+              sourceAgent: sourceAgent,
+              attributes: attributes,
+            );
+            atoms[index] = updated;
+            changed.add(updated);
+            continue;
+          }
         }
 
         final patchContent = _preserveSupersededRelationshipResponsibilities(
           atoms: atoms,
           patch: patch,
+          supersededIds: compatibleSupersedes,
           nextContent: patch.content,
         );
         if (patchContent.trim().isEmpty) continue;
@@ -507,8 +618,10 @@ class MemoryPrimaryService {
           continue;
         }
 
-        final relatedRelationshipIndex =
-            _findRelatedActiveRelationshipAtom(atoms, patch);
+        final relatedRelationshipIndex = _findRelatedActiveRelationshipAtom(
+          atoms,
+          patch,
+        );
         if (relatedRelationshipIndex >= 0) {
           final current = atoms[relatedRelationshipIndex];
           final attributes = _mergeAttributes(
@@ -543,21 +656,19 @@ class MemoryPrimaryService {
           continue;
         }
 
-        final explicitId = patch.memoryId?.trim();
+        final explicitId = op == 'update' ? null : patch.memoryId?.trim();
         final id = explicitId == null || explicitId.isEmpty
             ? 'mem_$nextId'
             : explicitId;
         nextId = math.max(
-            nextId + (explicitId == null || explicitId.isEmpty ? 1 : 0),
-            _nextIdAfter(id));
+          nextId + (explicitId == null || explicitId.isEmpty ? 1 : 0),
+          _nextIdAfter(id),
+        );
         final atom = MemoryAtom(
           id: id,
           type: patch.type,
           title: patch.title,
-          content: _appendPreservedTerms(
-            patchContent.trim(),
-            patchAttributes,
-          ),
+          content: _appendPreservedTerms(patchContent.trim(), patchAttributes),
           status: patch.status,
           confidence: patch.confidence,
           importance: patch.importance,
@@ -611,17 +722,15 @@ class MemoryPrimaryService {
     }).toList(growable: false);
     if (atoms.isEmpty) return const [];
 
+    final prefetchLimit = math.max(limit * 4, 20);
     final embeddingConfig = await UserStorage.getEmbeddingConfig();
     List<double>? queryEmbedding;
     var atomEmbeddings = <List<double>?>[];
     if (embeddingConfig.isUsable) {
-      final embeddings = await EmbeddingService.instance.embedTexts(
-        [
-          trimmed,
-          for (final atom in atoms) _clipForEmbedding(atom.searchableText),
-        ],
-        config: embeddingConfig,
-      );
+      final embeddings = await EmbeddingService.instance.embedTexts([
+        trimmed,
+        for (final atom in atoms) _clipForEmbedding(atom.searchableText),
+      ], config: embeddingConfig);
       if (embeddings.length == atoms.length + 1) {
         queryEmbedding = embeddings.first;
         atomEmbeddings = embeddings.skip(1).toList(growable: false);
@@ -629,7 +738,7 @@ class MemoryPrimaryService {
     }
 
     final queryTokens = _tokens(trimmed);
-    final results = <MemoryRecallResult>[];
+    final candidates = <_MemorySearchCandidate>[];
     for (var i = 0; i < atoms.length; i++) {
       final atom = atoms[i];
       final searchable = atom.searchableText;
@@ -644,37 +753,78 @@ class MemoryPrimaryService {
             0.0;
       }
       final recencyScore = atoms.length <= 1 ? 1.0 : i / (atoms.length - 1);
-      final importanceScore = atom.importance.clamp(1, 5) / 5.0;
-      final totalScore = lexicalScore * 0.40 +
-          vectorScore * 0.30 +
-          entityScore * 0.15 +
-          recencyScore * 0.08 +
-          importanceScore * 0.07;
-
-      if (lexicalScore == 0 && entityScore == 0 && vectorScore < 0.18) {
-        continue;
-      }
-
-      results.add(
-        MemoryRecallResult(
+      candidates.add(
+        _MemorySearchCandidate(
+          index: i,
           atom: atom,
           lexicalScore: lexicalScore,
           vectorScore: vectorScore,
           entityScore: entityScore,
           recencyScore: recencyScore,
+        ),
+      );
+    }
+
+    final ftsRanked = candidates
+        .where((candidate) => candidate.lexicalScore > 0)
+        .toList(growable: false)
+      ..sort(_compareFtsCandidates);
+    final vectorRanked = queryEmbedding == null
+        ? <_MemorySearchCandidate>[]
+        : (candidates
+            .where((candidate) => candidate.vectorScore > 0)
+            .toList(growable: false)
+          ..sort(_compareVectorCandidates));
+
+    final rankByIndexAndSource = <int, _MemoryRetrievalRanks>{};
+    void recordRanks(Iterable<_MemorySearchCandidate> ranked, bool isVector) {
+      var rank = 1;
+      for (final candidate in ranked.take(prefetchLimit)) {
+        final ranks = rankByIndexAndSource.putIfAbsent(
+          candidate.index,
+          _MemoryRetrievalRanks.new,
+        );
+        if (isVector) {
+          ranks.vectorRank = rank;
+        } else {
+          ranks.ftsRank = rank;
+        }
+        rank += 1;
+      }
+    }
+
+    recordRanks(ftsRanked, false);
+    recordRanks(vectorRanked, true);
+
+    final results = <MemoryRecallResult>[];
+    for (final entry in rankByIndexAndSource.entries) {
+      final candidate = candidates[entry.key];
+      final ranks = entry.value;
+      final totalScore = _reciprocalRankFusionScore(ranks);
+      results.add(
+        MemoryRecallResult(
+          atom: candidate.atom,
+          lexicalScore: candidate.lexicalScore,
+          vectorScore: candidate.vectorScore,
+          entityScore: candidate.entityScore,
+          recencyScore: candidate.recencyScore,
           totalScore: totalScore,
-          snippet: _snippet(atom.content, queryTokens),
+          ftsRank: ranks.ftsRank,
+          vectorRank: ranks.vectorRank,
+          snippet: _snippet(candidate.atom.content, queryTokens),
           reasons: [
-            if (lexicalScore > 0) 'lexical_match',
-            if (entityScore > 0) 'entity_match',
-            if (vectorScore >= 0.18) 'embedding_rerank',
-            if (atom.evidenceFactIds.isNotEmpty) 'has_evidence',
+            if (ranks.ftsRank != null) 'fts_match',
+            if (candidate.lexicalScore > 0) 'lexical_match',
+            if (ranks.vectorRank != null) 'vector_match',
+            if (ranks.vectorRank != null) 'embedding_rerank',
+            if (candidate.entityScore > 0) 'entity_match',
+            if (candidate.atom.evidenceFactIds.isNotEmpty) 'has_evidence',
           ],
         ),
       );
     }
 
-    results.sort((a, b) => b.totalScore.compareTo(a.totalScore));
+    results.sort(_compareMemoryRecallResults);
     return results.take(limit).toList(growable: false);
   }
 
@@ -811,6 +961,127 @@ class MemoryPrimaryService {
     return atoms.indexWhere((atom) => atom.id == memoryId);
   }
 
+  List<String> _scopeCompatibleSupersedes(
+    List<MemoryAtom> atoms,
+    List<String> supersededIds,
+    MemoryPatch patch,
+  ) {
+    final compatible = <String>[];
+    for (final id in supersededIds) {
+      final index = _findAtomIndex(atoms, id);
+      if (index < 0) continue;
+      if (_memoryScopesCompatible(atoms[index], patch)) {
+        compatible.add(id);
+      } else {
+        _logger.info(
+          'Ignored cross-scope memory supersede from $id '
+          'to ${patch.title.isEmpty ? patch.content : patch.title}',
+        );
+      }
+    }
+    return compatible;
+  }
+
+  bool _memoryScopesCompatible(MemoryAtom atom, MemoryPatch patch) {
+    if (!_needsProjectScopeGuardForAtom(atom) &&
+        !_needsProjectScopeGuardForPatch(patch)) {
+      return true;
+    }
+    final atomScopes = _projectScopeKeysForAtom(atom);
+    final patchScopes = _projectScopeKeysForPatch(patch);
+    if (atomScopes.isEmpty || patchScopes.isEmpty) return true;
+    return atomScopes.intersection(patchScopes).isNotEmpty;
+  }
+
+  bool _needsProjectScopeGuardForAtom(MemoryAtom atom) {
+    if (atom.type != 'project_context') return false;
+    final haystack = '${atom.title}\n${atom.content}\n${atom.attributes}';
+    return _looksLikeCurrentProjectState(haystack);
+  }
+
+  bool _needsProjectScopeGuardForPatch(MemoryPatch patch) {
+    if (patch.type != 'project_context') return false;
+    final haystack = '${patch.title}\n${patch.content}\n${patch.attributes}';
+    return _looksLikeCurrentProjectState(haystack);
+  }
+
+  bool _looksLikeCurrentProjectState(String text) {
+    return RegExp(
+      r'owner|负责人|当前|验收|接口|负责|previous_owner|current_owner|project_name',
+      caseSensitive: false,
+    ).hasMatch(text);
+  }
+
+  Set<String> _projectScopeKeysForAtom(MemoryAtom atom) {
+    return {
+      ..._projectScopeKeysFromAttributes(atom.attributes),
+      ..._projectScopeKeysFromStrings(atom.entityIds),
+      ..._projectScopeKeysFromText('${atom.title}\n${atom.content}'),
+    };
+  }
+
+  Set<String> _projectScopeKeysForPatch(MemoryPatch patch) {
+    return {
+      ..._projectScopeKeysFromAttributes(patch.attributes),
+      ..._projectScopeKeysFromStrings(patch.entityIds),
+      ..._projectScopeKeysFromText('${patch.title}\n${patch.content}'),
+    };
+  }
+
+  Set<String> _projectScopeKeysFromAttributes(Map<String, dynamic> attributes) {
+    final values = <String>[];
+    const keys = [
+      'project_name',
+      'project',
+      'from_project',
+      'to_project',
+    ];
+    for (final key in keys) {
+      values.addAll(_attributeStringList(attributes[key]));
+      final value = attributes[key];
+      if (value is String) values.add(value);
+    }
+    return _projectScopeKeysFromStrings(values);
+  }
+
+  Set<String> _projectScopeKeysFromStrings(Iterable<String> values) {
+    final keys = <String>{};
+    for (final value in values) {
+      if (_looksLikeProjectScope(value)) {
+        keys.add(_normalizeProjectScope(value));
+      }
+    }
+    return keys;
+  }
+
+  Set<String> _projectScopeKeysFromText(String text) {
+    final keys = <String>{};
+    for (final match in RegExp(
+      r'Project\s+[A-Za-z0-9][A-Za-z0-9_-]*(?:\s+[A-Z0-9])?',
+    ).allMatches(text)) {
+      keys.add(_normalizeProjectScope(match.group(0)!));
+    }
+    for (final match in RegExp(
+      r'[A-Za-z][A-Za-z0-9_-]*\s*导出\s*[A-Z0-9]+',
+    ).allMatches(text)) {
+      keys.add(_normalizeProjectScope(match.group(0)!));
+    }
+    return keys;
+  }
+
+  bool _looksLikeProjectScope(String value) {
+    return RegExp(r'\bProject\b', caseSensitive: false).hasMatch(value) ||
+        value.contains('导出') ||
+        value.contains('项目');
+  }
+
+  String _normalizeProjectScope(String value) {
+    return value
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s_-]+'), '')
+        .replaceAll(RegExp(r'[：:，,。.;；()（）【】\\[\\]]'), '');
+  }
+
   int _findDuplicateActiveAtom(List<MemoryAtom> atoms, String content) {
     final normalized = _normalizeDuplicateContent(content);
     return atoms.indexWhere(
@@ -870,9 +1141,7 @@ class MemoryPrimaryService {
       final index = _findAtomIndex(atoms, id);
       if (index < 0) continue;
       preservedTerms.addAll(
-        _attributeStringList(
-          atoms[index].attributes['preserved_report_terms'],
-        ),
+        _attributeStringList(atoms[index].attributes['preserved_report_terms']),
       );
       preservedPersonalTerms.addAll(
         _attributeStringList(
@@ -895,20 +1164,14 @@ class MemoryPrimaryService {
     Map<String, dynamic> attributes,
   ) {
     var result = content;
-    final preservedTerms =
-        _attributeStringList(attributes['preserved_report_terms']);
-    result = _appendMissingTerms(
-      result,
-      preservedTerms,
-      '保留用户原词偏好',
+    final preservedTerms = _attributeStringList(
+      attributes['preserved_report_terms'],
     );
-    final preservedPersonalTerms =
-        _attributeStringList(attributes['preserved_personal_terms']);
-    result = _appendMissingTerms(
-      result,
-      preservedPersonalTerms,
-      '保留用户原词约束',
+    result = _appendMissingTerms(result, preservedTerms, '保留用户原词偏好');
+    final preservedPersonalTerms = _attributeStringList(
+      attributes['preserved_personal_terms'],
     );
+    result = _appendMissingTerms(result, preservedPersonalTerms, '保留用户原词约束');
     return result;
   }
 
@@ -936,10 +1199,11 @@ class MemoryPrimaryService {
   String _preserveSupersededRelationshipResponsibilities({
     required List<MemoryAtom> atoms,
     required MemoryPatch patch,
+    required List<String> supersededIds,
     required String nextContent,
   }) {
     var result = nextContent;
-    for (final supersededId in patch.supersedesMemoryIds) {
+    for (final supersededId in supersededIds) {
       final index = _findAtomIndex(atoms, supersededId);
       if (index < 0) continue;
       result = _preserveRelationshipResponsibilities(
@@ -956,10 +1220,7 @@ class MemoryPrimaryService {
     MemoryPatch patch,
   ) {
     if (!_isRelationshipLikeMemory(patch.type, patch.content)) return -1;
-    final patchKeys = _relationshipSpecificKeys(
-      patch.entityIds,
-      patch.content,
-    );
+    final patchKeys = _relationshipSpecificKeys(patch.entityIds, patch.content);
     if (patchKeys.isEmpty) return -1;
     for (var i = 0; i < atoms.length; i++) {
       final atom = atoms[i];
@@ -980,6 +1241,7 @@ class MemoryPrimaryService {
 
   bool _isRelationshipLikeMemory(String type, String content) {
     if (type == 'relationship') return true;
+    if (type == 'project_context') return false;
     return RegExp(r'负责|职责|联系人|合同付款|发票确认|产品评审|体验文案').hasMatch(content);
   }
 
@@ -999,8 +1261,9 @@ class MemoryPrimaryService {
       final normalized = _normalizeRelationshipKey(entity);
       if (normalized != null) keys.add(normalized);
     }
-    for (final match
-        in RegExp(r'\b[A-Z][A-Za-z]{2,}[A-Z]\b').allMatches(content)) {
+    for (final match in RegExp(
+      r'\b[A-Z][A-Za-z]{2,}[A-Z]\b',
+    ).allMatches(content)) {
       final normalized = _normalizeRelationshipKey(match.group(0)!);
       if (normalized != null) keys.add(normalized);
     }
@@ -1025,14 +1288,9 @@ class MemoryPrimaryService {
       '体验文案',
       'owner',
       'project',
-      'orion',
-      'meridian',
     };
     if (generic.contains(normalized)) return null;
-    if (normalized.contains('project') ||
-        normalized.contains('orion') ||
-        normalized.contains('meridian') ||
-        normalized.contains('导出')) {
+    if (normalized.contains('project') || normalized.contains('导出')) {
       return null;
     }
     return normalized;
@@ -1053,8 +1311,9 @@ class MemoryPrimaryService {
   }
 
   String? _responsibilityObject(String clause) {
-    final match =
-        RegExp(r'(?:负责|职责(?:是|为|包括)?|负责范围(?:是|为)?)\s*(.+)$').firstMatch(clause);
+    final match = RegExp(
+      r'(?:负责|职责(?:是|为|包括)?|负责范围(?:是|为)?)\s*(.+)$',
+    ).firstMatch(clause);
     final value = match?.group(1)?.trim();
     if (value == null || value.isEmpty) return null;
     return value;

@@ -34,6 +34,43 @@ void main() {
       expect(draft.relatedFactIds, ['2026/05/01.md#ts_0']);
     });
 
+    test('keeps memory atom ids out of related fact ids', () async {
+      final draft = await CardInsightAgent.generate(
+        userId: 'user-a',
+        factId: '2026/05/01.md#ts_2',
+        contentText: '高敏边界样本：只记录事实和情绪，不给确定性投资建议。',
+        card: null,
+        relatedFacts: const [
+          RelatedFactCandidate(
+            factId: 'mem_114',
+            title: '财务压力边界',
+            snippet: '只记录情绪和事实，不提供确定性投资建议。',
+            source: 'memory_evidence',
+            lexicalScore: 1,
+            vectorScore: 1,
+            recencyScore: 1,
+            entityScore: 1,
+            memoryEvidenceScore: 1,
+            totalScore: 1,
+          ),
+          RelatedFactCandidate(
+            factId: '2026/05/01.md#ts_1',
+            title: '高敏边界记录',
+            snippet: '财务压力复盘只记录事实和情绪。',
+            source: 'hybrid_text',
+            lexicalScore: 1,
+            vectorScore: 1,
+            recencyScore: 1,
+            entityScore: 1,
+            totalScore: 1,
+          ),
+        ],
+      );
+
+      expect(draft.relatedFactIds, ['2026/05/01.md#ts_1']);
+      expect(draft.relatedMemoryIds, ['mem_114']);
+    });
+
     test('preserves no-action boundary in deterministic draft', () async {
       final draft = await CardInsightAgent.generate(
         userId: 'user-a',
