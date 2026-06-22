@@ -3,6 +3,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' show Locale;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -24,1097 +25,1435 @@ import 'package:wakelock_plus_platform_interface/wakelock_plus_platform_interfac
 
 typedef JsonMap = Map<String, dynamic>;
 
+final _llmDisabledProviderIndexes = <int>{};
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   if (_llmEnabled) {
     HttpOverrides.global = _EvalHttpOverrides();
   }
 
-  test('compares legacy PKM and Memory Primary through real full chain',
-      () async {
-    final repoRoot = Directory.current.path;
-    final datasetPath = Platform.environment['MEMEX_EVAL_DATASET'] ??
-        p.join(repoRoot, 'evals', 'datasets', 'memory_primary_smoke',
-            'cases.jsonl');
-    final runId =
-        'memory_primary_full_chain_${DateTime.now().toUtc().toIso8601String().replaceAll(RegExp(r'[^0-9A-Za-z]'), '')}';
-    final runDir = Directory(
-      Platform.environment['MEMEX_EVAL_RUN_DIR'] ??
-          p.join(repoRoot, 'evals', 'runs', runId),
-    );
-    if (await runDir.exists()) {
-      await runDir.delete(recursive: true);
-    }
-    await runDir.create(recursive: true);
-
-    final pathProviderRoot = await Directory.systemTemp.createTemp(
-      'memex_memory_primary_eval_paths_',
-    );
-    PathProviderPlatform.instance =
-        _FakePathProviderPlatform(pathProviderRoot.path);
-    WakelockPlusPlatformInterface.instance = _FakeWakelockPlusPlatform();
-    final router = MemexRouter();
-    final cases = await _loadCases(datasetPath);
-    final changedCaseIds = _changedCaseIds;
-    final candidateCases = changedCaseIds == null
-        ? cases
-        : cases
-            .where((evalCase) => changedCaseIds.contains(evalCase['case_id']))
-            .toList(growable: false);
-    final selectedCases = candidateCases
-        .skip(_caseOffset)
-        .take(_caseLimit ?? candidateCases.length)
-        .toList(growable: false);
-    if (selectedCases.isEmpty) {
-      throw StateError(
-        'No eval cases selected. total=${cases.length}, '
-        'changed=${changedCaseIds?.join(',') ?? 'all'}, '
-        'offset=$_caseOffset, limit=${_caseLimit ?? 'all'}',
-      );
-    }
-    final modes = _pipelineModes();
-    final datasetCoverage = _datasetCoverageMetrics(selectedCases, modes);
-    final observations = <JsonMap>[];
-    final failures = <JsonMap>[];
-    final allJudgeTasks = <JsonMap>[];
-    final metricsByMode = <String, JsonMap>{};
-    final progressFile = File(p.join(runDir.path, 'progress.json'));
-    final selectedSlotOffset = _caseOffset;
-    final llmPreflight = await _runLlmPreflight(
-      runDir: runDir,
-      slotOffset: selectedSlotOffset,
-      slotCount: selectedCases.length,
-    );
-    if (_llmPreflightOnly) {
-      await File(p.join(runDir.path, 'report.md')).writeAsString(
-        _renderPreflightOnlyReport(llmPreflight),
-        flush: true,
-      );
-      expect(llmPreflight?['passed'] ?? !_llmEnabled, isTrue);
-      return;
-    }
-
-    for (final mode in modes) {
-      final modeStartedAt = DateTime.now();
-      final modeObservations = <JsonMap>[];
-      final taskStatusTotals = <String, int>{};
-      final taskTypeStatusTotals = <String, Map<String, int>>{};
-      final llmUsageTotals = _emptyUsageBucket();
-      final llmUsageByAgent = <String, JsonMap>{};
-      final recordElapsedMs = <int>[];
-      var recordCount = 0;
-      var materializedCards = 0;
-      var completedCards = 0;
-      var validCards = 0;
-      var schemaValidCards = 0;
-      var completedCardsWithFailureReason = 0;
-      var cardSourceGroundedCount = 0;
-      var cardsWithInsight = 0;
-      var projectionCount = 0;
-      var memoryExpectedHits = 0;
-      var memoryExpectedTotal = 0;
-      var memoryForbiddenHits = 0;
-      var memoryForbiddenTotal = 0;
-      var memoryObservedCount = 0;
-      var memorySourceGroundedCount = 0;
-      var memoryDuplicateCount = 0;
-      var cardExpectedHits = 0;
-      var cardExpectedTotal = 0;
-      var relatedFactExpectedHits = 0;
-      var relatedFactExpectedTotal = 0;
-      var memoryRecallQueryCount = 0;
-      var memoryRecallExpectedHits = 0;
-      var memoryRecallExpectedTotal = 0;
-      var memoryRecallForbiddenHits = 0;
-      var memoryRecallForbiddenTotal = 0;
-      var superAgentAskCount = 0;
-      var superAgentAnswerSuccessCount = 0;
-      var superAgentExpectedHits = 0;
-      var superAgentExpectedTotal = 0;
-      var superAgentForbiddenHits = 0;
-      var superAgentForbiddenTotal = 0;
-      final superAgentUsageTotals = _emptyUsageBucket();
-      var failedTaskCount = 0;
-      var totalTaskCount = 0;
-      var retryTaskCount = 0;
-      var taskNotSettledCount = 0;
-      var missingCardCount = 0;
-      var incompleteCardCount = 0;
-      var agentRouteAccuracyHits = 0;
-      var agentRouteAccuracyTotal = 0;
-      var agentRouteMissCount = 0;
-      var agentRouteExpectedCount = 0;
-      var agentRouteOvertriggerCount = 0;
-      var agentRouteObservedCount = 0;
-      var cardTemplatePrimaryHits = 0;
-      var cardTemplateAnyHits = 0;
-      var cardTemplateTotal = 0;
-      var cardFieldRecallHits = 0;
-      var cardFieldRecallTotal = 0;
-      var cardEntityRecallHits = 0;
-      var cardEntityRecallTotal = 0;
-      var cardTimeParseHits = 0;
-      var cardTimeParseTotal = 0;
-      var cardHallucinatedAbsenceHits = 0;
-      var cardHallucinatedAbsenceTotal = 0;
-      var retrievalHitAt1Hits = 0;
-      var retrievalHitAt1Total = 0;
-      var retrievalHitAt3Hits = 0;
-      var retrievalHitAt3Total = 0;
-      var retrievalHitAt5Hits = 0;
-      var retrievalHitAt5Total = 0;
-      var retrievalHitAt10Hits = 0;
-      var retrievalHitAt10Total = 0;
-      var answerMustIncludeHits = 0;
-      var answerMustIncludeTotal = 0;
-      var superAgentReadOnlyHits = 0;
-      var superAgentReadOnlyTotal = 0;
-      var toolSelectionHits = 0;
-      var toolSelectionTotal = 0;
-      var toolArgsHits = 0;
-      var toolArgsTotal = 0;
-      var toolCallMinimalityHits = 0;
-      var toolCallMinimalityTotal = 0;
-      var toolCallCount = 0;
-      var toolCallFailureCount = 0;
-      var toolCallRetryCount = 0;
-      var repeatedToolCallCount = 0;
-      var readToolCallCount = 0;
-      var readToolErrorCount = 0;
-      var writeToolCallCount = 0;
-      var writeToolErrorCount = 0;
-      var contextPeekCount = 0;
-      var contextPeekTaskCount = 0;
-      var contextPeekRedundantCount = 0;
-      var contextPeekRedundancyTotal = 0;
-      var firstWriteAfterReadHits = 0;
-      var firstWriteAfterReadTotal = 0;
-      var agentToolRoundCount = 0;
-      var agentToolRoundTaskCount = 0;
-      var loopDetectionFailureCount = 0;
-      var maxTurnsFailureCount = 0;
-      final judgeTasks = <JsonMap>[];
-
-      for (var caseIndex = 0; caseIndex < selectedCases.length; caseIndex++) {
-        final evalCase = selectedCases[caseIndex];
-        final caseId = evalCase['case_id']?.toString() ?? 'case_$caseIndex';
-        final userId = _caseUserId(evalCase, mode, caseIndex);
-        final dataRoot = await Directory.systemTemp.createTemp(
-          'memex_${mode.storageValue}_$caseId',
-        );
-
-        LocalTaskExecutor.instance.stop();
-        router.resetForLogout();
-        SharedPreferences.setMockInitialValues({});
-        await UserStorage.initL10n();
-        await UserStorage.saveUser(userId);
-        await UserStorage.setLocale(const Locale('zh', 'CN'));
-        await UserStorage.setWorkspaceStorageToCustom(userId, dataRoot.path);
-        await UserStorage.saveAgentPipelineConfig(
-          AgentPipelineConfig(mode: mode),
-        );
-        await _configureOptionalLlm(slot: selectedSlotOffset + caseIndex);
-        await router.switchUser(userId);
-        await CommentSettingsService.save(
-          userId,
-          const CommentSettings(enableCharacterComment: false),
-        );
-
-        final operations = _list(evalCase['operations']).map(_map).toList();
-        final factIdsByOperation = <String, String>{};
-        final caseObservations = <JsonMap>[];
-        final caseFailureStart = failures.length;
-
-        for (final operation in operations) {
-          final opId =
-              operation['id']?.toString() ?? 'op_${modeObservations.length}';
-          final type = operation['type']?.toString();
-          final opStartedAt = DateTime.now();
-          final beforeTasks =
-              await LocalTaskExecutor.instance.getTasks(limit: 4000);
-
-          if (type == 'record') {
-            final opExpected = _modeSpecificExpected(
-              _map(operation['expected']),
-              mode.storageValue,
-            );
-            final response = await router.submitInput(
-              text: operation['content']?.toString(),
-              textHash: opId,
-              createdAt: DateTime.parse(operation['time'].toString()),
-            );
-            final factId = response['fact_id'] as String;
-            factIdsByOperation[opId] = factId;
-            final wait = await _waitForTasksToSettle(
-              previousTaskCount: beforeTasks.length,
-              timeout: _taskTimeout,
-            );
-            final card =
-                await FileSystemService.instance.readCardFile(userId, factId);
-            final activeAtoms =
-                await MemoryPrimaryService.instance.listActiveAtoms(userId);
-
-            recordCount += 1;
-            if (card?.status == 'completed') completedCards += 1;
-            if ((card?.insight?.text?.trim().isNotEmpty ?? false) ||
-                (card?.insight?.summary?.trim().isNotEmpty ?? false)) {
-              cardsWithInsight += 1;
-            }
-            recordElapsedMs
-                .add(DateTime.now().difference(opStartedAt).inMilliseconds);
-            failedTaskCount += wait.failedTaskCount;
-            _mergeTaskTypeStatusCounts(taskTypeStatusTotals, wait.newTasks);
-            if (!wait.settled) {
-              taskNotSettledCount += 1;
-              failures.add(_failure(
-                mode: mode.storageValue,
-                caseId: caseId,
-                operationId: opId,
-                category: 'task_not_settled',
-                message: 'Record operation did not settle before timeout.',
-                details: {
-                  'task_status_counts': wait.statusCounts,
-                  'active_tasks': wait.activeTaskSummaries,
-                },
-              ));
-            }
-            totalTaskCount += wait.newTasks.length;
-            retryTaskCount += wait.newTasks
-                .where((task) => (_intValue(task.retryCount) ?? 0) > 0)
-                .length;
-            _mergeStatusCounts(taskStatusTotals, wait.statusCounts);
-            final taskErrorFlags = _taskErrorFlags(wait.newTasks);
-            loopDetectionFailureCount += taskErrorFlags.loopDetection ? 1 : 0;
-            maxTurnsFailureCount += taskErrorFlags.maxTurns ? 1 : 0;
-            final routeEval = _evaluateRouteExpectation(
-              mode: mode.storageValue,
-              caseId: caseId,
-              operationId: opId,
-              expected: _map(opExpected['route']),
-              tasks: wait.newTasks,
-            );
-            agentRouteAccuracyHits += routeEval.accuracyHits;
-            agentRouteAccuracyTotal += routeEval.accuracyTotal;
-            agentRouteMissCount += routeEval.missCount;
-            agentRouteExpectedCount += routeEval.expectedCount;
-            agentRouteOvertriggerCount += routeEval.overtriggerCount;
-            agentRouteObservedCount += routeEval.observedCount;
-            failures.addAll(routeEval.failures);
-            if (card == null) {
-              missingCardCount += 1;
-              failures.add(_failure(
-                mode: mode.storageValue,
-                caseId: caseId,
-                operationId: opId,
-                category: 'card_missing',
-                message: 'Card file was not materialized.',
-                details: {'fact_id': factId},
-              ));
-            } else if (card.status != 'completed') {
-              incompleteCardCount += 1;
-              failures.add(_failure(
-                mode: mode.storageValue,
-                caseId: caseId,
-                operationId: opId,
-                category: 'card_incomplete',
-                message: 'Card did not reach completed status.',
-                details: {'fact_id': factId, 'status': card.status},
-              ));
-            } else {
-              completedCardsWithFailureReason +=
-                  (card.failureReason?.trim().isNotEmpty ?? false) ? 1 : 0;
-            }
-            if (card != null) {
-              materializedCards += 1;
-              if (_isSchemaValidCard(card)) schemaValidCards += 1;
-              if (card.factId == factId) cardSourceGroundedCount += 1;
-              if (card.status == 'completed' &&
-                  !(card.failureReason?.trim().isNotEmpty ?? false)) {
-                validCards += 1;
-              }
-            }
-            final cardMetricEval = _evaluateCardMetricExpectations(
-              mode: mode.storageValue,
-              caseId: caseId,
-              operationId: opId,
-              expected: _map(opExpected['card']),
-              card: card,
-            );
-            cardTemplatePrimaryHits += cardMetricEval.templatePrimaryHits;
-            cardTemplateAnyHits += cardMetricEval.templateAnyHits;
-            cardTemplateTotal += cardMetricEval.templateTotal;
-            cardFieldRecallHits += cardMetricEval.fieldRecallHits;
-            cardFieldRecallTotal += cardMetricEval.fieldRecallTotal;
-            cardEntityRecallHits += cardMetricEval.entityRecallHits;
-            cardEntityRecallTotal += cardMetricEval.entityRecallTotal;
-            cardTimeParseHits += cardMetricEval.timeParseHits;
-            cardTimeParseTotal += cardMetricEval.timeParseTotal;
-            cardHallucinatedAbsenceHits +=
-                cardMetricEval.hallucinatedAbsenceHits;
-            cardHallucinatedAbsenceTotal +=
-                cardMetricEval.hallucinatedAbsenceTotal;
-            failures.addAll(cardMetricEval.failures);
-            judgeTasks.addAll(_judgeTasksForOperation(
-              mode: mode.storageValue,
-              caseId: caseId,
-              operationId: opId,
-              operation: operation,
-              output: {
-                'card': card?.toJson(),
-              },
-            ));
-
-            final obs = {
-              'mode': mode.storageValue,
-              'case_id': caseId,
-              'operation_id': opId,
-              'type': type,
-              'fact_id': factId,
-              'tasks_settled': wait.settled,
-              'task_status_counts': wait.statusCounts,
-              'new_tasks': wait.newTasks.map(_taskSummary).toList(),
-              'new_task_count': wait.newTasks.length,
-              'card': card?.toJson(),
-              'memory_atom_count': activeAtoms.length,
-              if (!wait.settled) 'active_tasks': wait.activeTaskSummaries,
-              'elapsed_ms':
-                  DateTime.now().difference(opStartedAt).inMilliseconds,
-            };
-            observations.add(obs);
-            modeObservations.add(obs);
-            caseObservations.add(obs);
-            await _writeProgress(progressFile, obs);
-          } else if (type == 'para_projection') {
-            await router.enqueueParaProjection();
-            final wait = await _waitForTasksToSettle(
-              previousTaskCount: beforeTasks.length,
-              timeout: _taskTimeout,
-            );
-            projectionCount += 1;
-            failedTaskCount += wait.failedTaskCount;
-            _mergeTaskTypeStatusCounts(taskTypeStatusTotals, wait.newTasks);
-            if (!wait.settled) {
-              taskNotSettledCount += 1;
-              failures.add(_failure(
-                mode: mode.storageValue,
-                caseId: caseId,
-                operationId: opId,
-                category: 'task_not_settled',
-                message:
-                    'PARA projection operation did not settle before timeout.',
-                details: {
-                  'task_status_counts': wait.statusCounts,
-                  'active_tasks': wait.activeTaskSummaries,
-                },
-              ));
-            }
-            totalTaskCount += wait.newTasks.length;
-            retryTaskCount += wait.newTasks
-                .where((task) => (_intValue(task.retryCount) ?? 0) > 0)
-                .length;
-            _mergeStatusCounts(taskStatusTotals, wait.statusCounts);
-            final taskErrorFlags = _taskErrorFlags(wait.newTasks);
-            loopDetectionFailureCount += taskErrorFlags.loopDetection ? 1 : 0;
-            maxTurnsFailureCount += taskErrorFlags.maxTurns ? 1 : 0;
-            final obs = {
-              'mode': mode.storageValue,
-              'case_id': caseId,
-              'operation_id': opId,
-              'type': type,
-              'tasks_settled': wait.settled,
-              'task_status_counts': wait.statusCounts,
-              'new_tasks': wait.newTasks.map(_taskSummary).toList(),
-              'new_task_count': wait.newTasks.length,
-              if (!wait.settled) 'active_tasks': wait.activeTaskSummaries,
-              'elapsed_ms':
-                  DateTime.now().difference(opStartedAt).inMilliseconds,
-            };
-            observations.add(obs);
-            modeObservations.add(obs);
-            caseObservations.add(obs);
-            await _writeProgress(progressFile, obs);
-          } else if (type == 'memory_recall') {
-            final recall = await MemoryPrimaryService.instance.searchMemory(
-              userId: userId,
-              query: operation['query']?.toString() ?? '',
-              limit: _intValue(operation['limit']) ?? 10,
-            );
-            final expected = _map(operation['expected']);
-            final eval = _evaluateTextExpectations(
-              haystack: recall.map((e) => e.atom.content).join('\n'),
-              mustContain: _textExpectations(expected['must_contain']),
-              mustNotContain: _textExpectations(expected['must_not_contain']),
-              mode: mode.storageValue,
-              caseId: caseId,
-              operationId: opId,
-              missingCategory: 'memory_recall_missing',
-              forbiddenCategory: 'memory_recall_forbidden_present',
-            );
-            memoryRecallQueryCount += 1;
-            memoryRecallExpectedHits += eval.mustHits;
-            memoryRecallExpectedTotal += eval.mustTotal;
-            memoryRecallForbiddenHits += eval.forbiddenHits;
-            memoryRecallForbiddenTotal += eval.forbiddenTotal;
-            failures.addAll(eval.failures);
-            final obs = {
-              'mode': mode.storageValue,
-              'case_id': caseId,
-              'operation_id': opId,
-              'type': type,
-              'query': operation['query'],
-              'result_count': recall.length,
-              'results': recall
-                  .map((e) => {
-                        'memory_id': e.atom.id,
-                        'score': e.totalScore,
-                        'content': e.atom.content,
-                      })
-                  .toList(),
-              'expected_hits': eval.mustHits,
-              'expected_total': eval.mustTotal,
-              'forbidden_hits': eval.forbiddenHits,
-              'forbidden_total': eval.forbiddenTotal,
-              'elapsed_ms':
-                  DateTime.now().difference(opStartedAt).inMilliseconds,
-            };
-            observations.add(obs);
-            modeObservations.add(obs);
-            caseObservations.add(obs);
-            await _writeProgress(progressFile, obs);
-          } else if (type == 'super_agent_ask') {
-            final ask = await _runSuperAgentAsk(router, operation);
-            _mergeUsageBucket(
-              superAgentUsageTotals,
-              _sumChatTokenUsage(ask.tokenUsageEvents),
-            );
-            final expected = _map(operation['expected']);
-            final eval = _evaluateTextExpectations(
-              haystack: ask.answer,
-              mustContain: _textExpectations(expected['must_contain']),
-              mustNotContain: _textExpectations(expected['must_not_contain']),
-              mode: mode.storageValue,
-              caseId: caseId,
-              operationId: opId,
-              missingCategory: 'super_agent_answer_missing',
-              forbiddenCategory: 'super_agent_forbidden_present',
-            );
-            superAgentAskCount += 1;
-            if (ask.error == null && ask.answer.trim().isNotEmpty) {
-              superAgentAnswerSuccessCount += 1;
-            }
-            superAgentExpectedHits += eval.mustHits;
-            superAgentExpectedTotal += eval.mustTotal;
-            superAgentForbiddenHits += eval.forbiddenHits;
-            superAgentForbiddenTotal += eval.forbiddenTotal;
-            failures.addAll(eval.failures);
-            answerMustIncludeHits += eval.mustHits;
-            answerMustIncludeTotal += eval.mustTotal;
-            final toolEval = _evaluateSuperAgentToolExpectations(
-              mode: mode.storageValue,
-              caseId: caseId,
-              operationId: opId,
-              expected: expected,
-              events: ask.events,
-            );
-            retrievalHitAt1Hits += toolEval.retrievalHitAt1Hits;
-            retrievalHitAt1Total += toolEval.retrievalHitAt1Total;
-            retrievalHitAt3Hits += toolEval.retrievalHitAt3Hits;
-            retrievalHitAt3Total += toolEval.retrievalHitAt3Total;
-            retrievalHitAt5Hits += toolEval.retrievalHitAt5Hits;
-            retrievalHitAt5Total += toolEval.retrievalHitAt5Total;
-            retrievalHitAt10Hits += toolEval.retrievalHitAt10Hits;
-            retrievalHitAt10Total += toolEval.retrievalHitAt10Total;
-            superAgentReadOnlyHits += toolEval.readOnlyHits;
-            superAgentReadOnlyTotal += toolEval.readOnlyTotal;
-            toolSelectionHits += toolEval.toolSelectionHits;
-            toolSelectionTotal += toolEval.toolSelectionTotal;
-            toolArgsHits += toolEval.toolArgsHits;
-            toolArgsTotal += toolEval.toolArgsTotal;
-            toolCallMinimalityHits += toolEval.toolCallMinimalityHits;
-            toolCallMinimalityTotal += toolEval.toolCallMinimalityTotal;
-            toolCallCount += toolEval.toolCallCount;
-            toolCallFailureCount += toolEval.toolCallFailureCount;
-            toolCallRetryCount += toolEval.toolCallRetryCount;
-            repeatedToolCallCount += toolEval.repeatedToolCallCount;
-            readToolCallCount += toolEval.readToolCallCount;
-            readToolErrorCount += toolEval.readToolErrorCount;
-            writeToolCallCount += toolEval.writeToolCallCount;
-            writeToolErrorCount += toolEval.writeToolErrorCount;
-            contextPeekCount += toolEval.contextPeekCount;
-            contextPeekTaskCount += toolEval.contextPeekTaskCount;
-            agentToolRoundCount += toolEval.agentToolRoundCount;
-            agentToolRoundTaskCount += toolEval.agentToolRoundTaskCount;
-            failures.addAll(toolEval.failures);
-            judgeTasks.addAll(_judgeTasksForOperation(
-              mode: mode.storageValue,
-              caseId: caseId,
-              operationId: opId,
-              operation: operation,
-              output: {
-                'answer': ask.answer,
-                'events': ask.events,
-              },
-            ));
-            if (ask.error != null) {
-              failures.add(_failure(
-                mode: mode.storageValue,
-                caseId: caseId,
-                operationId: opId,
-                category: 'super_agent_ask_error',
-                message: 'Super Agent ask returned an error.',
-                details: {'error': ask.error},
-              ));
-            }
-            final obs = {
-              'mode': mode.storageValue,
-              'case_id': caseId,
-              'operation_id': opId,
-              'type': type,
-              'query': operation['query'],
-              'session_id': ask.sessionId,
-              'answer': ask.answer,
-              'error': ask.error,
-              'events': ask.events,
-              'token_usage_events': ask.tokenUsageEvents,
-              'expected_hits': eval.mustHits,
-              'expected_total': eval.mustTotal,
-              'forbidden_hits': eval.forbiddenHits,
-              'forbidden_total': eval.forbiddenTotal,
-              'elapsed_ms':
-                  DateTime.now().difference(opStartedAt).inMilliseconds,
-            };
-            observations.add(obs);
-            modeObservations.add(obs);
-            caseObservations.add(obs);
-            await _writeProgress(progressFile, obs);
-          }
-        }
-
-        final expected = _map(evalCase['expected']);
-        final activeAtoms =
-            await MemoryPrimaryService.instance.listActiveAtoms(userId);
-        final memoryText = activeAtoms.map((atom) => atom.content).join('\n');
-        final cardTexts = <String>[];
-        for (final factId in factIdsByOperation.values) {
-          final card = await FileSystemService.instance.readCardFile(
-            userId,
-            factId,
+  test(
+    'compares legacy PKM and Memory Primary through real full chain',
+    () async {
+      final repoRoot = Directory.current.path;
+      final datasetPath = Platform.environment['MEMEX_EVAL_DATASET'] ??
+          p.join(
+            repoRoot,
+            'evals',
+            'datasets',
+            'memory_primary_smoke',
+            'cases.jsonl',
           );
-          if (card == null) continue;
-          cardTexts.add([
-            card.title,
-            card.insight?.text,
-            card.insight?.summary,
-          ].whereType<String>().join('\n'));
-        }
-        final memoryEval = _evaluateTextExpectations(
-          haystack: memoryText,
-          mustContain: _textExpectations(expected['memory_must_contain']),
-          mustNotContain:
-              _textExpectations(expected['memory_must_not_contain']),
-          mode: mode.storageValue,
-          caseId: caseId,
-          operationId: 'case_memory',
-          missingCategory: 'memory_expected_missing',
-          forbiddenCategory: 'memory_forbidden_present',
-        );
-        final cardEval = _evaluateTextExpectations(
-          haystack: cardTexts.join('\n'),
-          mustContain: _textExpectations(
-            expected['card_title_or_insight_should_contain'],
-          ),
-          mustNotContain: const [],
-          mode: mode.storageValue,
-          caseId: caseId,
-          operationId: 'case_cards',
-          missingCategory: 'card_expected_missing',
-          forbiddenCategory: 'card_forbidden_present',
-        );
-        final relatedEval = await _evaluateRelatedFactExpectations(
-          mode: mode.storageValue,
-          caseId: caseId,
-          userId: userId,
-          expectations: _list(expected['related_fact_expectations']),
-          factIdsByOperation: factIdsByOperation,
-        );
-        memoryExpectedHits += memoryEval.mustHits;
-        memoryExpectedTotal += memoryEval.mustTotal;
-        memoryForbiddenHits += memoryEval.forbiddenHits;
-        memoryForbiddenTotal += memoryEval.forbiddenTotal;
-        cardExpectedHits += cardEval.mustHits;
-        cardExpectedTotal += cardEval.mustTotal;
-        relatedFactExpectedHits += relatedEval.mustHits;
-        relatedFactExpectedTotal += relatedEval.mustTotal;
-        memoryObservedCount += activeAtoms.length;
-        memorySourceGroundedCount +=
-            activeAtoms.where((atom) => atom.evidenceFactIds.isNotEmpty).length;
-        memoryDuplicateCount += _duplicateTextCount(
-          activeAtoms.map((atom) => atom.content),
-        );
-        failures.addAll(memoryEval.failures);
-        failures.addAll(cardEval.failures);
-        failures.addAll(relatedEval.failures);
+      final runId =
+          'memory_primary_full_chain_${DateTime.now().toUtc().toIso8601String().replaceAll(RegExp(r'[^0-9A-Za-z]'), '')}';
+      final runDir = Directory(
+        Platform.environment['MEMEX_EVAL_RUN_DIR'] ??
+            p.join(repoRoot, 'evals', 'runs', runId),
+      );
+      if (await runDir.exists()) {
+        await runDir.delete(recursive: true);
+      }
+      await runDir.create(recursive: true);
 
-        final summaryObs = {
-          'mode': mode.storageValue,
-          'case_id': caseId,
-          'operation_id': 'case_summary',
-          'type': 'case_summary',
-          'active_memory_atom_count': activeAtoms.length,
-          'active_memory_atoms': activeAtoms
-              .map((atom) => {
+      final pathProviderRoot = await Directory.systemTemp.createTemp(
+        'memex_memory_primary_eval_paths_',
+      );
+      PathProviderPlatform.instance = _FakePathProviderPlatform(
+        pathProviderRoot.path,
+      );
+      WakelockPlusPlatformInterface.instance = _FakeWakelockPlusPlatform();
+      final router = MemexRouter();
+      final cases = await _loadCases(datasetPath);
+      final changedCaseIds = _changedCaseIds;
+      final candidateCases = changedCaseIds == null
+          ? cases
+          : cases
+              .where(
+                (evalCase) => changedCaseIds.contains(evalCase['case_id']),
+              )
+              .toList(growable: false);
+      final selectedCases = candidateCases
+          .skip(_caseOffset)
+          .take(_caseLimit ?? candidateCases.length)
+          .toList(growable: false);
+      if (selectedCases.isEmpty) {
+        throw StateError(
+          'No eval cases selected. total=${cases.length}, '
+          'changed=${changedCaseIds?.join(',') ?? 'all'}, '
+          'offset=$_caseOffset, limit=${_caseLimit ?? 'all'}',
+        );
+      }
+      final modes = _pipelineModes();
+      final datasetCoverage = _datasetCoverageMetrics(selectedCases, modes);
+      final observations = <JsonMap>[];
+      final failures = <JsonMap>[];
+      final allJudgeTasks = <JsonMap>[];
+      final metricsByMode = <String, JsonMap>{};
+      final progressFile = File(p.join(runDir.path, 'progress.json'));
+      final selectedSlotOffset = _caseOffset;
+      final llmPreflight = await _runLlmPreflight(
+        runDir: runDir,
+        slotOffset: selectedSlotOffset,
+        slotCount: selectedCases.length,
+      );
+      if (_llmPreflightOnly) {
+        await File(
+          p.join(runDir.path, 'report.md'),
+        ).writeAsString(_renderPreflightOnlyReport(llmPreflight), flush: true);
+        expect(llmPreflight?['passed'] ?? !_llmEnabled, isTrue);
+        return;
+      }
+
+      for (final mode in modes) {
+        final modeStartedAt = DateTime.now();
+        final modeObservations = <JsonMap>[];
+        final taskStatusTotals = <String, int>{};
+        final taskTypeStatusTotals = <String, Map<String, int>>{};
+        final llmUsageTotals = _emptyUsageBucket();
+        final llmUsageByAgent = <String, JsonMap>{};
+        final recordElapsedMs = <int>[];
+        var recordCount = 0;
+        var materializedCards = 0;
+        var completedCards = 0;
+        var validCards = 0;
+        var schemaValidCards = 0;
+        var completedCardsWithFailureReason = 0;
+        var cardSourceGroundedCount = 0;
+        var cardsWithInsight = 0;
+        var projectionCount = 0;
+        var memoryExpectedHits = 0;
+        var memoryExpectedTotal = 0;
+        var memoryForbiddenHits = 0;
+        var memoryForbiddenTotal = 0;
+        var memoryObservedCount = 0;
+        var memorySourceGroundedCount = 0;
+        var memoryDuplicateCount = 0;
+        var cardExpectedHits = 0;
+        var cardExpectedTotal = 0;
+        var relatedFactExpectedHits = 0;
+        var relatedFactExpectedTotal = 0;
+        var memoryRecallQueryCount = 0;
+        var memoryRecallExpectedHits = 0;
+        var memoryRecallExpectedTotal = 0;
+        var memoryRecallForbiddenHits = 0;
+        var memoryRecallForbiddenTotal = 0;
+        var superAgentAskCount = 0;
+        var superAgentAnswerSuccessCount = 0;
+        var superAgentExpectedHits = 0;
+        var superAgentExpectedTotal = 0;
+        var superAgentForbiddenHits = 0;
+        var superAgentForbiddenTotal = 0;
+        final superAgentUsageTotals = _emptyUsageBucket();
+        var failedTaskCount = 0;
+        var totalTaskCount = 0;
+        var retryTaskCount = 0;
+        var taskNotSettledCount = 0;
+        var missingCardCount = 0;
+        var incompleteCardCount = 0;
+        var agentRouteAccuracyHits = 0;
+        var agentRouteAccuracyTotal = 0;
+        var agentRouteMissCount = 0;
+        var agentRouteExpectedCount = 0;
+        var agentRouteOvertriggerCount = 0;
+        var agentRouteObservedCount = 0;
+        var cardTemplatePrimaryHits = 0;
+        var cardTemplateAnyHits = 0;
+        var cardTemplateTotal = 0;
+        var cardFieldRecallHits = 0;
+        var cardFieldRecallTotal = 0;
+        var cardEntityRecallHits = 0;
+        var cardEntityRecallTotal = 0;
+        var cardTimeParseHits = 0;
+        var cardTimeParseTotal = 0;
+        var cardHallucinatedAbsenceHits = 0;
+        var cardHallucinatedAbsenceTotal = 0;
+        var retrievalHitAt1Hits = 0;
+        var retrievalHitAt1Total = 0;
+        var retrievalHitAt3Hits = 0;
+        var retrievalHitAt3Total = 0;
+        var retrievalHitAt5Hits = 0;
+        var retrievalHitAt5Total = 0;
+        var retrievalHitAt10Hits = 0;
+        var retrievalHitAt10Total = 0;
+        var retrievalPositiveSourceTotal = 0;
+        var retrievalFtsPositiveHits = 0;
+        var retrievalVectorPositiveHits = 0;
+        var retrievalHybridPositiveHits = 0;
+        var retrievalBothPositiveHits = 0;
+        var retrievalFtsOnlyPositiveHits = 0;
+        var retrievalVectorOnlyPositiveHits = 0;
+        var retrievalMissedPositiveCount = 0;
+        var retrievalSourceQueryTotal = 0;
+        var retrievalVectorSupportedQueryHits = 0;
+        var retrievalVectorOnlySupportedQueryHits = 0;
+        var answerMustIncludeHits = 0;
+        var answerMustIncludeTotal = 0;
+        var superAgentReadOnlyHits = 0;
+        var superAgentReadOnlyTotal = 0;
+        var toolSelectionHits = 0;
+        var toolSelectionTotal = 0;
+        var toolArgsHits = 0;
+        var toolArgsTotal = 0;
+        var toolCallMinimalityHits = 0;
+        var toolCallMinimalityTotal = 0;
+        var toolCallCount = 0;
+        var toolCallFailureCount = 0;
+        var toolCallRetryCount = 0;
+        var repeatedToolCallCount = 0;
+        var readToolCallCount = 0;
+        var readToolErrorCount = 0;
+        var writeToolCallCount = 0;
+        var writeToolErrorCount = 0;
+        var contextPeekCount = 0;
+        var contextPeekTaskCount = 0;
+        var contextPeekRedundantCount = 0;
+        var contextPeekRedundancyTotal = 0;
+        var firstWriteAfterReadHits = 0;
+        var firstWriteAfterReadTotal = 0;
+        var agentToolRoundCount = 0;
+        var agentToolRoundTaskCount = 0;
+        var loopDetectionFailureCount = 0;
+        var maxTurnsFailureCount = 0;
+        var providerInfraTaskErrorCount = 0;
+        var providerRateLimitTaskErrorCount = 0;
+        var providerQuotaTaskErrorCount = 0;
+        var providerNetworkTaskErrorCount = 0;
+        var providerServerTaskErrorCount = 0;
+        var providerInfraAffectedOperationCount = 0;
+        var evalAbortedCaseCount = 0;
+        var evalAbortedOperationCount = 0;
+        var superAgentProviderAttemptCount = 0;
+        var superAgentProviderRetryCount = 0;
+        final superAgentQueryFamilyMetrics =
+            <String, _AgentQueryFamilyAccumulator>{};
+        final judgeTasks = <JsonMap>[];
+
+        for (var caseIndex = 0; caseIndex < selectedCases.length; caseIndex++) {
+          final evalCase = selectedCases[caseIndex];
+          final caseId = evalCase['case_id']?.toString() ?? 'case_$caseIndex';
+          final userId = _caseUserId(evalCase, mode, caseIndex);
+          final dataRoot = await Directory.systemTemp.createTemp(
+            'memex_${mode.storageValue}_$caseId',
+          );
+
+          LocalTaskExecutor.instance.stop();
+          router.resetForLogout();
+          SharedPreferences.setMockInitialValues({});
+          await UserStorage.initL10n();
+          await UserStorage.saveUser(userId);
+          await UserStorage.setLocale(const Locale('zh', 'CN'));
+          await UserStorage.setWorkspaceStorageToCustom(userId, dataRoot.path);
+          await UserStorage.saveAgentPipelineConfig(
+            AgentPipelineConfig(mode: mode),
+          );
+          await _configureOptionalLlm(slot: selectedSlotOffset + caseIndex);
+          await router.switchUser(userId);
+          await CommentSettingsService.save(
+            userId,
+            const CommentSettings(enableCharacterComment: false),
+          );
+
+          final operations = _list(evalCase['operations']).map(_map).toList();
+          final factIdsByOperation = <String, String>{};
+          final caseObservations = <JsonMap>[];
+          final caseFailureStart = failures.length;
+          var consecutiveUnsettledRecords = 0;
+
+          for (var operationIndex = 0;
+              operationIndex < operations.length;
+              operationIndex++) {
+            final operation = operations[operationIndex];
+            final opId =
+                operation['id']?.toString() ?? 'op_${modeObservations.length}';
+            final type = operation['type']?.toString();
+            final opStartedAt = DateTime.now();
+            final beforeTasks = await LocalTaskExecutor.instance.getTasks(
+              limit: _taskScanLimit,
+            );
+            final beforeTaskIds =
+                beforeTasks.map((task) => task.id.toString()).toSet();
+            var abortCaseAfterOperation = false;
+
+            if (type == 'record') {
+              final opExpected = _modeSpecificExpected(
+                _map(operation['expected']),
+                mode.storageValue,
+              );
+              final response = await router.submitInput(
+                text: operation['content']?.toString(),
+                textHash: opId,
+                createdAt: DateTime.parse(operation['time'].toString()),
+              );
+              final factId = response['fact_id'] as String;
+              factIdsByOperation[opId] = factId;
+              final wait = await _waitForTasksToSettle(
+                previousTaskIds: beforeTaskIds,
+                timeout: _taskTimeout,
+              );
+              final card = await FileSystemService.instance.readCardFile(
+                userId,
+                factId,
+              );
+              final activeAtoms =
+                  await MemoryPrimaryService.instance.listActiveAtoms(userId);
+
+              recordCount += 1;
+              if (card?.status == 'completed') completedCards += 1;
+              if ((card?.insight?.text?.trim().isNotEmpty ?? false) ||
+                  (card?.insight?.summary?.trim().isNotEmpty ?? false)) {
+                cardsWithInsight += 1;
+              }
+              recordElapsedMs.add(
+                DateTime.now().difference(opStartedAt).inMilliseconds,
+              );
+              failedTaskCount += wait.failedTaskCount;
+              final providerErrors = _providerInfraErrorStats(wait.newTasks);
+              providerInfraTaskErrorCount += providerErrors.total;
+              providerRateLimitTaskErrorCount += providerErrors.rateLimit;
+              providerQuotaTaskErrorCount += providerErrors.quota;
+              providerNetworkTaskErrorCount += providerErrors.network;
+              providerServerTaskErrorCount += providerErrors.server;
+              if (providerErrors.total > 0) {
+                providerInfraAffectedOperationCount += 1;
+              }
+              final failedQuotaTasks = _failedProviderQuotaTasks(wait.newTasks);
+              if (_abortOnProviderQuotaTaskFailure &&
+                  failedQuotaTasks.isNotEmpty) {
+                abortCaseAfterOperation = true;
+                evalAbortedCaseCount += 1;
+                final skippedOperationCount =
+                    operations.length - operationIndex - 1;
+                evalAbortedOperationCount += skippedOperationCount;
+                failures.add(
+                  _failure(
+                    mode: mode.storageValue,
+                    caseId: caseId,
+                    operationId: opId,
+                    category: 'case_aborted_after_provider_quota',
+                    message:
+                        'Case execution aborted after provider quota task failure.',
+                    details: {
+                      'skipped_operation_count': skippedOperationCount,
+                      'failed_quota_tasks':
+                          failedQuotaTasks.map(_taskSummary).toList(),
+                    },
+                  ),
+                );
+              }
+              _mergeTaskTypeStatusCounts(taskTypeStatusTotals, wait.newTasks);
+              if (!wait.settled) {
+                consecutiveUnsettledRecords += 1;
+                taskNotSettledCount += 1;
+                failures.add(
+                  _failure(
+                    mode: mode.storageValue,
+                    caseId: caseId,
+                    operationId: opId,
+                    category: 'task_not_settled',
+                    message: 'Record operation did not settle before timeout.',
+                    details: {
+                      'task_status_counts': wait.statusCounts,
+                      'active_tasks': wait.activeTaskSummaries,
+                    },
+                  ),
+                );
+                final abortThreshold =
+                    _abortCaseAfterConsecutiveUnsettledRecords;
+                if (abortThreshold > 0 &&
+                    consecutiveUnsettledRecords >= abortThreshold) {
+                  abortCaseAfterOperation = true;
+                  evalAbortedCaseCount += 1;
+                  final skippedOperationCount =
+                      operations.length - operationIndex - 1;
+                  evalAbortedOperationCount += skippedOperationCount;
+                  failures.add(
+                    _failure(
+                      mode: mode.storageValue,
+                      caseId: caseId,
+                      operationId: opId,
+                      category: 'case_aborted_after_consecutive_unsettled',
+                      message:
+                          'Case execution aborted after consecutive record operations did not settle.',
+                      details: {
+                        'consecutive_unsettled_records':
+                            consecutiveUnsettledRecords,
+                        'threshold': abortThreshold,
+                        'skipped_operation_count': skippedOperationCount,
+                        'task_status_counts': wait.statusCounts,
+                        'active_tasks': wait.activeTaskSummaries,
+                      },
+                    ),
+                  );
+                }
+              } else {
+                consecutiveUnsettledRecords = 0;
+              }
+              totalTaskCount += wait.newTasks.length;
+              retryTaskCount += wait.newTasks
+                  .where((task) => (_intValue(task.retryCount) ?? 0) > 0)
+                  .length;
+              _mergeStatusCounts(taskStatusTotals, wait.statusCounts);
+              final taskErrorFlags = _taskErrorFlags(wait.newTasks);
+              loopDetectionFailureCount += taskErrorFlags.loopDetection ? 1 : 0;
+              maxTurnsFailureCount += taskErrorFlags.maxTurns ? 1 : 0;
+              final routeEval = _evaluateRouteExpectation(
+                mode: mode.storageValue,
+                caseId: caseId,
+                operationId: opId,
+                expected: _map(opExpected['route']),
+                tasks: wait.newTasks,
+              );
+              agentRouteAccuracyHits += routeEval.accuracyHits;
+              agentRouteAccuracyTotal += routeEval.accuracyTotal;
+              agentRouteMissCount += routeEval.missCount;
+              agentRouteExpectedCount += routeEval.expectedCount;
+              agentRouteOvertriggerCount += routeEval.overtriggerCount;
+              agentRouteObservedCount += routeEval.observedCount;
+              failures.addAll(routeEval.failures);
+              if (card == null) {
+                missingCardCount += 1;
+                failures.add(
+                  _failure(
+                    mode: mode.storageValue,
+                    caseId: caseId,
+                    operationId: opId,
+                    category: 'card_missing',
+                    message: 'Card file was not materialized.',
+                    details: {'fact_id': factId},
+                  ),
+                );
+              } else if (card.status != 'completed') {
+                incompleteCardCount += 1;
+                failures.add(
+                  _failure(
+                    mode: mode.storageValue,
+                    caseId: caseId,
+                    operationId: opId,
+                    category: 'card_incomplete',
+                    message: 'Card did not reach completed status.',
+                    details: {'fact_id': factId, 'status': card.status},
+                  ),
+                );
+              } else {
+                completedCardsWithFailureReason +=
+                    (card.failureReason?.trim().isNotEmpty ?? false) ? 1 : 0;
+              }
+              if (card != null) {
+                materializedCards += 1;
+                if (_isSchemaValidCard(card)) schemaValidCards += 1;
+                if (card.factId == factId) cardSourceGroundedCount += 1;
+                if (card.status == 'completed' &&
+                    !(card.failureReason?.trim().isNotEmpty ?? false)) {
+                  validCards += 1;
+                }
+              }
+              final cardMetricEval = _evaluateCardMetricExpectations(
+                mode: mode.storageValue,
+                caseId: caseId,
+                operationId: opId,
+                expected: _map(opExpected['card']),
+                card: card,
+              );
+              cardTemplatePrimaryHits += cardMetricEval.templatePrimaryHits;
+              cardTemplateAnyHits += cardMetricEval.templateAnyHits;
+              cardTemplateTotal += cardMetricEval.templateTotal;
+              cardFieldRecallHits += cardMetricEval.fieldRecallHits;
+              cardFieldRecallTotal += cardMetricEval.fieldRecallTotal;
+              cardEntityRecallHits += cardMetricEval.entityRecallHits;
+              cardEntityRecallTotal += cardMetricEval.entityRecallTotal;
+              cardTimeParseHits += cardMetricEval.timeParseHits;
+              cardTimeParseTotal += cardMetricEval.timeParseTotal;
+              cardHallucinatedAbsenceHits +=
+                  cardMetricEval.hallucinatedAbsenceHits;
+              cardHallucinatedAbsenceTotal +=
+                  cardMetricEval.hallucinatedAbsenceTotal;
+              failures.addAll(cardMetricEval.failures);
+              judgeTasks.addAll(
+                _judgeTasksForOperation(
+                  mode: mode.storageValue,
+                  caseId: caseId,
+                  operationId: opId,
+                  operation: operation,
+                  output: {'card': card?.toJson()},
+                ),
+              );
+
+              final obs = {
+                'mode': mode.storageValue,
+                'case_id': caseId,
+                'operation_id': opId,
+                'type': type,
+                'fact_id': factId,
+                'tasks_settled': wait.settled,
+                'task_status_counts': wait.statusCounts,
+                'new_tasks': wait.newTasks.map(_taskSummary).toList(),
+                'new_task_count': wait.newTasks.length,
+                'card': card?.toJson(),
+                'memory_atom_count': activeAtoms.length,
+                if (!wait.settled) 'active_tasks': wait.activeTaskSummaries,
+                'elapsed_ms':
+                    DateTime.now().difference(opStartedAt).inMilliseconds,
+              };
+              observations.add(obs);
+              modeObservations.add(obs);
+              caseObservations.add(obs);
+              await _writeProgress(progressFile, obs);
+              if (abortCaseAfterOperation) break;
+            } else if (type == 'para_projection') {
+              await router.enqueueParaProjection();
+              final wait = await _waitForTasksToSettle(
+                previousTaskIds: beforeTaskIds,
+                timeout: _taskTimeout,
+              );
+              projectionCount += 1;
+              failedTaskCount += wait.failedTaskCount;
+              final providerErrors = _providerInfraErrorStats(wait.newTasks);
+              providerInfraTaskErrorCount += providerErrors.total;
+              providerRateLimitTaskErrorCount += providerErrors.rateLimit;
+              providerQuotaTaskErrorCount += providerErrors.quota;
+              providerNetworkTaskErrorCount += providerErrors.network;
+              providerServerTaskErrorCount += providerErrors.server;
+              if (providerErrors.total > 0) {
+                providerInfraAffectedOperationCount += 1;
+              }
+              final failedQuotaTasks = _failedProviderQuotaTasks(wait.newTasks);
+              if (_abortOnProviderQuotaTaskFailure &&
+                  failedQuotaTasks.isNotEmpty) {
+                failures.add(
+                  _failure(
+                    mode: mode.storageValue,
+                    caseId: caseId,
+                    operationId: opId,
+                    category: 'case_aborted_after_provider_quota',
+                    message:
+                        'Case execution aborted after provider quota task failure.',
+                    details: {
+                      'failed_quota_tasks':
+                          failedQuotaTasks.map(_taskSummary).toList(),
+                    },
+                  ),
+                );
+              }
+              _mergeTaskTypeStatusCounts(taskTypeStatusTotals, wait.newTasks);
+              if (!wait.settled) {
+                taskNotSettledCount += 1;
+                failures.add(
+                  _failure(
+                    mode: mode.storageValue,
+                    caseId: caseId,
+                    operationId: opId,
+                    category: 'task_not_settled',
+                    message:
+                        'PARA projection operation did not settle before timeout.',
+                    details: {
+                      'task_status_counts': wait.statusCounts,
+                      'active_tasks': wait.activeTaskSummaries,
+                    },
+                  ),
+                );
+              }
+              totalTaskCount += wait.newTasks.length;
+              retryTaskCount += wait.newTasks
+                  .where((task) => (_intValue(task.retryCount) ?? 0) > 0)
+                  .length;
+              _mergeStatusCounts(taskStatusTotals, wait.statusCounts);
+              final taskErrorFlags = _taskErrorFlags(wait.newTasks);
+              loopDetectionFailureCount += taskErrorFlags.loopDetection ? 1 : 0;
+              maxTurnsFailureCount += taskErrorFlags.maxTurns ? 1 : 0;
+              final obs = {
+                'mode': mode.storageValue,
+                'case_id': caseId,
+                'operation_id': opId,
+                'type': type,
+                'tasks_settled': wait.settled,
+                'task_status_counts': wait.statusCounts,
+                'new_tasks': wait.newTasks.map(_taskSummary).toList(),
+                'new_task_count': wait.newTasks.length,
+                if (!wait.settled) 'active_tasks': wait.activeTaskSummaries,
+                'elapsed_ms':
+                    DateTime.now().difference(opStartedAt).inMilliseconds,
+              };
+              observations.add(obs);
+              modeObservations.add(obs);
+              caseObservations.add(obs);
+              await _writeProgress(progressFile, obs);
+              if (_abortOnProviderQuotaTaskFailure &&
+                  failedQuotaTasks.isNotEmpty) {
+                break;
+              }
+            } else if (type == 'memory_recall') {
+              final recall = await MemoryPrimaryService.instance.searchMemory(
+                userId: userId,
+                query: operation['query']?.toString() ?? '',
+                limit: _intValue(operation['limit']) ?? 10,
+              );
+              final expected = _map(operation['expected']);
+              final eval = _evaluateTextExpectations(
+                haystack: recall.map((e) => e.atom.content).join('\n'),
+                mustContain: _textExpectations(expected['must_contain']),
+                mustNotContain: _textExpectations(expected['must_not_contain']),
+                mode: mode.storageValue,
+                caseId: caseId,
+                operationId: opId,
+                missingCategory: 'memory_recall_missing',
+                forbiddenCategory: 'memory_recall_forbidden_present',
+              );
+              memoryRecallQueryCount += 1;
+              memoryRecallExpectedHits += eval.mustHits;
+              memoryRecallExpectedTotal += eval.mustTotal;
+              memoryRecallForbiddenHits += eval.forbiddenHits;
+              memoryRecallForbiddenTotal += eval.forbiddenTotal;
+              failures.addAll(eval.failures);
+              final expectedSources = _strings(
+                expected['expected_sources'] ??
+                    expected['retrieval_expected_sources'],
+              );
+              final sourceEval = _evaluateRecallResultSourceCoverage(
+                expectedSources: expectedSources,
+                results: recall,
+              );
+              retrievalPositiveSourceTotal += sourceEval.positiveSourceTotal;
+              retrievalFtsPositiveHits += sourceEval.ftsPositiveHits;
+              retrievalVectorPositiveHits += sourceEval.vectorPositiveHits;
+              retrievalHybridPositiveHits += sourceEval.hybridPositiveHits;
+              retrievalBothPositiveHits += sourceEval.bothPositiveHits;
+              retrievalFtsOnlyPositiveHits += sourceEval.ftsOnlyPositiveHits;
+              retrievalVectorOnlyPositiveHits +=
+                  sourceEval.vectorOnlyPositiveHits;
+              retrievalMissedPositiveCount += sourceEval.missedPositiveCount;
+              retrievalSourceQueryTotal += sourceEval.queryTotal;
+              retrievalVectorSupportedQueryHits +=
+                  sourceEval.vectorSupportedQueryHits;
+              retrievalVectorOnlySupportedQueryHits +=
+                  sourceEval.vectorOnlySupportedQueryHits;
+              final obs = {
+                'mode': mode.storageValue,
+                'case_id': caseId,
+                'operation_id': opId,
+                'type': type,
+                'query': operation['query'],
+                'result_count': recall.length,
+                'results': recall.map((e) => e.toJson()).toList(),
+                if (expectedSources.isNotEmpty)
+                  'retrieval_source_eval': sourceEval.toJson(),
+                'expected_hits': eval.mustHits,
+                'expected_total': eval.mustTotal,
+                'forbidden_hits': eval.forbiddenHits,
+                'forbidden_total': eval.forbiddenTotal,
+                'elapsed_ms':
+                    DateTime.now().difference(opStartedAt).inMilliseconds,
+              };
+              observations.add(obs);
+              modeObservations.add(obs);
+              caseObservations.add(obs);
+              await _writeProgress(progressFile, obs);
+            } else if (type == 'super_agent_ask') {
+              final queryFamily =
+                  _queryFamilyForOperation(operation) ?? 'unknown';
+              final ask = await _runSuperAgentAskWithProviderRetries(
+                router,
+                operation,
+                userId: userId,
+                baseSlot: selectedSlotOffset + caseIndex,
+              );
+              superAgentProviderAttemptCount += ask.providerAttempts.length;
+              if (ask.providerAttempts.length > 1) {
+                superAgentProviderRetryCount += ask.providerAttempts.length - 1;
+              }
+              _mergeUsageBucket(
+                superAgentUsageTotals,
+                _sumChatTokenUsage(ask.tokenUsageEvents),
+              );
+              final expected = _map(operation['expected']);
+              final eval = _evaluateTextExpectations(
+                haystack: ask.answer,
+                mustContain: _textExpectations(expected['must_contain']),
+                mustNotContain: _textExpectations(expected['must_not_contain']),
+                mode: mode.storageValue,
+                caseId: caseId,
+                operationId: opId,
+                missingCategory: 'super_agent_answer_missing',
+                forbiddenCategory: 'super_agent_forbidden_present',
+              );
+              superAgentAskCount += 1;
+              if (ask.error == null && ask.answer.trim().isNotEmpty) {
+                superAgentAnswerSuccessCount += 1;
+              }
+              superAgentExpectedHits += eval.mustHits;
+              superAgentExpectedTotal += eval.mustTotal;
+              superAgentForbiddenHits += eval.forbiddenHits;
+              superAgentForbiddenTotal += eval.forbiddenTotal;
+              failures.addAll(eval.failures);
+              answerMustIncludeHits += eval.mustHits;
+              answerMustIncludeTotal += eval.mustTotal;
+              final toolEval = _evaluateSuperAgentToolExpectations(
+                mode: mode.storageValue,
+                caseId: caseId,
+                operationId: opId,
+                expected: expected,
+                events: ask.events,
+              );
+              retrievalHitAt1Hits += toolEval.retrievalHitAt1Hits;
+              retrievalHitAt1Total += toolEval.retrievalHitAt1Total;
+              retrievalHitAt3Hits += toolEval.retrievalHitAt3Hits;
+              retrievalHitAt3Total += toolEval.retrievalHitAt3Total;
+              retrievalHitAt5Hits += toolEval.retrievalHitAt5Hits;
+              retrievalHitAt5Total += toolEval.retrievalHitAt5Total;
+              retrievalHitAt10Hits += toolEval.retrievalHitAt10Hits;
+              retrievalHitAt10Total += toolEval.retrievalHitAt10Total;
+              retrievalPositiveSourceTotal += toolEval.positiveSourceTotal;
+              retrievalFtsPositiveHits += toolEval.ftsPositiveHits;
+              retrievalVectorPositiveHits += toolEval.vectorPositiveHits;
+              retrievalHybridPositiveHits += toolEval.hybridPositiveHits;
+              retrievalBothPositiveHits += toolEval.bothPositiveHits;
+              retrievalFtsOnlyPositiveHits += toolEval.ftsOnlyPositiveHits;
+              retrievalVectorOnlyPositiveHits +=
+                  toolEval.vectorOnlyPositiveHits;
+              retrievalMissedPositiveCount += toolEval.missedPositiveCount;
+              retrievalSourceQueryTotal += toolEval.sourceQueryTotal;
+              retrievalVectorSupportedQueryHits +=
+                  toolEval.vectorSupportedQueryHits;
+              retrievalVectorOnlySupportedQueryHits +=
+                  toolEval.vectorOnlySupportedQueryHits;
+              superAgentReadOnlyHits += toolEval.readOnlyHits;
+              superAgentReadOnlyTotal += toolEval.readOnlyTotal;
+              toolSelectionHits += toolEval.toolSelectionHits;
+              toolSelectionTotal += toolEval.toolSelectionTotal;
+              toolArgsHits += toolEval.toolArgsHits;
+              toolArgsTotal += toolEval.toolArgsTotal;
+              toolCallMinimalityHits += toolEval.toolCallMinimalityHits;
+              toolCallMinimalityTotal += toolEval.toolCallMinimalityTotal;
+              toolCallCount += toolEval.toolCallCount;
+              toolCallFailureCount += toolEval.toolCallFailureCount;
+              toolCallRetryCount += toolEval.toolCallRetryCount;
+              repeatedToolCallCount += toolEval.repeatedToolCallCount;
+              readToolCallCount += toolEval.readToolCallCount;
+              readToolErrorCount += toolEval.readToolErrorCount;
+              writeToolCallCount += toolEval.writeToolCallCount;
+              writeToolErrorCount += toolEval.writeToolErrorCount;
+              contextPeekCount += toolEval.contextPeekCount;
+              contextPeekTaskCount += toolEval.contextPeekTaskCount;
+              agentToolRoundCount += toolEval.agentToolRoundCount;
+              agentToolRoundTaskCount += toolEval.agentToolRoundTaskCount;
+              failures.addAll(toolEval.failures);
+              superAgentQueryFamilyMetrics
+                  .putIfAbsent(
+                    queryFamily,
+                    () => _AgentQueryFamilyAccumulator(queryFamily),
+                  )
+                  .addAsk(
+                    answerEval: eval,
+                    successful:
+                        ask.error == null && ask.answer.trim().isNotEmpty,
+                    toolEval: toolEval,
+                  );
+              judgeTasks.addAll(
+                _judgeTasksForOperation(
+                  mode: mode.storageValue,
+                  caseId: caseId,
+                  operationId: opId,
+                  operation: operation,
+                  output: {'answer': ask.answer, 'events': ask.events},
+                ),
+              );
+              if (ask.error != null) {
+                failures.add(
+                  _failure(
+                    mode: mode.storageValue,
+                    caseId: caseId,
+                    operationId: opId,
+                    category: 'super_agent_ask_error',
+                    message: 'Super Agent ask returned an error.',
+                    details: {
+                      'error': ask.error,
+                      if (ask.providerAttempts.isNotEmpty)
+                        'provider_attempts': ask.providerAttempts,
+                    },
+                  ),
+                );
+              }
+              final obs = {
+                'mode': mode.storageValue,
+                'case_id': caseId,
+                'operation_id': opId,
+                'type': type,
+                'query_family': queryFamily,
+                'query': operation['query'],
+                'expected': _sanitizeForLog(expected),
+                'session_id': ask.sessionId,
+                'answer': ask.answer,
+                'error': ask.error,
+                'events': ask.events,
+                'token_usage_events': ask.tokenUsageEvents,
+                if (ask.providerAttempts.isNotEmpty)
+                  'provider_attempts': ask.providerAttempts,
+                'retrieval_source_eval': toolEval.retrievalSourceEval.toJson(),
+                'expected_hits': eval.mustHits,
+                'expected_total': eval.mustTotal,
+                'forbidden_hits': eval.forbiddenHits,
+                'forbidden_total': eval.forbiddenTotal,
+                'elapsed_ms':
+                    DateTime.now().difference(opStartedAt).inMilliseconds,
+              };
+              observations.add(obs);
+              modeObservations.add(obs);
+              caseObservations.add(obs);
+              await _writeProgress(progressFile, obs);
+            }
+          }
+
+          final expected = _map(evalCase['expected']);
+          final activeAtoms =
+              await MemoryPrimaryService.instance.listActiveAtoms(userId);
+          final memoryText = activeAtoms.map((atom) => atom.content).join('\n');
+          final cardTexts = <String>[];
+          for (final factId in factIdsByOperation.values) {
+            final card = await FileSystemService.instance.readCardFile(
+              userId,
+              factId,
+            );
+            if (card == null) continue;
+            cardTexts.add(
+              [
+                card.title,
+                card.insight?.text,
+                card.insight?.summary,
+              ].whereType<String>().join('\n'),
+            );
+          }
+          final memoryEval = _evaluateTextExpectations(
+            haystack: memoryText,
+            mustContain: _textExpectations(expected['memory_must_contain']),
+            mustNotContain: _textExpectations(
+              expected['memory_must_not_contain'],
+            ),
+            mode: mode.storageValue,
+            caseId: caseId,
+            operationId: 'case_memory',
+            missingCategory: 'memory_expected_missing',
+            forbiddenCategory: 'memory_forbidden_present',
+          );
+          final cardEval = _evaluateTextExpectations(
+            haystack: cardTexts.join('\n'),
+            mustContain: _textExpectations(
+              expected['card_title_or_insight_should_contain'],
+            ),
+            mustNotContain: const [],
+            mode: mode.storageValue,
+            caseId: caseId,
+            operationId: 'case_cards',
+            missingCategory: 'card_expected_missing',
+            forbiddenCategory: 'card_forbidden_present',
+          );
+          final relatedEval = await _evaluateRelatedFactExpectations(
+            mode: mode.storageValue,
+            caseId: caseId,
+            userId: userId,
+            expectations: _list(expected['related_fact_expectations']),
+            factIdsByOperation: factIdsByOperation,
+          );
+          memoryExpectedHits += memoryEval.mustHits;
+          memoryExpectedTotal += memoryEval.mustTotal;
+          memoryForbiddenHits += memoryEval.forbiddenHits;
+          memoryForbiddenTotal += memoryEval.forbiddenTotal;
+          cardExpectedHits += cardEval.mustHits;
+          cardExpectedTotal += cardEval.mustTotal;
+          relatedFactExpectedHits += relatedEval.mustHits;
+          relatedFactExpectedTotal += relatedEval.mustTotal;
+          memoryObservedCount += activeAtoms.length;
+          memorySourceGroundedCount += activeAtoms
+              .where((atom) => atom.evidenceFactIds.isNotEmpty)
+              .length;
+          memoryDuplicateCount += _duplicateTextCount(
+            activeAtoms.map((atom) => atom.content),
+          );
+          failures.addAll(memoryEval.failures);
+          failures.addAll(cardEval.failures);
+          failures.addAll(relatedEval.failures);
+
+          final summaryObs = {
+            'mode': mode.storageValue,
+            'case_id': caseId,
+            'operation_id': 'case_summary',
+            'type': 'case_summary',
+            'active_memory_atom_count': activeAtoms.length,
+            'active_memory_atoms': activeAtoms
+                .map(
+                  (atom) => {
                     'id': atom.id,
                     'type': atom.type,
                     'content': atom.content,
                     'evidence_fact_ids': atom.evidenceFactIds,
-                  })
-              .toList(),
-          'memory_expected_hits': memoryEval.mustHits,
-          'memory_expected_total': memoryEval.mustTotal,
-          'memory_forbidden_hits': memoryEval.forbiddenHits,
-          'memory_forbidden_total': memoryEval.forbiddenTotal,
-          'card_expected_hits': cardEval.mustHits,
-          'card_expected_total': cardEval.mustTotal,
-          'related_fact_expected_hits': relatedEval.mustHits,
-          'related_fact_expected_total': relatedEval.mustTotal,
-        };
-        observations.add(summaryObs);
-        modeObservations.add(summaryObs);
-        caseObservations.add(summaryObs);
+                  },
+                )
+                .toList(),
+            'memory_expected_hits': memoryEval.mustHits,
+            'memory_expected_total': memoryEval.mustTotal,
+            'memory_forbidden_hits': memoryEval.forbiddenHits,
+            'memory_forbidden_total': memoryEval.forbiddenTotal,
+            'card_expected_hits': cardEval.mustHits,
+            'card_expected_total': cardEval.mustTotal,
+            'related_fact_expected_hits': relatedEval.mustHits,
+            'related_fact_expected_total': relatedEval.mustTotal,
+          };
+          observations.add(summaryObs);
+          modeObservations.add(summaryObs);
+          caseObservations.add(summaryObs);
 
-        final caseDebugLog = await _writeCaseDebugLog(
-          runDir: runDir,
-          mode: mode.storageValue,
-          caseId: caseId,
-          userId: userId,
-          dataRoot: dataRoot.path,
-          evalCase: evalCase,
-          factIdsByOperation: factIdsByOperation,
-          observations: caseObservations,
-          failures: failures.sublist(caseFailureStart),
-        );
-        _mergeLlmUsage(
-            llmUsageTotals, llmUsageByAgent, _map(caseDebugLog['llm_usage']));
-        final activityTraceMetrics = _agentActivityTraceMetrics(
-          _list(caseDebugLog['agent_activity_trace'])
-              .map(_map)
-              .toList(growable: false),
-        );
-        contextPeekRedundantCount +=
-            _intValue(activityTraceMetrics['context_peek_redundant_count']) ??
-                0;
-        contextPeekRedundancyTotal +=
-            _intValue(activityTraceMetrics['context_peek_total']) ?? 0;
-        firstWriteAfterReadHits +=
-            _intValue(activityTraceMetrics['first_write_after_read_hits']) ?? 0;
-        firstWriteAfterReadTotal +=
-            _intValue(activityTraceMetrics['first_write_total']) ?? 0;
-      }
+          final caseDebugLog = await _writeCaseDebugLog(
+            runDir: runDir,
+            mode: mode.storageValue,
+            caseId: caseId,
+            userId: userId,
+            dataRoot: dataRoot.path,
+            evalCase: evalCase,
+            factIdsByOperation: factIdsByOperation,
+            observations: caseObservations,
+            failures: failures.sublist(caseFailureStart),
+          );
+          _mergeLlmUsage(
+            llmUsageTotals,
+            llmUsageByAgent,
+            _map(caseDebugLog['llm_usage']),
+          );
+          final activityTraceMetrics = _agentActivityTraceMetrics(
+            _list(
+              caseDebugLog['agent_activity_trace'],
+            ).map(_map).toList(growable: false),
+          );
+          contextPeekRedundantCount +=
+              _intValue(activityTraceMetrics['context_peek_redundant_count']) ??
+                  0;
+          contextPeekRedundancyTotal +=
+              _intValue(activityTraceMetrics['context_peek_total']) ?? 0;
+          firstWriteAfterReadHits +=
+              _intValue(activityTraceMetrics['first_write_after_read_hits']) ??
+                  0;
+          firstWriteAfterReadTotal +=
+              _intValue(activityTraceMetrics['first_write_total']) ?? 0;
+        }
 
-      final elapsed = DateTime.now().difference(modeStartedAt);
-      final completedCardRate = _rate(completedCards, recordCount);
-      final cardsWithInsightRate = _rate(cardsWithInsight, recordCount);
-      final memoryHitRate = _rate(memoryExpectedHits, memoryExpectedTotal);
-      final memoryForbiddenPrecision = _rate(
-        memoryForbiddenTotal - memoryForbiddenHits,
-        memoryForbiddenTotal,
-      );
-      final cardHitRate = _rate(cardExpectedHits, cardExpectedTotal);
-      final relatedFactHitRate = _rate(
-        relatedFactExpectedHits,
-        relatedFactExpectedTotal,
-      );
-      final memoryRecallHitRate = _rate(
-        memoryRecallExpectedHits,
-        memoryRecallExpectedTotal,
-      );
-      final memoryRecallForbiddenPrecision = _rate(
-        memoryRecallForbiddenTotal - memoryRecallForbiddenHits,
-        memoryRecallForbiddenTotal,
-      );
-      final taskSettlementRate = _rate(
-        modeObservations
-            .where((obs) =>
-                obs['type'] == 'record' || obs['type'] == 'para_projection')
-            .where((obs) => obs['tasks_settled'] == true)
-            .length,
-        modeObservations
-            .where((obs) =>
-                obs['type'] == 'record' || obs['type'] == 'para_projection')
-            .length,
-      );
-      final waitElapsedMs = modeObservations
-          .where((obs) =>
-              obs['type'] == 'record' || obs['type'] == 'para_projection')
-          .map((obs) => _intValue(obs['elapsed_ms']) ?? 0)
-          .where((value) => value > 0)
-          .toList();
-      final taskQueuePressureSamples = modeObservations
-          .map(_activeTaskPressureFromObservation)
-          .where((value) => value >= 0)
-          .toList();
-      final llmCallCount = _intValue(llmUsageTotals['calls']) ?? 0;
-      final emptyResponseTurnCount =
-          _intValue(llmUsageTotals['empty_response_turns']) ?? 0;
-      metricsByMode[mode.storageValue] = {
-        'mode': mode.storageValue,
-        'case_count': selectedCases.length,
-        'record_count': recordCount,
-        'materialized_card_count': materializedCards,
-        'card_materialization_rate': _rate(materializedCards, recordCount),
-        'completed_card_count': completedCards,
-        'completed_card_rate': completedCardRate,
-        'valid_card_count': validCards,
-        'input_to_valid_card_success_rate': _rate(validCards, recordCount),
-        'card_completed_rate': completedCardRate,
-        'completed_with_failure_reason_count': completedCardsWithFailureReason,
-        'completed_with_failure_reason_rate': _ratioOrZero(
-          completedCardsWithFailureReason,
-          completedCards,
-        ),
-        'card_schema_valid_count': schemaValidCards,
-        'card_schema_valid_rate': _rate(schemaValidCards, materializedCards),
-        'card_source_fact_grounding_count': cardSourceGroundedCount,
-        'card_source_fact_grounding_rate': _rate(
-          cardSourceGroundedCount,
-          materializedCards,
-        ),
-        'cards_with_insight_count': cardsWithInsight,
-        'cards_with_insight_rate': cardsWithInsightRate,
-        'projection_count': projectionCount,
-        'memory_expected_hits': memoryExpectedHits,
-        'memory_expected_total': memoryExpectedTotal,
-        'memory_expected_hit_rate': memoryHitRate,
-        'memory_must_write_recall': memoryHitRate,
-        'memory_forbidden_hits': memoryForbiddenHits,
-        'memory_forbidden_total': memoryForbiddenTotal,
-        'memory_must_not_write_precision': memoryForbiddenPrecision,
-        'memory_observed_count': memoryObservedCount,
-        'memory_source_grounded_count': memorySourceGroundedCount,
-        'memory_source_grounding': _rate(
-          memorySourceGroundedCount,
-          memoryObservedCount,
-        ),
-        'memory_duplicate_count': memoryDuplicateCount,
-        'memory_duplicate_rate': _ratioOrZero(
-          memoryDuplicateCount,
-          memoryObservedCount,
-        ),
-        'card_expected_hits': cardExpectedHits,
-        'card_expected_total': cardExpectedTotal,
-        'card_expected_hit_rate': cardHitRate,
-        'related_fact_expected_hits': relatedFactExpectedHits,
-        'related_fact_expected_total': relatedFactExpectedTotal,
-        'related_fact_hit_rate': relatedFactHitRate,
-        'memory_recall_query_count': memoryRecallQueryCount,
-        'memory_recall_expected_hits': memoryRecallExpectedHits,
-        'memory_recall_expected_total': memoryRecallExpectedTotal,
-        'memory_recall_hit_rate': memoryRecallHitRate,
-        'memory_recall_at_10': memoryRecallHitRate,
-        'memory_recall_forbidden_hits': memoryRecallForbiddenHits,
-        'memory_recall_forbidden_total': memoryRecallForbiddenTotal,
-        'memory_recall_must_not_precision': memoryRecallForbiddenPrecision,
-        'super_agent_ask_count': superAgentAskCount,
-        'super_agent_answer_success_count': superAgentAnswerSuccessCount,
-        'super_agent_answer_success_rate': _ratioOrZero(
-          superAgentAnswerSuccessCount,
-          superAgentAskCount,
-        ),
-        'super_agent_expected_hits': superAgentExpectedHits,
-        'super_agent_expected_total': superAgentExpectedTotal,
-        'super_agent_answer_hit_rate': _rate(
-          superAgentExpectedHits,
-          superAgentExpectedTotal,
-        ),
-        'super_agent_forbidden_hits': superAgentForbiddenHits,
-        'super_agent_forbidden_total': superAgentForbiddenTotal,
-        'super_agent_boundary_precision': _rate(
-          superAgentForbiddenTotal - superAgentForbiddenHits,
-          superAgentForbiddenTotal,
-        ),
-        'super_agent_llm_usage_total': superAgentUsageTotals,
-        'super_agent_tokens_per_ask': _ratioOrZero(
-          _intValue(superAgentUsageTotals['total_tokens']) ?? 0,
-          superAgentAskCount,
-        ),
-        'agent_route_accuracy': _rate(
-          agentRouteAccuracyHits,
-          agentRouteAccuracyTotal,
-        ),
-        'agent_route_miss_rate': _ratioOrZero(
-          agentRouteMissCount,
-          agentRouteExpectedCount,
-        ),
-        'agent_route_overtrigger_rate': _ratioOrZero(
-          agentRouteOvertriggerCount,
-          agentRouteObservedCount,
-        ),
-        'card_template_primary_accuracy': _rate(
-          cardTemplatePrimaryHits,
-          cardTemplateTotal,
-        ),
-        'card_template_any_accuracy': _rate(
-          cardTemplateAnyHits,
-          cardTemplateTotal,
-        ),
-        'card_field_recall': _rate(
-          cardFieldRecallHits,
-          cardFieldRecallTotal,
-        ),
-        'card_entity_recall': _rate(
-          cardEntityRecallHits,
-          cardEntityRecallTotal,
-        ),
-        'card_time_parse_accuracy': _rate(
-          cardTimeParseHits,
-          cardTimeParseTotal,
-        ),
-        'card_hallucinated_field_absence': _rate(
-          cardHallucinatedAbsenceHits,
-          cardHallucinatedAbsenceTotal,
-        ),
-        'retrieval_hit_at_1': _rate(retrievalHitAt1Hits, retrievalHitAt1Total),
-        'retrieval_hit_at_3': _rate(retrievalHitAt3Hits, retrievalHitAt3Total),
-        'retrieval_hit_at_5': _rate(retrievalHitAt5Hits, retrievalHitAt5Total),
-        'retrieval_hit_at_10': _rate(
-          retrievalHitAt10Hits,
-          retrievalHitAt10Total,
-        ),
-        'answer_must_include': _rate(
-          answerMustIncludeHits,
-          answerMustIncludeTotal,
-        ),
-        'super_agent_read_only_compliance': _rate(
-          superAgentReadOnlyHits,
-          superAgentReadOnlyTotal,
-        ),
-        'tool_selection_accuracy': _rate(
-          toolSelectionHits,
-          toolSelectionTotal,
-        ),
-        'tool_args_accuracy': _rate(toolArgsHits, toolArgsTotal),
-        'tool_call_minimality': _rate(
-          toolCallMinimalityHits,
-          toolCallMinimalityTotal,
-        ),
-        'tool_call_failure_rate': _ratioOrZero(
-          toolCallFailureCount,
-          toolCallCount,
-        ),
-        'tool_call_retry_rate': _ratioOrZero(
-          toolCallRetryCount,
-          toolCallFailureCount,
-        ),
-        'repeated_tool_call_rate': _ratioOrZero(
-          repeatedToolCallCount,
-          toolCallCount,
-        ),
-        'read_tool_error_rate': _ratioOrZero(
-          readToolErrorCount,
-          readToolCallCount,
-        ),
-        'write_tool_error_rate': _ratioOrZero(
-          writeToolErrorCount,
-          writeToolCallCount,
-        ),
-        'context_peek_count_per_task': _ratioOrZero(
-          contextPeekCount,
-          contextPeekTaskCount,
-        ),
-        'context_peek_redundant_count': contextPeekRedundantCount,
-        'context_peek_total': contextPeekRedundancyTotal,
-        'context_peek_redundancy_rate': _ratioOrZero(
-          contextPeekRedundantCount,
-          contextPeekRedundancyTotal,
-        ),
-        'first_write_after_read_hits': firstWriteAfterReadHits,
-        'first_write_total': firstWriteAfterReadTotal,
-        'first_write_after_read_rate': _rate(
-          firstWriteAfterReadHits,
-          firstWriteAfterReadTotal,
-        ),
-        'agent_tool_rounds_per_task': _ratioOrZero(
-          agentToolRoundCount,
-          agentToolRoundTaskCount,
-        ),
-        'tool_calls_per_input': _ratioOrZero(toolCallCount, recordCount),
-        'agent_llm_turns_per_task': _ratioOrZero(
-          llmCallCount,
-          totalTaskCount,
-        ),
-        'agent_llm_turns_per_task_by_agent':
-            _llmTurnsPerTaskByAgent(llmUsageByAgent, totalTaskCount),
-        'agent_finalization_rate': _ratioOrZero(
-          totalTaskCount - failedTaskCount - taskNotSettledCount,
-          totalTaskCount,
-        ),
-        'agent_turn_budget_violation_rate': _ratioOrZero(
-          maxTurnsFailureCount,
-          totalTaskCount,
-        ),
-        'agent_empty_response_count': emptyResponseTurnCount,
-        'agent_empty_response_rate': _ratioOrZero(
-          emptyResponseTurnCount,
-          llmCallCount,
-        ),
-        'loop_detection_absence': loopDetectionFailureCount == 0 ? 1.0 : 0.0,
-        'max_turns_absence': maxTurnsFailureCount == 0 ? 1.0 : 0.0,
-        'failed_task_count': failedTaskCount,
-        'failed_task_rate': _ratioOrZero(failedTaskCount, totalTaskCount),
-        'total_task_count': totalTaskCount,
-        'task_not_settled_count': taskNotSettledCount,
-        'task_settlement_rate': taskSettlementRate,
-        'task_completion_status': taskSettlementRate,
-        'input_timeout_rate': _ratioOrZero(
-          taskNotSettledCount,
-          recordCount + projectionCount,
-        ),
-        'retry_task_count': retryTaskCount,
-        'retry_rate': _ratioOrZero(retryTaskCount, totalTaskCount),
-        'missing_card_count': missingCardCount,
-        'incomplete_card_count': incompleteCardCount,
-        'task_status_totals': taskStatusTotals,
-        'task_type_status_totals': taskTypeStatusTotals,
-        'avg_record_elapsed_ms': recordElapsedMs.isEmpty
-            ? 0
-            : recordElapsedMs.reduce((a, b) => a + b) ~/ recordElapsedMs.length,
-        'p90_record_elapsed_ms': _percentile(recordElapsedMs, 0.90),
-        'p95_record_elapsed_ms': _percentile(recordElapsedMs, 0.95),
-        'p99_record_elapsed_ms': _percentile(recordElapsedMs, 0.99),
-        'max_record_elapsed_ms': _maxInt(recordElapsedMs),
-        'input_required_chain_latency_ms': {
-          'mean': recordElapsedMs.isEmpty
+        final elapsed = DateTime.now().difference(modeStartedAt);
+        final completedCardRate = _rate(completedCards, recordCount);
+        final cardsWithInsightRate = _rate(cardsWithInsight, recordCount);
+        final memoryHitRate = _rate(memoryExpectedHits, memoryExpectedTotal);
+        final memoryForbiddenPrecision = _rate(
+          memoryForbiddenTotal - memoryForbiddenHits,
+          memoryForbiddenTotal,
+        );
+        final cardHitRate = _rate(cardExpectedHits, cardExpectedTotal);
+        final relatedFactHitRate = _rate(
+          relatedFactExpectedHits,
+          relatedFactExpectedTotal,
+        );
+        final memoryRecallHitRate = _rate(
+          memoryRecallExpectedHits,
+          memoryRecallExpectedTotal,
+        );
+        final memoryRecallForbiddenPrecision = _rate(
+          memoryRecallForbiddenTotal - memoryRecallForbiddenHits,
+          memoryRecallForbiddenTotal,
+        );
+        final taskSettlementRate = _rate(
+          modeObservations
+              .where(
+                (obs) =>
+                    obs['type'] == 'record' || obs['type'] == 'para_projection',
+              )
+              .where((obs) => obs['tasks_settled'] == true)
+              .length,
+          modeObservations
+              .where(
+                (obs) =>
+                    obs['type'] == 'record' || obs['type'] == 'para_projection',
+              )
+              .length,
+        );
+        final waitElapsedMs = modeObservations
+            .where(
+              (obs) =>
+                  obs['type'] == 'record' || obs['type'] == 'para_projection',
+            )
+            .map((obs) => _intValue(obs['elapsed_ms']) ?? 0)
+            .where((value) => value > 0)
+            .toList();
+        final taskQueuePressureSamples = modeObservations
+            .map(_activeTaskPressureFromObservation)
+            .where((value) => value >= 0)
+            .toList();
+        final llmCallCount = _intValue(llmUsageTotals['calls']) ?? 0;
+        final emptyResponseTurnCount =
+            _intValue(llmUsageTotals['empty_response_turns']) ?? 0;
+        metricsByMode[mode.storageValue] = {
+          'mode': mode.storageValue,
+          'case_count': selectedCases.length,
+          'record_count': recordCount,
+          'materialized_card_count': materializedCards,
+          'card_materialization_rate': _rate(materializedCards, recordCount),
+          'completed_card_count': completedCards,
+          'completed_card_rate': completedCardRate,
+          'valid_card_count': validCards,
+          'input_to_valid_card_success_rate': _rate(validCards, recordCount),
+          'card_completed_rate': completedCardRate,
+          'completed_with_failure_reason_count':
+              completedCardsWithFailureReason,
+          'completed_with_failure_reason_rate': _ratioOrZero(
+            completedCardsWithFailureReason,
+            completedCards,
+          ),
+          'card_schema_valid_count': schemaValidCards,
+          'card_schema_valid_rate': _rate(schemaValidCards, materializedCards),
+          'card_source_fact_grounding_count': cardSourceGroundedCount,
+          'card_source_fact_grounding_rate': _rate(
+            cardSourceGroundedCount,
+            materializedCards,
+          ),
+          'cards_with_insight_count': cardsWithInsight,
+          'cards_with_insight_rate': cardsWithInsightRate,
+          'projection_count': projectionCount,
+          'memory_expected_hits': memoryExpectedHits,
+          'memory_expected_total': memoryExpectedTotal,
+          'memory_expected_hit_rate': memoryHitRate,
+          'memory_must_write_recall': memoryHitRate,
+          'memory_forbidden_hits': memoryForbiddenHits,
+          'memory_forbidden_total': memoryForbiddenTotal,
+          'memory_must_not_write_precision': memoryForbiddenPrecision,
+          'memory_observed_count': memoryObservedCount,
+          'memory_source_grounded_count': memorySourceGroundedCount,
+          'memory_source_grounding': _rate(
+            memorySourceGroundedCount,
+            memoryObservedCount,
+          ),
+          'memory_duplicate_count': memoryDuplicateCount,
+          'memory_duplicate_rate': _ratioOrZero(
+            memoryDuplicateCount,
+            memoryObservedCount,
+          ),
+          'card_expected_hits': cardExpectedHits,
+          'card_expected_total': cardExpectedTotal,
+          'card_expected_hit_rate': cardHitRate,
+          'related_fact_expected_hits': relatedFactExpectedHits,
+          'related_fact_expected_total': relatedFactExpectedTotal,
+          'related_fact_hit_rate': relatedFactHitRate,
+          'memory_recall_query_count': memoryRecallQueryCount,
+          'memory_recall_expected_hits': memoryRecallExpectedHits,
+          'memory_recall_expected_total': memoryRecallExpectedTotal,
+          'memory_recall_hit_rate': memoryRecallHitRate,
+          'memory_recall_at_10': memoryRecallHitRate,
+          'memory_recall_forbidden_hits': memoryRecallForbiddenHits,
+          'memory_recall_forbidden_total': memoryRecallForbiddenTotal,
+          'memory_recall_must_not_precision': memoryRecallForbiddenPrecision,
+          'super_agent_ask_count': superAgentAskCount,
+          'super_agent_answer_success_count': superAgentAnswerSuccessCount,
+          'super_agent_answer_success_rate': _ratioOrZero(
+            superAgentAnswerSuccessCount,
+            superAgentAskCount,
+          ),
+          'super_agent_expected_hits': superAgentExpectedHits,
+          'super_agent_expected_total': superAgentExpectedTotal,
+          'super_agent_answer_hit_rate': _rate(
+            superAgentExpectedHits,
+            superAgentExpectedTotal,
+          ),
+          'super_agent_forbidden_hits': superAgentForbiddenHits,
+          'super_agent_forbidden_total': superAgentForbiddenTotal,
+          'super_agent_boundary_precision': _rate(
+            superAgentForbiddenTotal - superAgentForbiddenHits,
+            superAgentForbiddenTotal,
+          ),
+          'super_agent_llm_usage_total': superAgentUsageTotals,
+          'super_agent_tokens_per_ask': _ratioOrZero(
+            _intValue(superAgentUsageTotals['total_tokens']) ?? 0,
+            superAgentAskCount,
+          ),
+          'super_agent_provider_attempt_count': superAgentProviderAttemptCount,
+          'super_agent_provider_retry_count': superAgentProviderRetryCount,
+          'super_agent_provider_retry_rate': _ratioOrZero(
+            superAgentProviderRetryCount,
+            superAgentProviderAttemptCount,
+          ),
+          'super_agent_query_family_metrics': {
+            for (final entry
+                in (superAgentQueryFamilyMetrics.entries.toList()
+                  ..sort((a, b) => a.key.compareTo(b.key))))
+              entry.key: entry.value.toJson(),
+          },
+          'agent_route_accuracy': _rate(
+            agentRouteAccuracyHits,
+            agentRouteAccuracyTotal,
+          ),
+          'agent_route_miss_rate': _ratioOrZero(
+            agentRouteMissCount,
+            agentRouteExpectedCount,
+          ),
+          'agent_route_overtrigger_rate': _ratioOrZero(
+            agentRouteOvertriggerCount,
+            agentRouteObservedCount,
+          ),
+          'card_template_primary_accuracy': _rate(
+            cardTemplatePrimaryHits,
+            cardTemplateTotal,
+          ),
+          'card_template_any_accuracy': _rate(
+            cardTemplateAnyHits,
+            cardTemplateTotal,
+          ),
+          'card_field_recall': _rate(cardFieldRecallHits, cardFieldRecallTotal),
+          'card_entity_recall': _rate(
+            cardEntityRecallHits,
+            cardEntityRecallTotal,
+          ),
+          'card_time_parse_accuracy': _rate(
+            cardTimeParseHits,
+            cardTimeParseTotal,
+          ),
+          'card_hallucinated_field_absence': _rate(
+            cardHallucinatedAbsenceHits,
+            cardHallucinatedAbsenceTotal,
+          ),
+          'retrieval_hit_at_1': _rate(
+            retrievalHitAt1Hits,
+            retrievalHitAt1Total,
+          ),
+          'retrieval_hit_at_3': _rate(
+            retrievalHitAt3Hits,
+            retrievalHitAt3Total,
+          ),
+          'retrieval_hit_at_5': _rate(
+            retrievalHitAt5Hits,
+            retrievalHitAt5Total,
+          ),
+          'retrieval_hit_at_10': _rate(
+            retrievalHitAt10Hits,
+            retrievalHitAt10Total,
+          ),
+          'retrieval_positive_source_total': retrievalPositiveSourceTotal,
+          'retrieval_fts_positive_hits': retrievalFtsPositiveHits,
+          'retrieval_vector_positive_hits': retrievalVectorPositiveHits,
+          'retrieval_hybrid_positive_hits': retrievalHybridPositiveHits,
+          'retrieval_positive_source_breakdown': {
+            'both': retrievalBothPositiveHits,
+            'fts_only': retrievalFtsOnlyPositiveHits,
+            'vector_only': retrievalVectorOnlyPositiveHits,
+            'missed': retrievalMissedPositiveCount,
+          },
+          'fts_positive_coverage_rate': _ratioOrZero(
+            retrievalFtsPositiveHits,
+            retrievalPositiveSourceTotal,
+          ),
+          'vector_positive_coverage_rate': _ratioOrZero(
+            retrievalVectorPositiveHits,
+            retrievalPositiveSourceTotal,
+          ),
+          'vector_only_positive_hit_rate': _ratioOrZero(
+            retrievalVectorOnlyPositiveHits,
+            retrievalPositiveSourceTotal,
+          ),
+          'fts_only_positive_hit_rate': _ratioOrZero(
+            retrievalFtsOnlyPositiveHits,
+            retrievalPositiveSourceTotal,
+          ),
+          'hybrid_positive_coverage_rate': _ratioOrZero(
+            retrievalHybridPositiveHits,
+            retrievalPositiveSourceTotal,
+          ),
+          'vector_incremental_recall_lift_at_10': _ratioOrZero(
+                retrievalHybridPositiveHits,
+                retrievalPositiveSourceTotal,
+              ) -
+              _ratioOrZero(
+                  retrievalFtsPositiveHits, retrievalPositiveSourceTotal),
+          'vector_supported_query_rate': _ratioOrZero(
+            retrievalVectorSupportedQueryHits,
+            retrievalSourceQueryTotal,
+          ),
+          'retrieval_vector_supported_query_hits':
+              retrievalVectorSupportedQueryHits,
+          'vector_only_supported_query_rate': _ratioOrZero(
+            retrievalVectorOnlySupportedQueryHits,
+            retrievalSourceQueryTotal,
+          ),
+          'retrieval_vector_only_supported_query_hits':
+              retrievalVectorOnlySupportedQueryHits,
+          'retrieval_source_query_count': retrievalSourceQueryTotal,
+          'answer_must_include': _rate(
+            answerMustIncludeHits,
+            answerMustIncludeTotal,
+          ),
+          'super_agent_read_only_compliance': _rate(
+            superAgentReadOnlyHits,
+            superAgentReadOnlyTotal,
+          ),
+          'tool_selection_accuracy': _rate(
+            toolSelectionHits,
+            toolSelectionTotal,
+          ),
+          'tool_args_accuracy': _rate(toolArgsHits, toolArgsTotal),
+          'tool_call_minimality': _rate(
+            toolCallMinimalityHits,
+            toolCallMinimalityTotal,
+          ),
+          'tool_call_failure_rate': _ratioOrZero(
+            toolCallFailureCount,
+            toolCallCount,
+          ),
+          'tool_call_retry_rate': _ratioOrZero(
+            toolCallRetryCount,
+            toolCallFailureCount,
+          ),
+          'repeated_tool_call_rate': _ratioOrZero(
+            repeatedToolCallCount,
+            toolCallCount,
+          ),
+          'read_tool_error_rate': _ratioOrZero(
+            readToolErrorCount,
+            readToolCallCount,
+          ),
+          'write_tool_error_rate': _ratioOrZero(
+            writeToolErrorCount,
+            writeToolCallCount,
+          ),
+          'context_peek_count_per_task': _ratioOrZero(
+            contextPeekCount,
+            contextPeekTaskCount,
+          ),
+          'context_peek_redundant_count': contextPeekRedundantCount,
+          'context_peek_total': contextPeekRedundancyTotal,
+          'context_peek_redundancy_rate': _ratioOrZero(
+            contextPeekRedundantCount,
+            contextPeekRedundancyTotal,
+          ),
+          'first_write_after_read_hits': firstWriteAfterReadHits,
+          'first_write_total': firstWriteAfterReadTotal,
+          'first_write_after_read_rate': _rate(
+            firstWriteAfterReadHits,
+            firstWriteAfterReadTotal,
+          ),
+          'agent_tool_rounds_per_task': _ratioOrZero(
+            agentToolRoundCount,
+            agentToolRoundTaskCount,
+          ),
+          'tool_calls_per_input': _ratioOrZero(toolCallCount, recordCount),
+          'agent_llm_turns_per_task': _ratioOrZero(
+            llmCallCount,
+            totalTaskCount,
+          ),
+          'agent_llm_turns_per_task_by_agent': _llmTurnsPerTaskByAgent(
+            llmUsageByAgent,
+            totalTaskCount,
+          ),
+          'agent_finalization_rate': _ratioOrZero(
+            totalTaskCount - failedTaskCount - taskNotSettledCount,
+            totalTaskCount,
+          ),
+          'agent_turn_budget_violation_rate': _ratioOrZero(
+            maxTurnsFailureCount,
+            totalTaskCount,
+          ),
+          'agent_empty_response_count': emptyResponseTurnCount,
+          'agent_empty_response_rate': _ratioOrZero(
+            emptyResponseTurnCount,
+            llmCallCount,
+          ),
+          'loop_detection_absence': loopDetectionFailureCount == 0 ? 1.0 : 0.0,
+          'max_turns_absence': maxTurnsFailureCount == 0 ? 1.0 : 0.0,
+          'failed_task_count': failedTaskCount,
+          'failed_task_rate': _ratioOrZero(failedTaskCount, totalTaskCount),
+          'provider_infra_task_error_count': providerInfraTaskErrorCount,
+          'provider_rate_limit_task_error_count':
+              providerRateLimitTaskErrorCount,
+          'provider_quota_task_error_count': providerQuotaTaskErrorCount,
+          'provider_network_task_error_count': providerNetworkTaskErrorCount,
+          'provider_server_task_error_count': providerServerTaskErrorCount,
+          'provider_infra_task_error_rate': _ratioOrZero(
+            providerInfraTaskErrorCount,
+            totalTaskCount,
+          ),
+          'provider_infra_affected_operation_count':
+              providerInfraAffectedOperationCount,
+          'provider_infra_affected_operation_rate': _ratioOrZero(
+            providerInfraAffectedOperationCount,
+            recordCount + projectionCount,
+          ),
+          'eval_aborted_case_count': evalAbortedCaseCount,
+          'eval_aborted_operation_count': evalAbortedOperationCount,
+          'eval_abort_after_consecutive_unsettled_records':
+              _abortCaseAfterConsecutiveUnsettledRecords,
+          'total_task_count': totalTaskCount,
+          'task_not_settled_count': taskNotSettledCount,
+          'task_settlement_rate': taskSettlementRate,
+          'task_completion_status': taskSettlementRate,
+          'input_timeout_rate': _ratioOrZero(
+            taskNotSettledCount,
+            recordCount + projectionCount,
+          ),
+          'retry_task_count': retryTaskCount,
+          'retry_rate': _ratioOrZero(retryTaskCount, totalTaskCount),
+          'missing_card_count': missingCardCount,
+          'incomplete_card_count': incompleteCardCount,
+          'task_status_totals': taskStatusTotals,
+          'task_type_status_totals': taskTypeStatusTotals,
+          'avg_record_elapsed_ms': recordElapsedMs.isEmpty
               ? 0
               : recordElapsedMs.reduce((a, b) => a + b) ~/
                   recordElapsedMs.length,
-          'p90': _percentile(recordElapsedMs, 0.90),
-          'p95': _percentile(recordElapsedMs, 0.95),
-          'p99': _percentile(recordElapsedMs, 0.99),
-          'max': _maxInt(recordElapsedMs),
-        },
-        'input_full_idle_latency_ms': {
-          'mean': waitElapsedMs.isEmpty
-              ? 0
-              : waitElapsedMs.reduce((a, b) => a + b) ~/ waitElapsedMs.length,
-          'p90': _percentile(waitElapsedMs, 0.90),
-          'p95': _percentile(waitElapsedMs, 0.95),
-          'p99': _percentile(waitElapsedMs, 0.99),
-          'max': _maxInt(waitElapsedMs),
-        },
-        'task_queue_pressure_p95': _percentile(taskQueuePressureSamples, 0.95),
-        'tokens_per_input': _ratioOrZero(
-          _intValue(llmUsageTotals['total_tokens']) ?? 0,
-          recordCount,
-        ),
-        'tokens_per_successful_input': _ratioOrZero(
-          _intValue(llmUsageTotals['total_tokens']) ?? 0,
-          completedCards,
-        ),
-        'llm_usage_total': llmUsageTotals,
-        'tokens_by_agent': llmUsageByAgent,
-        'prompt_tokens_by_agent': _usageFieldByAgent(
-          llmUsageByAgent,
-          'prompt_tokens',
-        ),
-        'completion_tokens_by_agent': _usageFieldByAgent(
-          llmUsageByAgent,
-          'completion_tokens',
-        ),
-        'thought_tokens_by_agent': _usageFieldByAgent(
-          llmUsageByAgent,
-          'thought_tokens',
-        ),
-        'prompt_cache_token_hit_rate_by_agent':
-            _promptCacheHitRateByAgent(llmUsageByAgent),
-        'prompt_cache_token_hit_rate': _ratioOrZero(
-          _intValue(llmUsageTotals['cached_tokens_for_rate']) ?? 0,
-          _intValue(llmUsageTotals['effective_prompt_tokens']) ?? 0,
-        ),
-        'slowest_records': _slowestRecordSummaries(modeObservations),
-        'judge_task_count': judgeTasks.length,
-        'judge_tasks': judgeTasks,
-        'elapsed_ms': elapsed.inMilliseconds,
-        'observation_count': modeObservations.length,
-        'failure_category_counts': _failureCategoryCounts(
-          failures.where((failure) => failure['mode'] == mode.storageValue),
-        ),
-        ...datasetCoverage,
-      };
-      allJudgeTasks.addAll(judgeTasks);
-    }
+          'p90_record_elapsed_ms': _percentile(recordElapsedMs, 0.90),
+          'p95_record_elapsed_ms': _percentile(recordElapsedMs, 0.95),
+          'p99_record_elapsed_ms': _percentile(recordElapsedMs, 0.99),
+          'max_record_elapsed_ms': _maxInt(recordElapsedMs),
+          'input_required_chain_latency_ms': {
+            'mean': recordElapsedMs.isEmpty
+                ? 0
+                : recordElapsedMs.reduce((a, b) => a + b) ~/
+                    recordElapsedMs.length,
+            'p90': _percentile(recordElapsedMs, 0.90),
+            'p95': _percentile(recordElapsedMs, 0.95),
+            'p99': _percentile(recordElapsedMs, 0.99),
+            'max': _maxInt(recordElapsedMs),
+          },
+          'input_full_idle_latency_ms': {
+            'mean': waitElapsedMs.isEmpty
+                ? 0
+                : waitElapsedMs.reduce((a, b) => a + b) ~/ waitElapsedMs.length,
+            'p90': _percentile(waitElapsedMs, 0.90),
+            'p95': _percentile(waitElapsedMs, 0.95),
+            'p99': _percentile(waitElapsedMs, 0.99),
+            'max': _maxInt(waitElapsedMs),
+          },
+          'task_queue_pressure_p95': _percentile(
+            taskQueuePressureSamples,
+            0.95,
+          ),
+          'tokens_per_input': _ratioOrZero(
+            _intValue(llmUsageTotals['total_tokens']) ?? 0,
+            recordCount,
+          ),
+          'tokens_per_successful_input': _ratioOrZero(
+            _intValue(llmUsageTotals['total_tokens']) ?? 0,
+            completedCards,
+          ),
+          'llm_usage_total': llmUsageTotals,
+          'tokens_by_agent': llmUsageByAgent,
+          'prompt_tokens_by_agent': _usageFieldByAgent(
+            llmUsageByAgent,
+            'prompt_tokens',
+          ),
+          'completion_tokens_by_agent': _usageFieldByAgent(
+            llmUsageByAgent,
+            'completion_tokens',
+          ),
+          'thought_tokens_by_agent': _usageFieldByAgent(
+            llmUsageByAgent,
+            'thought_tokens',
+          ),
+          'prompt_cache_token_hit_rate_by_agent': _promptCacheHitRateByAgent(
+            llmUsageByAgent,
+          ),
+          'prompt_cache_token_hit_rate': _ratioOrZero(
+            _intValue(llmUsageTotals['cached_tokens_for_rate']) ?? 0,
+            _intValue(llmUsageTotals['effective_prompt_tokens']) ?? 0,
+          ),
+          'slowest_records': _slowestRecordSummaries(modeObservations),
+          'judge_task_count': judgeTasks.length,
+          'judge_tasks': judgeTasks,
+          'elapsed_ms': elapsed.inMilliseconds,
+          'observation_count': modeObservations.length,
+          'failure_category_counts': _failureCategoryCounts(
+            failures.where((failure) => failure['mode'] == mode.storageValue),
+          ),
+          ...datasetCoverage,
+        };
+        allJudgeTasks.addAll(judgeTasks);
+      }
 
-    final comparison = _compareModes(metricsByMode);
-    final gate = _evaluateGate(metricsByMode, comparison);
+      final comparison = _compareModes(metricsByMode);
+      final gate = _evaluateGate(metricsByMode, comparison);
+      final pairwiseJudgeTasks = _pairwiseJudgeTasksFromObservations(
+        observations,
+      );
+      allJudgeTasks.addAll(pairwiseJudgeTasks);
 
-    await _writeJsonl(
-        File(p.join(runDir.path, 'observations.jsonl')), observations);
-    await _writeJsonl(File(p.join(runDir.path, 'failures.jsonl')), failures);
-    await _writeJsonl(
-      File(p.join(runDir.path, 'judge_tasks.jsonl')),
-      allJudgeTasks,
-    );
-    await File(p.join(runDir.path, 'metrics.json')).writeAsString(
-      const JsonEncoder.withIndent('  ').convert({
-        'dataset_path': datasetPath,
-        'llm_enabled': _llmEnabled,
-        'modes': modes.map((mode) => mode.storageValue).toList(),
-        'case_offset': _caseOffset,
-        'case_limit': _caseLimit,
-        'iteration': _iterationMetadata(),
-        'dataset_coverage': datasetCoverage,
-        'llm_preflight': llmPreflight,
-        'metrics_by_mode': metricsByMode,
-        'comparison': comparison,
-        'gate': gate,
-        'judge_task_count': allJudgeTasks.length,
-        'secrets': {
-          'llm_api_key': _llmEnabled ? '<redacted>' : null,
-          'embedding_api_key':
-              Platform.environment['MEMEX_EVAL_EMBEDDING_API_KEY'] == null
-                  ? null
-                  : '<redacted>',
-        },
-      }),
-      flush: true,
-    );
-    await File(p.join(runDir.path, 'gate.json')).writeAsString(
-      const JsonEncoder.withIndent('  ').convert(gate),
-      flush: true,
-    );
-    await File(p.join(runDir.path, 'report.md')).writeAsString(
-      _renderReport(
-        datasetPath: datasetPath,
-        modes: modes.map((mode) => mode.storageValue).toList(),
-        caseOffset: _caseOffset,
-        caseLimit: _caseLimit,
-        llmPreflight: llmPreflight,
-        metricsByMode: metricsByMode,
-        comparison: comparison,
-        gate: gate,
-        failures: failures,
-      ),
-      flush: true,
-    );
-    await File(p.join(runDir.path, 'case_debug_index.md')).writeAsString(
-      _renderCaseDebugIndex(
-        modes: modes.map((mode) => mode.storageValue).toList(),
-        observations: observations,
-        failures: failures,
-      ),
-      flush: true,
-    );
+      await _writeJsonl(
+        File(p.join(runDir.path, 'observations.jsonl')),
+        observations,
+      );
+      await _writeJsonl(File(p.join(runDir.path, 'failures.jsonl')), failures);
+      await _writeJsonl(
+        File(p.join(runDir.path, 'judge_tasks.jsonl')),
+        allJudgeTasks,
+      );
+      await File(p.join(runDir.path, 'metrics.json')).writeAsString(
+        const JsonEncoder.withIndent('  ').convert({
+          'dataset_path': datasetPath,
+          'llm_enabled': _llmEnabled,
+          'modes': modes.map((mode) => mode.storageValue).toList(),
+          'case_offset': _caseOffset,
+          'case_limit': _caseLimit,
+          'iteration': _iterationMetadata(),
+          'dataset_coverage': datasetCoverage,
+          'llm_preflight': llmPreflight,
+          'llm_provider_pool': _llmProviderPoolStateSnapshot(),
+          'metrics_by_mode': metricsByMode,
+          'comparison': comparison,
+          'gate': gate,
+          'judge_task_count': allJudgeTasks.length,
+          'pairwise_judge_task_count': pairwiseJudgeTasks.length,
+          'secrets': {
+            'llm_api_key': _llmEnabled ? '<redacted>' : null,
+            'embedding_api_key':
+                Platform.environment['MEMEX_EVAL_EMBEDDING_API_KEY'] == null
+                    ? null
+                    : '<redacted>',
+          },
+        }),
+        flush: true,
+      );
+      await File(p.join(runDir.path, 'gate.json')).writeAsString(
+        const JsonEncoder.withIndent('  ').convert(gate),
+        flush: true,
+      );
+      await File(p.join(runDir.path, 'report.md')).writeAsString(
+        _renderReport(
+          datasetPath: datasetPath,
+          modes: modes.map((mode) => mode.storageValue).toList(),
+          caseOffset: _caseOffset,
+          caseLimit: _caseLimit,
+          llmPreflight: llmPreflight,
+          metricsByMode: metricsByMode,
+          comparison: comparison,
+          gate: gate,
+          failures: failures,
+        ),
+        flush: true,
+      );
+      await File(p.join(runDir.path, 'case_debug_index.md')).writeAsString(
+        _renderCaseDebugIndex(
+          modes: modes.map((mode) => mode.storageValue).toList(),
+          observations: observations,
+          failures: failures,
+        ),
+        flush: true,
+      );
 
-    expect(File(p.join(runDir.path, 'metrics.json')).existsSync(), isTrue);
-    expect(File(p.join(runDir.path, 'gate.json')).existsSync(), isTrue);
-    expect(File(p.join(runDir.path, 'report.md')).existsSync(), isTrue);
-    expect(File(p.join(runDir.path, 'failures.jsonl')).existsSync(), isTrue);
-    expect(File(p.join(runDir.path, 'judge_tasks.jsonl')).existsSync(), isTrue);
-    expect(
-        File(p.join(runDir.path, 'case_debug_index.md')).existsSync(), isTrue);
-    if (Platform.environment['MEMEX_EVAL_ENFORCE_GATE'] == '1') {
-      expect(gate['status'], equals('pass'));
-    }
-  }, timeout: Timeout(_suiteTimeout));
+      expect(File(p.join(runDir.path, 'metrics.json')).existsSync(), isTrue);
+      expect(File(p.join(runDir.path, 'gate.json')).existsSync(), isTrue);
+      expect(File(p.join(runDir.path, 'report.md')).existsSync(), isTrue);
+      expect(File(p.join(runDir.path, 'failures.jsonl')).existsSync(), isTrue);
+      expect(
+        File(p.join(runDir.path, 'judge_tasks.jsonl')).existsSync(),
+        isTrue,
+      );
+      expect(
+        File(p.join(runDir.path, 'case_debug_index.md')).existsSync(),
+        isTrue,
+      );
+      if (Platform.environment['MEMEX_EVAL_ENFORCE_GATE'] == '1') {
+        expect(gate['status'], equals('pass'));
+      }
+    },
+    timeout: Timeout(_suiteTimeout),
+  );
 }
 
 bool get _llmEnabled =>
@@ -1145,17 +1484,26 @@ Set<String>? get _changedCaseIds {
   return ids.isEmpty ? null : ids;
 }
 
-Duration get _taskTimeout => Duration(
-      seconds: _intFromEnv('MEMEX_EVAL_TASK_TIMEOUT_SECONDS') ?? 120,
-    );
+Duration get _taskTimeout =>
+    Duration(seconds: _intFromEnv('MEMEX_EVAL_TASK_TIMEOUT_SECONDS') ?? 120);
 
-Duration get _askTimeout => Duration(
-      seconds: _intFromEnv('MEMEX_EVAL_ASK_TIMEOUT_SECONDS') ?? 180,
-    );
+int get _taskScanLimit => _intFromEnv('MEMEX_EVAL_TASK_SCAN_LIMIT') ?? 50000;
 
-Duration get _suiteTimeout => Duration(
-      seconds: _intFromEnv('MEMEX_EVAL_SUITE_TIMEOUT_SECONDS') ?? 900,
-    );
+int get _abortCaseAfterConsecutiveUnsettledRecords =>
+    _intFromEnv(
+      'MEMEX_EVAL_ABORT_CASE_AFTER_CONSECUTIVE_UNSETTLED_RECORDS',
+    ) ??
+    0;
+
+bool get _abortOnProviderQuotaTaskFailure =>
+    Platform.environment['MEMEX_EVAL_ABORT_ON_PROVIDER_QUOTA_TASK_FAILURE'] !=
+    '0';
+
+Duration get _askTimeout =>
+    Duration(seconds: _intFromEnv('MEMEX_EVAL_ASK_TIMEOUT_SECONDS') ?? 180);
+
+Duration get _suiteTimeout =>
+    Duration(seconds: _intFromEnv('MEMEX_EVAL_SUITE_TIMEOUT_SECONDS') ?? 900);
 
 List<AgentPipelineMode> _pipelineModes() {
   final raw = Platform.environment['MEMEX_EVAL_PIPELINE_MODES'] ??
@@ -1168,10 +1516,10 @@ List<AgentPipelineMode> _pipelineModes() {
       .toList(growable: false);
 }
 
-Future<void> _configureOptionalLlm({int slot = 0}) async {
+Future<_EvalLlmConfig?> _configureOptionalLlm({int slot = 0}) async {
   if (!_llmEnabled) {
     await UserStorage.resetLLMConfigs();
-    return;
+    return null;
   }
 
   final config = _llmConfigForSlot(slot);
@@ -1187,21 +1535,29 @@ Future<void> _configureOptionalLlm({int slot = 0}) async {
     ),
   ]);
   await UserStorage.setDefaultLLMConfigKey(LLMConfig.defaultClientKey);
+  return config;
 }
 
-_EvalLlmConfig _llmConfigForSlot(int slot) {
+_EvalLlmConfig _llmConfigForSlot(int slot, {bool skipDisabled = true}) {
   final baseUrls = _envList('MEMEX_EVAL_LLM_BASE_URLS');
   final apiKeys = _envList('MEMEX_EVAL_LLM_API_KEYS');
-  final fallbackBaseUrl =
-      _firstEnv(['MEMEX_EVAL_LLM_BASE_URL', 'EVAL_LLM_BASE_URL']);
-  final fallbackApiKey =
-      _firstEnv(['MEMEX_EVAL_LLM_API_KEY', 'EVAL_LLM_API_KEY']);
+  final fallbackBaseUrl = _firstEnv([
+    'MEMEX_EVAL_LLM_BASE_URL',
+    'EVAL_LLM_BASE_URL',
+  ]);
+  final fallbackApiKey = _firstEnv([
+    'MEMEX_EVAL_LLM_API_KEY',
+    'EVAL_LLM_API_KEY',
+  ]);
   final configCount = baseUrls.isNotEmpty && apiKeys.isNotEmpty
       ? (baseUrls.length < apiKeys.length ? baseUrls.length : apiKeys.length)
       : 0;
-  final providerOrder = _llmProviderOrder(configCount);
-  final configIndex =
-      configCount == 0 ? 0 : providerOrder[slot % providerOrder.length];
+  final effectiveConfigCount = configCount == 0 ? 1 : configCount;
+  final providerOrder = _llmProviderOrder(
+    effectiveConfigCount,
+    skipDisabled: skipDisabled,
+  );
+  final configIndex = providerOrder[slot % providerOrder.length];
   final baseUrl = configCount == 0 ? fallbackBaseUrl : baseUrls[configIndex];
   final apiKey = configCount == 0 ? fallbackApiKey : apiKeys[configIndex];
   final model =
@@ -1226,12 +1582,51 @@ _EvalLlmConfig _llmConfigForSlot(int slot) {
   );
 }
 
-List<int> _llmProviderOrder(int configCount) {
+int get _llmProviderConfigCount {
+  final baseUrls = _envList('MEMEX_EVAL_LLM_BASE_URLS');
+  final apiKeys = _envList('MEMEX_EVAL_LLM_API_KEYS');
+  if (baseUrls.isNotEmpty && apiKeys.isNotEmpty) {
+    return baseUrls.length < apiKeys.length ? baseUrls.length : apiKeys.length;
+  }
+  final fallbackBaseUrl = _firstEnv([
+    'MEMEX_EVAL_LLM_BASE_URL',
+    'EVAL_LLM_BASE_URL',
+  ]);
+  final fallbackApiKey = _firstEnv([
+    'MEMEX_EVAL_LLM_API_KEY',
+    'EVAL_LLM_API_KEY',
+  ]);
+  return fallbackBaseUrl == null || fallbackApiKey == null ? 0 : 1;
+}
+
+Duration get _llmProviderRetryDelay => Duration(
+      milliseconds:
+          _intFromEnv('MEMEX_EVAL_LLM_PROVIDER_RETRY_DELAY_MS') ?? 800,
+    );
+
+JsonMap _llmProviderPoolStateSnapshot() {
+  return {
+    'provider_count': _llmProviderConfigCount,
+    'provider_retry_delay_ms': _llmProviderRetryDelay.inMilliseconds,
+    'quota_disable_enabled': true,
+    'disabled_count': _llmDisabledProviderIndexes.length,
+    'disabled_indexes': _llmDisabledProviderIndexes.toList()..sort(),
+  };
+}
+
+List<int> _llmProviderOrder(int configCount, {bool skipDisabled = false}) {
   if (configCount <= 0) return const [0];
-  final indexes = List<int>.generate(configCount, (index) => index);
+  final indexes = List<int>.generate(configCount, (index) => index)
+      .where((index) =>
+          !skipDisabled || !_llmDisabledProviderIndexes.contains(index))
+      .toList(growable: false);
+  if (indexes.isEmpty) {
+    throw StateError('All LLM providers are disabled by quota errors.');
+  }
   indexes.sort((a, b) {
-    final priorityComparison =
-        _llmProviderPriority(b).compareTo(_llmProviderPriority(a));
+    final priorityComparison = _llmProviderPriority(
+      b,
+    ).compareTo(_llmProviderPriority(a));
     if (priorityComparison != 0) return priorityComparison;
     return a.compareTo(b);
   });
@@ -1289,10 +1684,9 @@ Future<JsonMap?> _runLlmPreflight({
   );
 
   if (!passed) {
-    await File(p.join(runDir.path, 'report.md')).writeAsString(
-      _renderPreflightFailureReport(artifact),
-      flush: true,
-    );
+    await File(
+      p.join(runDir.path, 'report.md'),
+    ).writeAsString(_renderPreflightFailureReport(artifact), flush: true);
     if (!_llmPreflightWarnOnly) {
       final failed = results
           .where((result) => result['ok'] != true)
@@ -1320,7 +1714,7 @@ List<_EvalLlmConfig> _uniqueLlmConfigsForSlots({
   final configs = <_EvalLlmConfig>[];
   final seen = <String>{};
   for (var slot = 0; slot < slots; slot++) {
-    final config = _llmConfigForSlot(slotOffset + slot);
+    final config = _llmConfigForSlot(slotOffset + slot, skipDisabled: false);
     final key =
         '${config.configIndex}|${config.type}|${config.baseUrl}|${config.model}|${config.apiKey.hashCode}';
     if (seen.add(key)) configs.add(config);
@@ -1354,10 +1748,7 @@ Future<JsonMap> _preflightLlmConfig(_EvalLlmConfig config) async {
           'model': config.model,
           'max_tokens': 8,
           'messages': [
-            {
-              'role': 'user',
-              'content': 'Return ok.',
-            }
+            {'role': 'user', 'content': 'Return ok.'},
           ],
         },
       );
@@ -1368,10 +1759,7 @@ Future<JsonMap> _preflightLlmConfig(_EvalLlmConfig config) async {
         body: {
           'model': config.model,
           'messages': [
-            {
-              'role': 'user',
-              'content': 'Return ok.',
-            }
+            {'role': 'user', 'content': 'Return ok.'},
           ],
           'max_tokens': 8,
           'temperature': 0,
@@ -1424,18 +1812,15 @@ Future<_HttpJsonResponse> _postJson(
   final client = HttpClient();
   client.connectionTimeout = const Duration(seconds: 20);
   try {
-    final request = await client.postUrl(uri).timeout(
-          const Duration(seconds: 20),
-        );
+    final request =
+        await client.postUrl(uri).timeout(const Duration(seconds: 20));
     request.headers.contentType = ContentType.json;
     request.headers.set(HttpHeaders.acceptHeader, 'application/json');
     for (final entry in headers.entries) {
       request.headers.set(entry.key, entry.value);
     }
     request.write(jsonEncode(body));
-    final response = await request.close().timeout(
-          const Duration(seconds: 30),
-        );
+    final response = await request.close().timeout(const Duration(seconds: 30));
     final responseBody = await utf8.decoder.bind(response).join();
     return _HttpJsonResponse(response.statusCode, responseBody);
   } finally {
@@ -1502,10 +1887,7 @@ Future<_SuperAgentAskResult> _runSuperAgentAsk(
     return const _SuperAgentAskResult(
       answer: '',
       events: [
-        {
-          'type': 'skipped',
-          'reason': 'MEMEX_EVAL_ENABLE_LLM is not enabled',
-        }
+        {'type': 'skipped', 'reason': 'MEMEX_EVAL_ENABLE_LLM is not enabled'},
       ],
       tokenUsageEvents: [],
       error: 'skipped_without_llm',
@@ -1560,12 +1942,105 @@ Future<_SuperAgentAskResult> _runSuperAgentAsk(
   );
 }
 
+Future<_SuperAgentAskResult> _runSuperAgentAskWithProviderRetries(
+  MemexRouter router,
+  JsonMap operation, {
+  required String userId,
+  required int baseSlot,
+}) async {
+  if (!_llmEnabled) {
+    return _runSuperAgentAsk(router, operation);
+  }
+
+  final maxAttempts =
+      _llmProviderConfigCount <= 1 ? 1 : _llmProviderConfigCount;
+  final attempts = <JsonMap>[];
+  _SuperAgentAskResult? latest;
+  for (var attempt = 0; attempt < maxAttempts; attempt++) {
+    _EvalLlmConfig? config;
+    try {
+      await UserStorage.saveUser(userId);
+      config = await _configureOptionalLlm(slot: baseSlot + attempt);
+      await UserStorage.saveUser(userId);
+    } catch (e) {
+      final exhausted = {
+        'attempt': attempt + 1,
+        'provider_pool_exhausted': true,
+        'error': e.toString(),
+      };
+      attempts.add(exhausted);
+      return (latest ??
+              const _SuperAgentAskResult(
+                answer: '',
+                events: [],
+                tokenUsageEvents: [],
+                error: 'provider_pool_exhausted',
+              ))
+          .withProviderAttempts(attempts);
+    }
+
+    final result = await _runSuperAgentAsk(router, operation);
+    final retryable = _isRetryableLlmProviderError(result.error);
+    final quotaExhausted = _isQuotaExhaustedLlmProviderError(result.error);
+    if (quotaExhausted && config != null) {
+      _llmDisabledProviderIndexes.add(config.configIndex);
+    }
+    attempts.add({
+      'attempt': attempt + 1,
+      if (config != null) 'provider_index': config.configIndex,
+      if (config != null) 'base_url': config.baseUrl,
+      if (config != null) 'model': config.model,
+      'retryable_provider_error': retryable,
+      if (quotaExhausted) 'provider_disabled': true,
+      if (result.error != null) 'error': result.error,
+    });
+    latest = result.withProviderAttempts(attempts);
+    if (!retryable) return latest;
+    if (attempt < maxAttempts - 1) {
+      await Future<void>.delayed(_llmProviderRetryDelay);
+    }
+  }
+
+  return latest ??
+      _SuperAgentAskResult(
+        answer: '',
+        events: const [],
+        tokenUsageEvents: const [],
+        error: 'no_provider_attempts_completed',
+        providerAttempts: attempts,
+      );
+}
+
+bool _isRetryableLlmProviderError(String? error) {
+  if (error == null || error.trim().isEmpty) return false;
+  final normalized = error.toLowerCase();
+  return normalized.contains('429') ||
+      normalized.contains('too many requests') ||
+      normalized.contains('rate limit') ||
+      normalized.contains('limitation') ||
+      normalized.contains('quota');
+}
+
+bool _isQuotaExhaustedLlmProviderError(String? error) {
+  if (error == null || error.trim().isEmpty) return false;
+  final normalized = error.toLowerCase();
+  return normalized.contains('out of quota') ||
+      normalized.contains('over quota') ||
+      normalized.contains('quota exceeded') ||
+      normalized.contains('insufficient_quota') ||
+      normalized.contains('insufficient quota') ||
+      normalized.contains('no quota') ||
+      normalized.contains('balance is insufficient');
+}
+
 List<Map<String, String>>? _refs(Object? value) {
   final refs = _list(value)
       .whereType<Map>()
-      .map((item) => item.map(
-            (key, value) => MapEntry(key.toString(), value.toString()),
-          ))
+      .map(
+        (item) => item.map(
+          (key, value) => MapEntry(key.toString(), value.toString()),
+        ),
+      )
       .toList(growable: false);
   return refs.isEmpty ? null : refs;
 }
@@ -1631,35 +2106,52 @@ String _caseUserId(JsonMap evalCase, AgentPipelineMode mode, int index) {
 }
 
 Future<_TaskWaitResult> _waitForTasksToSettle({
-  required int previousTaskCount,
+  required Set<String> previousTaskIds,
   required Duration timeout,
 }) async {
   final deadline = DateTime.now().add(timeout);
   var lastTasks = <dynamic>[];
+  var lastNewTasks = <dynamic>[];
+  int? quietNewTaskCount;
+  DateTime? quietSince;
   while (DateTime.now().isBefore(deadline)) {
-    final tasks = await LocalTaskExecutor.instance.getTasks(limit: 4000);
+    final tasks = await LocalTaskExecutor.instance.getTasks(
+      limit: _taskScanLimit,
+    );
     lastTasks = tasks;
-    final active = tasks
-        .where((task) =>
-            ['pending', 'processing', 'retrying'].contains(task.status))
+    final newTasks = tasks.where((task) {
+      final id = task.id.toString();
+      return !previousTaskIds.contains(id);
+    }).toList(growable: false);
+    lastNewTasks = newTasks;
+    final active = newTasks
+        .where(
+          (task) => ['pending', 'processing', 'retrying'].contains(task.status),
+        )
         .toList();
-    if (tasks.length > previousTaskCount && active.isEmpty) {
-      return _TaskWaitResult(
-        tasks: tasks,
-        newTaskCount: tasks.length - previousTaskCount,
-        settled: true,
-      );
+    if (newTasks.isNotEmpty && active.isEmpty) {
+      final now = DateTime.now();
+      if (quietNewTaskCount == newTasks.length && quietSince != null) {
+        if (now.difference(quietSince) >= const Duration(milliseconds: 800)) {
+          return _TaskWaitResult(
+            tasks: tasks,
+            newTasks: newTasks,
+            settled: true,
+          );
+        }
+      } else {
+        quietNewTaskCount = newTasks.length;
+        quietSince = now;
+      }
+    } else {
+      quietNewTaskCount = null;
+      quietSince = null;
     }
     await Future<void>.delayed(const Duration(milliseconds: 500));
   }
   return _TaskWaitResult(
     tasks: lastTasks,
-    newTaskCount: (lastTasks.length - previousTaskCount)
-        .clamp(
-          0,
-          lastTasks.length,
-        )
-        .toInt(),
+    newTasks: lastNewTasks,
     settled: false,
   );
 }
@@ -1781,19 +2273,21 @@ _ExpectationEvalResult _evaluateTextExpectations({
     if (expectation.matches(haystack)) {
       mustHits += 1;
     } else {
-      failures.add(_failure(
-        mode: mode,
-        caseId: caseId,
-        operationId: operationId,
-        category: missingCategory,
-        message: 'Expected text was missing.',
-        details: {
-          'label': expectation.label,
-          'alternatives': expectation.alternatives,
-          if (expectation.regexPattern != null)
-            'regex': expectation.regexPattern,
-        },
-      ));
+      failures.add(
+        _failure(
+          mode: mode,
+          caseId: caseId,
+          operationId: operationId,
+          category: missingCategory,
+          message: 'Expected text was missing.',
+          details: {
+            'label': expectation.label,
+            'alternatives': expectation.alternatives,
+            if (expectation.regexPattern != null)
+              'regex': expectation.regexPattern,
+          },
+        ),
+      );
     }
   }
 
@@ -1801,19 +2295,21 @@ _ExpectationEvalResult _evaluateTextExpectations({
   for (final expectation in mustNotContain) {
     if (expectation.matches(haystack)) {
       forbiddenHits += 1;
-      failures.add(_failure(
-        mode: mode,
-        caseId: caseId,
-        operationId: operationId,
-        category: forbiddenCategory,
-        message: 'Forbidden text was present.',
-        details: {
-          'label': expectation.label,
-          'alternatives': expectation.alternatives,
-          if (expectation.regexPattern != null)
-            'regex': expectation.regexPattern,
-        },
-      ));
+      failures.add(
+        _failure(
+          mode: mode,
+          caseId: caseId,
+          operationId: operationId,
+          category: forbiddenCategory,
+          message: 'Forbidden text was present.',
+          details: {
+            'label': expectation.label,
+            'alternatives': expectation.alternatives,
+            if (expectation.regexPattern != null)
+              'regex': expectation.regexPattern,
+          },
+        ),
+      );
     }
   }
 
@@ -1844,14 +2340,16 @@ Future<_ExpectationEvalResult> _evaluateRelatedFactExpectations({
         expectation['fact_id']?.toString() ??
         '';
     if (factId.isEmpty) {
-      failures.add(_failure(
-        mode: mode,
-        caseId: caseId,
-        operationId: operationId,
-        category: 'related_fact_target_missing',
-        message: 'Related-fact expectation target could not be resolved.',
-        details: expectation,
-      ));
+      failures.add(
+        _failure(
+          mode: mode,
+          caseId: caseId,
+          operationId: operationId,
+          category: 'related_fact_target_missing',
+          message: 'Related-fact expectation target could not be resolved.',
+          details: expectation,
+        ),
+      );
       continue;
     }
     final expectedFactIds = <String>{
@@ -1870,18 +2368,20 @@ Future<_ExpectationEvalResult> _evaluateRelatedFactExpectations({
       if (relatedIds.contains(expectedFactId)) {
         hits += 1;
       } else {
-        failures.add(_failure(
-          mode: mode,
-          caseId: caseId,
-          operationId: operationId,
-          category: 'related_fact_missing',
-          message: 'Expected related fact was not cited by card insight.',
-          details: {
-            'target_fact_id': factId,
-            'expected_related_fact_id': expectedFactId,
-            'actual_related_fact_ids': relatedIds.toList(),
-          },
-        ));
+        failures.add(
+          _failure(
+            mode: mode,
+            caseId: caseId,
+            operationId: operationId,
+            category: 'related_fact_missing',
+            message: 'Expected related fact was not cited by card insight.',
+            details: {
+              'target_fact_id': factId,
+              'expected_related_fact_id': expectedFactId,
+              'actual_related_fact_ids': relatedIds.toList(),
+            },
+          ),
+        );
       }
     }
   }
@@ -1922,30 +2422,34 @@ _RouteEvalResult _evaluateRouteExpectation({
   final forbiddenHits = observedTaskTypes.intersection(forbiddenTaskTypes);
   final failures = <JsonMap>[];
   for (final type in missing) {
-    failures.add(_failure(
-      mode: mode,
-      caseId: caseId,
-      operationId: operationId,
-      category: 'agent_route_missing',
-      message: 'Expected downstream task type was not triggered.',
-      details: {
-        'expected_task_type': type,
-        'observed_task_types': observedTaskTypes.toList()..sort(),
-      },
-    ));
+    failures.add(
+      _failure(
+        mode: mode,
+        caseId: caseId,
+        operationId: operationId,
+        category: 'agent_route_missing',
+        message: 'Expected downstream task type was not triggered.',
+        details: {
+          'expected_task_type': type,
+          'observed_task_types': observedTaskTypes.toList()..sort(),
+        },
+      ),
+    );
   }
   for (final type in forbiddenHits) {
-    failures.add(_failure(
-      mode: mode,
-      caseId: caseId,
-      operationId: operationId,
-      category: 'agent_route_overtrigger',
-      message: 'Forbidden downstream task type was triggered.',
-      details: {
-        'forbidden_task_type': type,
-        'observed_task_types': observedTaskTypes.toList()..sort(),
-      },
-    ));
+    failures.add(
+      _failure(
+        mode: mode,
+        caseId: caseId,
+        operationId: operationId,
+        category: 'agent_route_overtrigger',
+        message: 'Forbidden downstream task type was triggered.',
+        details: {
+          'forbidden_task_type': type,
+          'observed_task_types': observedTaskTypes.toList()..sort(),
+        },
+      ),
+    );
   }
 
   return _RouteEvalResult(
@@ -1960,10 +2464,7 @@ _RouteEvalResult _evaluateRouteExpectation({
 }
 
 Set<String> _agentTaskTypesFromTasks(Iterable<dynamic> tasks) {
-  final ignored = {
-    'fts_index_update',
-    'handle_analyze_assets',
-  };
+  final ignored = {'fts_index_update', 'handle_analyze_assets'};
   return tasks
       .map((task) => task.type?.toString())
       .whereType<String>()
@@ -1994,32 +2495,36 @@ _CardMetricEvalResult _evaluateCardMetricExpectations({
         expectedTemplates.contains(templateIds.first)) {
       templatePrimaryHits = 1;
     } else {
-      failures.add(_failure(
-        mode: mode,
-        caseId: caseId,
-        operationId: operationId,
-        category: 'card_template_primary_mismatch',
-        message: 'Primary card template did not match expected set.',
-        details: {
-          'expected_template_ids': expectedTemplates.toList()..sort(),
-          'actual_template_ids': templateIds,
-        },
-      ));
+      failures.add(
+        _failure(
+          mode: mode,
+          caseId: caseId,
+          operationId: operationId,
+          category: 'card_template_primary_mismatch',
+          message: 'Primary card template did not match expected set.',
+          details: {
+            'expected_template_ids': expectedTemplates.toList()..sort(),
+            'actual_template_ids': templateIds,
+          },
+        ),
+      );
     }
     if (templateIds.any(expectedTemplates.contains)) {
       templateAnyHits = 1;
     } else {
-      failures.add(_failure(
-        mode: mode,
-        caseId: caseId,
-        operationId: operationId,
-        category: 'card_template_any_mismatch',
-        message: 'No card template matched expected set.',
-        details: {
-          'expected_template_ids': expectedTemplates.toList()..sort(),
-          'actual_template_ids': templateIds,
-        },
-      ));
+      failures.add(
+        _failure(
+          mode: mode,
+          caseId: caseId,
+          operationId: operationId,
+          category: 'card_template_any_mismatch',
+          message: 'No card template matched expected set.',
+          details: {
+            'expected_template_ids': expectedTemplates.toList()..sort(),
+            'actual_template_ids': templateIds,
+          },
+        ),
+      );
     }
   }
 
@@ -2080,19 +2585,21 @@ _CardMetricEvalResult _evaluateCardMetricExpectations({
       if (diffMinutes <= toleranceMinutes) {
         timeHits = 1;
       } else {
-        failures.add(_failure(
-          mode: mode,
-          caseId: caseId,
-          operationId: operationId,
-          category: 'card_time_parse_mismatch',
-          message: 'Card timestamp was outside expected tolerance.',
-          details: {
-            'expected_time': expectedTime,
-            'actual_timestamp': actual.toIso8601String(),
-            'diff_minutes': diffMinutes,
-            'tolerance_minutes': toleranceMinutes,
-          },
-        ));
+        failures.add(
+          _failure(
+            mode: mode,
+            caseId: caseId,
+            operationId: operationId,
+            category: 'card_time_parse_mismatch',
+            message: 'Card timestamp was outside expected tolerance.',
+            details: {
+              'expected_time': expectedTime,
+              'actual_timestamp': actual.toIso8601String(),
+              'diff_minutes': diffMinutes,
+              'tolerance_minutes': toleranceMinutes,
+            },
+          ),
+        );
       }
     }
   }
@@ -2148,8 +2655,9 @@ _SuperAgentToolEvalResult _evaluateSuperAgentToolExpectations({
   final callNameSet = callNames.where((name) => name.isNotEmpty).toSet();
   final failures = <JsonMap>[];
 
-  final expectedTools =
-      _strings(scoped['expected_tools'] ?? scoped['tools_must_call']);
+  final expectedTools = _strings(
+    scoped['expected_tools'] ?? scoped['tools_must_call'],
+  );
   var toolSelectionHits = 0;
   var toolSelectionTotal = 0;
   for (final tool in expectedTools) {
@@ -2157,19 +2665,25 @@ _SuperAgentToolEvalResult _evaluateSuperAgentToolExpectations({
     if (callNameSet.contains(tool)) {
       toolSelectionHits += 1;
     } else {
-      failures.add(_failure(
-        mode: mode,
-        caseId: caseId,
-        operationId: operationId,
-        category: 'tool_selection_missing',
-        message: 'Expected tool was not called.',
-        details: {'expected_tool': tool, 'actual_tools': callNameSet.toList()},
-      ));
+      failures.add(
+        _failure(
+          mode: mode,
+          caseId: caseId,
+          operationId: operationId,
+          category: 'tool_selection_missing',
+          message: 'Expected tool was not called.',
+          details: {
+            'expected_tool': tool,
+            'actual_tools': callNameSet.toList(),
+          },
+        ),
+      );
     }
   }
 
-  final forbiddenTools =
-      _strings(scoped['forbidden_tools'] ?? scoped['prohibited_tools']);
+  final forbiddenTools = _strings(
+    scoped['forbidden_tools'] ?? scoped['prohibited_tools'],
+  );
   final readOnlyExpected = scoped['read_only'] == true ||
       scoped['readonly'] == true ||
       forbiddenTools.isNotEmpty;
@@ -2184,14 +2698,18 @@ _SuperAgentToolEvalResult _evaluateSuperAgentToolExpectations({
     if (violations.isEmpty) {
       readOnlyHits = 1;
     } else {
-      failures.add(_failure(
-        mode: mode,
-        caseId: caseId,
-        operationId: operationId,
-        category: 'super_agent_read_only_violation',
-        message: 'Read-only Super Agent ask used a write-like tool.',
-        details: {'violating_tools': violations.map((e) => e['name']).toList()},
-      ));
+      failures.add(
+        _failure(
+          mode: mode,
+          caseId: caseId,
+          operationId: operationId,
+          category: 'super_agent_read_only_violation',
+          message: 'Read-only Super Agent ask used a write-like tool.',
+          details: {
+            'violating_tools': violations.map((e) => e['name']).toList(),
+          },
+        ),
+      );
     }
   }
 
@@ -2213,20 +2731,22 @@ _SuperAgentToolEvalResult _evaluateSuperAgentToolExpectations({
     if (matched) {
       toolArgsHits += 1;
     } else {
-      failures.add(_failure(
-        mode: mode,
-        caseId: caseId,
-        operationId: operationId,
-        category: 'tool_args_mismatch',
-        message: 'Expected tool arguments were not observed.',
-        details: {
-          'tool': tool,
-          'must_contain': needles,
-          'actual_args': matchingCalls
-              .map((call) => call['arguments']?.toString() ?? '')
-              .toList(),
-        },
-      ));
+      failures.add(
+        _failure(
+          mode: mode,
+          caseId: caseId,
+          operationId: operationId,
+          category: 'tool_args_mismatch',
+          message: 'Expected tool arguments were not observed.',
+          details: {
+            'tool': tool,
+            'must_contain': needles,
+            'actual_args': matchingCalls
+                .map((call) => call['arguments']?.toString() ?? '')
+                .toList(),
+          },
+        ),
+      );
     }
   }
 
@@ -2238,14 +2758,16 @@ _SuperAgentToolEvalResult _evaluateSuperAgentToolExpectations({
     if (calls.length <= maxToolCalls) {
       minimalityHits = 1;
     } else {
-      failures.add(_failure(
-        mode: mode,
-        caseId: caseId,
-        operationId: operationId,
-        category: 'tool_call_minimality_violation',
-        message: 'Tool call count exceeded expected maximum.',
-        details: {'actual': calls.length, 'max': maxToolCalls},
-      ));
+      failures.add(
+        _failure(
+          mode: mode,
+          caseId: caseId,
+          operationId: operationId,
+          category: 'tool_call_minimality_violation',
+          message: 'Tool call count exceeded expected maximum.',
+          details: {'actual': calls.length, 'max': maxToolCalls},
+        ),
+      );
     }
   }
 
@@ -2261,6 +2783,10 @@ _SuperAgentToolEvalResult _evaluateSuperAgentToolExpectations({
     rankedSources: rankedSources,
   );
   failures.addAll(retrieval.failures);
+  final retrievalSourceEval = _evaluateToolResultSourceCoverage(
+    expectedSources: expectedSources,
+    results: results,
+  );
 
   final failedResults =
       results.where((result) => result['is_error'] == true).toList();
@@ -2296,6 +2822,7 @@ _SuperAgentToolEvalResult _evaluateSuperAgentToolExpectations({
     retrievalHitAt5Total: retrieval.total,
     retrievalHitAt10Hits: retrieval.hitAt10Hits,
     retrievalHitAt10Total: retrieval.total,
+    retrievalSourceEval: retrievalSourceEval,
     readOnlyHits: readOnlyHits,
     readOnlyTotal: readOnlyTotal,
     toolSelectionHits: toolSelectionHits,
@@ -2332,17 +2859,19 @@ _RetrievalHitEval _evaluateRetrievalHits({
   bool hitAt(int k) => rankedSources.take(k).any(expected.contains);
   final failures = <JsonMap>[];
   if (!hitAt(10)) {
-    failures.add(_failure(
-      mode: mode,
-      caseId: caseId,
-      operationId: operationId,
-      category: 'retrieval_hit_missing',
-      message: 'No expected retrieval source appeared in top 10.',
-      details: {
-        'expected_sources': expectedSources,
-        'ranked_sources': rankedSources.take(10).toList(),
-      },
-    ));
+    failures.add(
+      _failure(
+        mode: mode,
+        caseId: caseId,
+        operationId: operationId,
+        category: 'retrieval_hit_missing',
+        message: 'No expected retrieval source appeared in top 10.',
+        details: {
+          'expected_sources': expectedSources,
+          'ranked_sources': rankedSources.take(10).toList(),
+        },
+      ),
+    );
   }
   return _RetrievalHitEval(
     total: 1,
@@ -2352,6 +2881,149 @@ _RetrievalHitEval _evaluateRetrievalHits({
     hitAt10Hits: hitAt(10) ? 1 : 0,
     failures: failures,
   );
+}
+
+_RetrievalSourceEval _evaluateRecallResultSourceCoverage({
+  required List<String> expectedSources,
+  required List<MemoryRecallResult> results,
+}) {
+  final sourceIndex = <String, Set<String>>{};
+  for (final result in results.take(10)) {
+    final sources = result.retrievalSources.toSet();
+    _addRetrievalSource(sourceIndex, result.atom.id, sources);
+    for (final evidence in result.atom.evidenceFactIds) {
+      _addRetrievalSource(sourceIndex, evidence, sources);
+    }
+  }
+  return _evaluateExpectedSourceCoverage(
+    expectedSources: expectedSources,
+    sourceIndex: sourceIndex,
+  );
+}
+
+_RetrievalSourceEval _evaluateToolResultSourceCoverage({
+  required List<String> expectedSources,
+  required List<JsonMap> results,
+}) {
+  return _evaluateExpectedSourceCoverage(
+    expectedSources: expectedSources,
+    sourceIndex: _retrievalSourceIndexFromToolResults(results),
+  );
+}
+
+_RetrievalSourceEval _evaluateExpectedSourceCoverage({
+  required List<String> expectedSources,
+  required Map<String, Set<String>> sourceIndex,
+}) {
+  if (expectedSources.isEmpty) return const _RetrievalSourceEval();
+  var ftsHits = 0;
+  var vectorHits = 0;
+  var hybridHits = 0;
+  var bothHits = 0;
+  var ftsOnlyHits = 0;
+  var vectorOnlyHits = 0;
+  var missed = 0;
+  var queryHasVector = false;
+  var queryHasVectorOnly = false;
+  final details = <JsonMap>[];
+
+  for (final source in expectedSources) {
+    final channels = sourceIndex[source] ?? const <String>{};
+    final appeared = sourceIndex.containsKey(source);
+    final fts = channels.contains('fts');
+    final vector = channels.contains('vector');
+    if (appeared) hybridHits += 1;
+    if (fts) ftsHits += 1;
+    if (vector) {
+      vectorHits += 1;
+      queryHasVector = true;
+    }
+    if (fts && vector) {
+      bothHits += 1;
+    } else if (fts) {
+      ftsOnlyHits += 1;
+    } else if (vector) {
+      vectorOnlyHits += 1;
+      queryHasVectorOnly = true;
+    } else {
+      missed += 1;
+    }
+    details.add({
+      'source': source,
+      'appeared': appeared,
+      'channels': channels.toList()..sort(),
+    });
+  }
+
+  return _RetrievalSourceEval(
+    positiveSourceTotal: expectedSources.length,
+    ftsPositiveHits: ftsHits,
+    vectorPositiveHits: vectorHits,
+    hybridPositiveHits: hybridHits,
+    bothPositiveHits: bothHits,
+    ftsOnlyPositiveHits: ftsOnlyHits,
+    vectorOnlyPositiveHits: vectorOnlyHits,
+    missedPositiveCount: missed,
+    queryTotal: 1,
+    vectorSupportedQueryHits: queryHasVector ? 1 : 0,
+    vectorOnlySupportedQueryHits: queryHasVectorOnly ? 1 : 0,
+    details: details,
+  );
+}
+
+Map<String, Set<String>> _retrievalSourceIndexFromToolResults(
+  List<JsonMap> results,
+) {
+  final sourceIndex = <String, Set<String>>{};
+  final memoryBlockPattern = RegExp(
+    r'- \[(mem_\d+)\][\s\S]*?(?=\n- \[mem_\d+\]|\n</memory_primary_context>|\z)',
+  );
+  final evidencePattern = RegExp(r'\d{4}/\d{2}/\d{2}\.md#ts_\d+');
+  for (final result in results) {
+    final text = result['result']?.toString() ?? '';
+    for (final block in memoryBlockPattern.allMatches(text)) {
+      final blockText = block.group(0) ?? '';
+      final sources = _retrievalSourcesFromMemoryBlock(blockText);
+      _addRetrievalSource(sourceIndex, block.group(1), sources);
+      for (final match in evidencePattern.allMatches(blockText)) {
+        _addRetrievalSource(sourceIndex, match.group(0), sources);
+      }
+    }
+  }
+  return sourceIndex;
+}
+
+Set<String> _retrievalSourcesFromMemoryBlock(String block) {
+  final sourceLine = RegExp(
+    r'retrieval_sources:\s*([^\n]+)',
+  ).firstMatch(block)?.group(1);
+  final sources = <String>{};
+  if (sourceLine != null) {
+    for (final raw in sourceLine.split(',')) {
+      final source = raw.trim().toLowerCase();
+      if (source == 'fts' || source == 'vector') sources.add(source);
+    }
+  }
+  if (sources.isEmpty) {
+    final lower = block.toLowerCase();
+    if (lower.contains('fts_match') || lower.contains('lexical_match')) {
+      sources.add('fts');
+    }
+    if (lower.contains('vector_match') || lower.contains('embedding_rerank')) {
+      sources.add('vector');
+    }
+  }
+  return sources;
+}
+
+void _addRetrievalSource(
+  Map<String, Set<String>> sourceIndex,
+  String? key,
+  Set<String> sources,
+) {
+  final normalized = key?.trim();
+  if (normalized == null || normalized.isEmpty) return;
+  sourceIndex.putIfAbsent(normalized, () => <String>{}).addAll(sources);
 }
 
 List<String> _rankedSourcesFromToolResults(List<JsonMap> results) {
@@ -2372,8 +3044,9 @@ List<String> _rankedSourcesFromToolResults(List<JsonMap> results) {
       parsedMemoryBlocks = true;
       addSource(block.group(1));
       final blockText = block.group(0) ?? '';
-      for (final match
-          in RegExp(r'\d{4}/\d{2}/\d{2}\.md#ts_\d+').allMatches(blockText)) {
+      for (final match in RegExp(
+        r'\d{4}/\d{2}/\d{2}\.md#ts_\d+',
+      ).allMatches(blockText)) {
         addSource(match.group(0));
       }
     }
@@ -2439,6 +3112,60 @@ List<JsonMap> _judgeTasksForOperation({
   }).toList(growable: false);
 }
 
+List<JsonMap> _pairwiseJudgeTasksFromObservations(List<JsonMap> observations) {
+  final byOperation = <String, Map<String, JsonMap>>{};
+  for (final observation in observations) {
+    if (observation['type'] != 'super_agent_ask') continue;
+    final mode = observation['mode']?.toString();
+    final caseId = observation['case_id']?.toString();
+    final operationId = observation['operation_id']?.toString();
+    if (mode == null || caseId == null || operationId == null) continue;
+    final key = '$caseId|$operationId';
+    byOperation.putIfAbsent(key, () => {})[mode] = observation;
+  }
+
+  final tasks = <JsonMap>[];
+  for (final entry in byOperation.entries) {
+    final legacy = entry.value['legacy_pkm'];
+    final memoryPrimary = entry.value['memory_primary'];
+    if (legacy == null || memoryPrimary == null) continue;
+    final parts = entry.key.split('|');
+    final caseId = parts.first;
+    final operationId = parts.length > 1 ? parts[1] : 'unknown';
+    final flip = _stableHash(entry.key).isOdd;
+    final answerA = flip ? memoryPrimary : legacy;
+    final answerB = flip ? legacy : memoryPrimary;
+    tasks.add({
+      'mode': 'pairwise',
+      'case_id': caseId,
+      'operation_id': operationId,
+      'metric': 'pairwise_answer_quality',
+      'rubric':
+          'Compare two assistant answers for the same Memex personal-memory query. Prefer the answer that is more correct, grounded, complete for the user intent, concise, current-state aware, and free of unsupported claims. If both are equivalent, choose tie. Return winner A, B, or tie.',
+      'response_schema':
+          '{"passed": true, "score": 0.0-1.0, "winner": "A|B|tie", "match_level": "strict|loose|partial|miss", "rationale": "short reason"}',
+      'answer_a_mode': answerA['mode'],
+      'answer_b_mode': answerB['mode'],
+      'input': {'query': answerA['query'], 'expected': answerA['expected']},
+      'output': {'answer_a': answerA['answer'], 'answer_b': answerB['answer']},
+    });
+  }
+  return tasks;
+}
+
+int _stableHash(String value) {
+  var hash = 0;
+  for (final codeUnit in value.codeUnits) {
+    hash = 0x1fffffff & (hash + codeUnit);
+    hash = 0x1fffffff & (hash + ((0x0007ffff & hash) << 10));
+    hash ^= hash >> 6;
+  }
+  hash = 0x1fffffff & (hash + ((0x03ffffff & hash) << 3));
+  hash ^= hash >> 11;
+  hash = 0x1fffffff & (hash + ((0x00003fff & hash) << 15));
+  return hash;
+}
+
 _TaskErrorFlags _taskErrorFlags(Iterable<dynamic> tasks) {
   var loopDetection = false;
   var maxTurns = false;
@@ -2452,6 +3179,77 @@ _TaskErrorFlags _taskErrorFlags(Iterable<dynamic> tasks) {
     }
   }
   return _TaskErrorFlags(loopDetection: loopDetection, maxTurns: maxTurns);
+}
+
+_ProviderInfraErrorStats _providerInfraErrorStats(Iterable<dynamic> tasks) {
+  var total = 0;
+  var rateLimit = 0;
+  var quota = 0;
+  var network = 0;
+  var server = 0;
+  for (final task in tasks) {
+    final error = task.error?.toString() ?? '';
+    if (error.trim().isEmpty) continue;
+    final category = _providerInfraErrorCategory(error);
+    if (category == null) continue;
+    total += 1;
+    switch (category) {
+      case _ProviderInfraErrorCategory.rateLimit:
+        rateLimit += 1;
+      case _ProviderInfraErrorCategory.quota:
+        quota += 1;
+      case _ProviderInfraErrorCategory.network:
+        network += 1;
+      case _ProviderInfraErrorCategory.server:
+        server += 1;
+    }
+  }
+  return _ProviderInfraErrorStats(
+    total: total,
+    rateLimit: rateLimit,
+    quota: quota,
+    network: network,
+    server: server,
+  );
+}
+
+List<dynamic> _failedProviderQuotaTasks(Iterable<dynamic> tasks) {
+  return tasks.where((task) {
+    if (task.status?.toString() != 'failed') return false;
+    final error = task.error?.toString() ?? '';
+    return _providerInfraErrorCategory(error) ==
+        _ProviderInfraErrorCategory.quota;
+  }).toList(growable: false);
+}
+
+_ProviderInfraErrorCategory? _providerInfraErrorCategory(String error) {
+  final lower = error.toLowerCase();
+  if (lower.contains('out of quota') ||
+      lower.contains('insufficient quota') ||
+      lower.contains('quota exhausted') ||
+      lower.contains('quota exceeded') ||
+      lower.contains('balance') ||
+      lower.contains('credits exhausted')) {
+    return _ProviderInfraErrorCategory.quota;
+  }
+  if (RegExp(r'\b429\b').hasMatch(lower) ||
+      lower.contains('too many requests') ||
+      lower.contains('rate limit') ||
+      lower.contains('rate-limit') ||
+      lower.contains('limitation')) {
+    return _ProviderInfraErrorCategory.rateLimit;
+  }
+  if (lower.contains('socketexception') ||
+      lower.contains('timeoutexception') ||
+      lower.contains('connection reset') ||
+      lower.contains('connection refused') ||
+      lower.contains('connection closed')) {
+    return _ProviderInfraErrorCategory.network;
+  }
+  if (RegExp(r'\b5\d{2}\b').hasMatch(lower)) {
+    return _ProviderInfraErrorCategory.server;
+  }
+  return null;
 }
 
 JsonMap _usageFieldByAgent(Map<String, JsonMap> usageByAgent, String field) {
@@ -2534,6 +3332,9 @@ const _expectedScenarioFamilies = [
   'preference',
   'correction',
   'noise_noop',
+  'role_transition',
+  'location_shift',
+  'conflict_resolution',
   'memory_recall',
   'super_agent_ask',
 ];
@@ -2547,6 +3348,7 @@ const _expectedJourneyStages = [
   'recall',
   'projection',
   'ask',
+  'interleaved_ask',
   'judge',
 ];
 
@@ -2557,6 +3359,25 @@ const _expectedOperationTypes = [
   'super_agent_ask',
 ];
 
+const _expectedAgentQueryFamilies = [
+  'project_owner_current',
+  'partner_owner_disambiguation',
+  'relationship_responsibility_split',
+  'report_preference',
+  'location_routine',
+  'role_mood_transition',
+  'sensitive_boundary',
+  'failure_recovery_alignment',
+  'ocr_conflict_grounding',
+  'owner_only_scope',
+];
+
+String? _queryFamilyForOperation(JsonMap operation) {
+  final family = _map(operation['metadata'])['query_family']?.toString();
+  if (family == null || family.trim().isEmpty) return null;
+  return family;
+}
+
 JsonMap _datasetCoverageMetrics(
   List<JsonMap> cases,
   List<AgentPipelineMode> modes,
@@ -2566,6 +3387,8 @@ JsonMap _datasetCoverageMetrics(
   final inputChannels = <String>{};
   final operationTypes = <String>{};
   final agentChains = <String>{};
+  final agentQueryFamilies = <String>{};
+  final agentQueryRecordGaps = <int>[];
   var crossDayContinuityCases = 0;
   var correctionCases = 0;
   var noiseCases = 0;
@@ -2573,12 +3396,17 @@ JsonMap _datasetCoverageMetrics(
   var relationshipCases = 0;
   var longContextCases = 0;
   var oracleConsistentCases = 0;
+  var totalRecordOps = 0;
+  var totalAgentQueryOps = 0;
+  var interleavedAgentQueryOps = 0;
+  int? minAgentQueriesPerCase;
+  var maxAgentQueriesPerCase = 0;
 
   for (final evalCase in cases) {
     final coverage = _map(evalCase['coverage']);
-    final caseScenarioFamilies = _list(coverage['scenario_families'])
-        .map((item) => item.toString())
-        .toList();
+    final caseScenarioFamilies = _list(
+      coverage['scenario_families'],
+    ).map((item) => item.toString()).toList();
     scenarioFamilies.addAll(caseScenarioFamilies);
     journeyStages.addAll(
       _list(coverage['journey_stages']).map((item) => item.toString()),
@@ -2588,11 +3416,45 @@ JsonMap _datasetCoverageMetrics(
     );
 
     final operations = _list(evalCase['operations']).map(_map).toList();
+    final caseRecordCount = operations
+        .where((operation) => operation['type']?.toString() == 'record')
+        .length;
+    var recordsSeen = 0;
+    int? previousAskRecordPosition;
+    var caseAgentQueries = 0;
     operationTypes.addAll(
       operations
           .map((operation) => operation['type']?.toString())
           .whereType<String>(),
     );
+    for (final operation in operations) {
+      final type = operation['type']?.toString();
+      if (type == 'record') {
+        recordsSeen += 1;
+        totalRecordOps += 1;
+        continue;
+      }
+      if (type != 'super_agent_ask') continue;
+      totalAgentQueryOps += 1;
+      caseAgentQueries += 1;
+      final metadata = _map(operation['metadata']);
+      final family = metadata['query_family']?.toString();
+      if (family != null && family.isNotEmpty) agentQueryFamilies.add(family);
+      final followingRecords = caseRecordCount - recordsSeen;
+      if (recordsSeen > 0 && followingRecords > 0) {
+        interleavedAgentQueryOps += 1;
+      }
+      agentQueryRecordGaps.add(
+        previousAskRecordPosition == null
+            ? recordsSeen
+            : recordsSeen - previousAskRecordPosition,
+      );
+      previousAskRecordPosition = recordsSeen;
+    }
+    minAgentQueriesPerCase = minAgentQueriesPerCase == null
+        ? caseAgentQueries
+        : math.min(minAgentQueriesPerCase, caseAgentQueries);
+    maxAgentQueriesPerCase = math.max(maxAgentQueriesPerCase, caseAgentQueries);
 
     if (_caseSpansMultipleDays(operations)) crossDayContinuityCases += 1;
     if (caseScenarioFamilies.contains('correction')) correctionCases += 1;
@@ -2609,9 +3471,11 @@ JsonMap _datasetCoverageMetrics(
     if (coverage['dataset_oracle_audited'] == true) {
       oracleConsistentCases += 1;
     }
-    if (operations.any((operation) =>
-        operation['type'] == 'memory_recall' ||
-        operation['type'] == 'super_agent_ask')) {
+    if (operations.any(
+      (operation) =>
+          operation['type'] == 'memory_recall' ||
+          operation['type'] == 'super_agent_ask',
+    )) {
       followUpQueryCases += 1;
     }
   }
@@ -2653,10 +3517,7 @@ JsonMap _datasetCoverageMetrics(
       scenarioFamilies,
       _expectedScenarioFamilies,
     ),
-    'agent_chain_coverage': _setCoverageRate(
-      agentChains,
-      expectedAgentChains,
-    ),
+    'agent_chain_coverage': _setCoverageRate(agentChains, expectedAgentChains),
     'journey_stage_coverage': _setCoverageRate(
       journeyStages,
       _expectedJourneyStages,
@@ -2675,6 +3536,27 @@ JsonMap _datasetCoverageMetrics(
     'relationship_case_coverage': _rate(relationshipCases, cases.length),
     'long_context_case_coverage': _rate(longContextCases, cases.length),
     'dataset_oracle_consistency': _rate(oracleConsistentCases, cases.length),
+    'agent_query_count': totalAgentQueryOps,
+    'interleaved_agent_query_count': interleavedAgentQueryOps,
+    'agent_query_interleaving_rate': _ratioOrZero(
+      interleavedAgentQueryOps,
+      totalAgentQueryOps,
+    ),
+    'agent_query_density_per_100_records': totalRecordOps == 0
+        ? 0.0
+        : _round3(totalAgentQueryOps * 100 / totalRecordOps),
+    'agent_query_records_per_ask': totalAgentQueryOps == 0
+        ? 0.0
+        : _round3(totalRecordOps / totalAgentQueryOps),
+    'agent_query_family_coverage': _setCoverageRate(
+      agentQueryFamilies,
+      _expectedAgentQueryFamilies,
+    ),
+    'agent_query_family_count': agentQueryFamilies.length,
+    'agent_query_min_per_case': minAgentQueriesPerCase ?? 0,
+    'agent_query_max_per_case': maxAgentQueriesPerCase,
+    'agent_query_record_gap_p95': _percentile(agentQueryRecordGaps, 0.95),
+    'agent_query_record_gap_max': _maxInt(agentQueryRecordGaps),
     'coverage': {
       'covered_scenario_families': scenarioFamilies.toList()..sort(),
       'expected_scenario_families': _expectedScenarioFamilies,
@@ -2685,6 +3567,8 @@ JsonMap _datasetCoverageMetrics(
       'covered_input_channels': inputChannels.toList()..sort(),
       'covered_operation_types': operationTypes.toList()..sort(),
       'expected_operation_types': _expectedOperationTypes,
+      'covered_agent_query_families': agentQueryFamilies.toList()..sort(),
+      'expected_agent_query_families': _expectedAgentQueryFamilies,
       'cross_day_continuity_case_count': crossDayContinuityCases,
       'correction_case_count': correctionCases,
       'noise_resilience_case_count': noiseCases,
@@ -2692,6 +3576,9 @@ JsonMap _datasetCoverageMetrics(
       'relationship_case_count': relationshipCases,
       'long_context_case_count': longContextCases,
       'dataset_oracle_consistent_case_count': oracleConsistentCases,
+      'agent_query_count': totalAgentQueryOps,
+      'interleaved_agent_query_count': interleavedAgentQueryOps,
+      'agent_query_record_gaps': agentQueryRecordGaps,
     },
   };
 }
@@ -2740,6 +3627,9 @@ JsonMap _compareModes(Map<String, JsonMap> metricsByMode) {
     'super_agent_answer_hit_rate',
     'super_agent_boundary_precision',
     'super_agent_tokens_per_ask',
+    'super_agent_provider_attempt_count',
+    'super_agent_provider_retry_count',
+    'super_agent_provider_retry_rate',
     'agent_route_accuracy',
     'agent_route_miss_rate',
     'agent_route_overtrigger_rate',
@@ -2753,6 +3643,13 @@ JsonMap _compareModes(Map<String, JsonMap> metricsByMode) {
     'retrieval_hit_at_3',
     'retrieval_hit_at_5',
     'retrieval_hit_at_10',
+    'vector_positive_coverage_rate',
+    'vector_only_positive_hit_rate',
+    'fts_only_positive_hit_rate',
+    'hybrid_positive_coverage_rate',
+    'vector_incremental_recall_lift_at_10',
+    'vector_supported_query_rate',
+    'vector_only_supported_query_rate',
     'answer_must_include',
     'super_agent_read_only_compliance',
     'tool_selection_accuracy',
@@ -2811,10 +3708,7 @@ JsonMap _compareModes(Map<String, JsonMap> metricsByMode) {
   return deltas;
 }
 
-JsonMap _evaluateGate(
-  Map<String, JsonMap> metricsByMode,
-  JsonMap comparison,
-) {
+JsonMap _evaluateGate(Map<String, JsonMap> metricsByMode, JsonMap comparison) {
   final mode = Platform.environment['MEMEX_EVAL_GATE_MODE'] ?? 'candidate';
   final memory = metricsByMode[AgentPipelineMode.memoryPrimary.storageValue];
   if (memory == null) {
@@ -3057,6 +3951,13 @@ String _renderReport({
     'retrieval_hit_at_3',
     'retrieval_hit_at_5',
     'retrieval_hit_at_10',
+    'vector_positive_coverage_rate',
+    'vector_only_positive_hit_rate',
+    'fts_only_positive_hit_rate',
+    'hybrid_positive_coverage_rate',
+    'vector_incremental_recall_lift_at_10',
+    'vector_supported_query_rate',
+    'vector_only_supported_query_rate',
     'answer_must_include',
     'super_agent_read_only_compliance',
     'tool_selection_accuracy',
@@ -3150,15 +4051,20 @@ String _renderReport({
   b.writeln('## Notes');
   b.writeln('');
   b.writeln(
-      '- The runner uses real `submitInput` and persistent task settling.');
+    '- The runner uses real `submitInput` and persistent task settling.',
+  );
   b.writeln(
-      '- API keys are read from environment variables and redacted from artifacts.');
+    '- API keys are read from environment variables and redacted from artifacts.',
+  );
   b.writeln(
-      '- `legacy_pkm` and `memory_primary` run in isolated workspaces; no dual-write compatibility is used.');
+    '- `legacy_pkm` and `memory_primary` run in isolated workspaces; no dual-write compatibility is used.',
+  );
   b.writeln(
-      '- `failures.jsonl` contains per-case attribution for missing memory, recall, related facts, card state, and task settlement.');
+    '- `failures.jsonl` contains per-case attribution for missing memory, recall, related facts, card state, and task settlement.',
+  );
   b.writeln(
-      '- `case_debug_index.md` links to per-case JSON logs under `case_logs/<mode>/<case_id>.json` with operation observations, task timeline, final cards, memory atoms, PKM snapshot, and LLM token stats.');
+    '- `case_debug_index.md` links to per-case JSON logs under `case_logs/<mode>/<case_id>.json` with operation observations, task timeline, final cards, memory atoms, PKM snapshot, and LLM token stats.',
+  );
   return b.toString();
 }
 
@@ -3169,7 +4075,8 @@ String _renderPreflightOnlyReport(JsonMap? llmPreflight) {
   b.writeln('- LLM enabled: `$_llmEnabled`');
   b.writeln('- Preflight only: `true`');
   b.writeln(
-      '- API keys are read from environment variables and redacted from artifacts.');
+    '- API keys are read from environment variables and redacted from artifacts.',
+  );
   _writePreflightSection(b, llmPreflight);
   return b.toString();
 }
@@ -3179,12 +4086,15 @@ String _renderPreflightFailureReport(JsonMap llmPreflight) {
   b.writeln('# Memory Primary Eval Preflight Failed');
   b.writeln('');
   b.writeln(
-      'The full replay was not started because at least one configured LLM subscription failed the connectivity/model check.');
+    'The full replay was not started because at least one configured LLM subscription failed the connectivity/model check.',
+  );
   b.writeln('');
   b.writeln(
-      '- Fix the provider/model configuration, or set `MEMEX_EVAL_LLM_PREFLIGHT_WARN_ONLY=1` to run the replay while keeping this failure recorded.');
+    '- Fix the provider/model configuration, or set `MEMEX_EVAL_LLM_PREFLIGHT_WARN_ONLY=1` to run the replay while keeping this failure recorded.',
+  );
   b.writeln(
-      '- Set `MEMEX_EVAL_SKIP_LLM_PREFLIGHT=1` only when a provider rejects synthetic preflight calls but works in the real agent path.');
+    '- Set `MEMEX_EVAL_SKIP_LLM_PREFLIGHT=1` only when a provider rejects synthetic preflight calls but works in the real agent path.',
+  );
   _writePreflightSection(b, llmPreflight);
   return b.toString();
 }
@@ -3224,9 +4134,9 @@ void _writeSlowestRecordsSection(
   b.writeln('');
   b.writeln('## Slowest Records');
   for (final mode in modes) {
-    final records = _list(metricsByMode[mode]?['slowest_records'])
-        .map(_map)
-        .toList(growable: false);
+    final records = _list(
+      metricsByMode[mode]?['slowest_records'],
+    ).map(_map).toList(growable: false);
     if (records.isEmpty) continue;
     b.writeln('');
     b.writeln('### `$mode`');
@@ -3264,7 +4174,9 @@ Future<JsonMap> _writeCaseDebugLog({
   final activeAtoms = await MemoryPrimaryService.instance.listActiveAtoms(
     userId,
   );
-  final finalTasks = await LocalTaskExecutor.instance.getTasks(limit: 4000);
+  final finalTasks = await LocalTaskExecutor.instance.getTasks(
+    limit: _taskScanLimit,
+  );
   final agentActivityTrace = await _collectAgentActivityTrace();
   final llmStats = await LLMCallRecordService.instance.getAggregatedStatistics(
     userId: userId,
@@ -3295,10 +4207,9 @@ Future<JsonMap> _writeCaseDebugLog({
     'llm_usage': llmStats,
   };
 
-  await File(p.join(caseLogDir.path, '$caseId.json')).writeAsString(
-    const JsonEncoder.withIndent('  ').convert(log),
-    flush: true,
-  );
+  await File(
+    p.join(caseLogDir.path, '$caseId.json'),
+  ).writeAsString(const JsonEncoder.withIndent('  ').convert(log), flush: true);
   return log;
 }
 
@@ -3344,8 +4255,10 @@ JsonMap _agentActivityTraceMetrics(List<JsonMap> activityTrace) {
       contextPeekTotal += 1;
       hasAnyReadByAgent.add(agentKey);
       final readKey = '$toolName|${_normalizeTraceArgs(parsed.arguments)}';
-      final agentSeenReads =
-          seenReadKeys.putIfAbsent(agentKey, () => <String>{});
+      final agentSeenReads = seenReadKeys.putIfAbsent(
+        agentKey,
+        () => <String>{},
+      );
       if (!agentSeenReads.add(readKey)) {
         contextPeekRedundantCount += 1;
       }
@@ -3591,9 +4504,11 @@ String _renderCaseDebugIndex({
     final recordCount =
         caseObservations.where((obs) => obs['type'] == 'record').length;
     final unsettledCount = caseObservations
-        .where((obs) =>
-            (obs['type'] == 'record' || obs['type'] == 'para_projection') &&
-            obs['tasks_settled'] != true)
+        .where(
+          (obs) =>
+              (obs['type'] == 'record' || obs['type'] == 'para_projection') &&
+              obs['tasks_settled'] != true,
+        )
         .length;
     final slowest = caseObservations
         .where((obs) => obs['type'] == 'record')
@@ -3627,10 +4542,7 @@ String _renderCaseDebugIndex({
 }
 
 JsonMap _iterationMetadata() {
-  final id = _firstEnv([
-    'MEMEX_EVAL_ITERATION_ID',
-    'MEMEX_EVAL_RUN_LABEL',
-  ]);
+  final id = _firstEnv(['MEMEX_EVAL_ITERATION_ID', 'MEMEX_EVAL_RUN_LABEL']);
   final note = _firstEnv([
     'MEMEX_EVAL_ITERATION_NOTE',
     'MEMEX_EVAL_FIX_SUMMARY',
@@ -3699,8 +4611,9 @@ Future<void> _writeProgress(File file, JsonMap observation) async {
     'updated_at': DateTime.now().toUtc().toIso8601String(),
     'last_observation': observation,
   };
-  await file
-      .writeAsString(const JsonEncoder.withIndent('  ').convert(progress));
+  await file.writeAsString(
+    const JsonEncoder.withIndent('  ').convert(progress),
+  );
 }
 
 String? _firstEnv(List<String> keys) {
@@ -3887,6 +4800,7 @@ class _SuperAgentToolEvalResult {
     this.retrievalHitAt5Total = 0,
     this.retrievalHitAt10Hits = 0,
     this.retrievalHitAt10Total = 0,
+    this.retrievalSourceEval = const _RetrievalSourceEval(),
     this.readOnlyHits = 0,
     this.readOnlyTotal = 0,
     this.toolSelectionHits = 0,
@@ -3918,6 +4832,20 @@ class _SuperAgentToolEvalResult {
   final int retrievalHitAt5Total;
   final int retrievalHitAt10Hits;
   final int retrievalHitAt10Total;
+  final _RetrievalSourceEval retrievalSourceEval;
+  int get positiveSourceTotal => retrievalSourceEval.positiveSourceTotal;
+  int get ftsPositiveHits => retrievalSourceEval.ftsPositiveHits;
+  int get vectorPositiveHits => retrievalSourceEval.vectorPositiveHits;
+  int get hybridPositiveHits => retrievalSourceEval.hybridPositiveHits;
+  int get bothPositiveHits => retrievalSourceEval.bothPositiveHits;
+  int get ftsOnlyPositiveHits => retrievalSourceEval.ftsOnlyPositiveHits;
+  int get vectorOnlyPositiveHits => retrievalSourceEval.vectorOnlyPositiveHits;
+  int get missedPositiveCount => retrievalSourceEval.missedPositiveCount;
+  int get sourceQueryTotal => retrievalSourceEval.queryTotal;
+  int get vectorSupportedQueryHits =>
+      retrievalSourceEval.vectorSupportedQueryHits;
+  int get vectorOnlySupportedQueryHits =>
+      retrievalSourceEval.vectorOnlySupportedQueryHits;
   final int readOnlyHits;
   final int readOnlyTotal;
   final int toolSelectionHits;
@@ -3941,6 +4869,131 @@ class _SuperAgentToolEvalResult {
   final List<JsonMap> failures;
 }
 
+class _AgentQueryFamilyAccumulator {
+  _AgentQueryFamilyAccumulator(this.family);
+
+  final String family;
+  var askCount = 0;
+  var successCount = 0;
+  var expectedHits = 0;
+  var expectedTotal = 0;
+  var forbiddenHits = 0;
+  var forbiddenTotal = 0;
+  var retrievalHitAt10Hits = 0;
+  var retrievalHitAt10Total = 0;
+  var positiveSourceTotal = 0;
+  var ftsPositiveHits = 0;
+  var vectorPositiveHits = 0;
+  var vectorOnlyPositiveHits = 0;
+  var hybridPositiveHits = 0;
+  var sourceQueryTotal = 0;
+  var vectorSupportedQueryHits = 0;
+  var vectorOnlySupportedQueryHits = 0;
+  var readOnlyHits = 0;
+  var readOnlyTotal = 0;
+  var toolSelectionHits = 0;
+  var toolSelectionTotal = 0;
+  var toolArgsHits = 0;
+  var toolArgsTotal = 0;
+
+  void addAsk({
+    required _ExpectationEvalResult answerEval,
+    required bool successful,
+    required _SuperAgentToolEvalResult toolEval,
+  }) {
+    askCount += 1;
+    if (successful) successCount += 1;
+    expectedHits += answerEval.mustHits;
+    expectedTotal += answerEval.mustTotal;
+    forbiddenHits += answerEval.forbiddenHits;
+    forbiddenTotal += answerEval.forbiddenTotal;
+    retrievalHitAt10Hits += toolEval.retrievalHitAt10Hits;
+    retrievalHitAt10Total += toolEval.retrievalHitAt10Total;
+    positiveSourceTotal += toolEval.positiveSourceTotal;
+    ftsPositiveHits += toolEval.ftsPositiveHits;
+    vectorPositiveHits += toolEval.vectorPositiveHits;
+    vectorOnlyPositiveHits += toolEval.vectorOnlyPositiveHits;
+    hybridPositiveHits += toolEval.hybridPositiveHits;
+    sourceQueryTotal += toolEval.sourceQueryTotal;
+    vectorSupportedQueryHits += toolEval.vectorSupportedQueryHits;
+    vectorOnlySupportedQueryHits += toolEval.vectorOnlySupportedQueryHits;
+    readOnlyHits += toolEval.readOnlyHits;
+    readOnlyTotal += toolEval.readOnlyTotal;
+    toolSelectionHits += toolEval.toolSelectionHits;
+    toolSelectionTotal += toolEval.toolSelectionTotal;
+    toolArgsHits += toolEval.toolArgsHits;
+    toolArgsTotal += toolEval.toolArgsTotal;
+  }
+
+  JsonMap toJson() {
+    return {
+      'family': family,
+      'ask_count': askCount,
+      'answer_success_count': successCount,
+      'answer_success_rate': _ratioOrZero(successCount, askCount),
+      'expected_hits': expectedHits,
+      'expected_total': expectedTotal,
+      'answer_hit_rate': _rate(expectedHits, expectedTotal),
+      'forbidden_hits': forbiddenHits,
+      'forbidden_total': forbiddenTotal,
+      'boundary_precision': _rate(
+        forbiddenTotal - forbiddenHits,
+        forbiddenTotal,
+      ),
+      'retrieval_hit_at_10_hits': retrievalHitAt10Hits,
+      'retrieval_hit_at_10_total': retrievalHitAt10Total,
+      'retrieval_hit_at_10': _rate(
+        retrievalHitAt10Hits,
+        retrievalHitAt10Total,
+      ),
+      'positive_source_total': positiveSourceTotal,
+      'fts_positive_hits': ftsPositiveHits,
+      'fts_positive_coverage_rate': _ratioOrZero(
+        ftsPositiveHits,
+        positiveSourceTotal,
+      ),
+      'vector_positive_hits': vectorPositiveHits,
+      'vector_positive_coverage_rate': _ratioOrZero(
+        vectorPositiveHits,
+        positiveSourceTotal,
+      ),
+      'vector_only_positive_hits': vectorOnlyPositiveHits,
+      'vector_only_positive_hit_rate': _ratioOrZero(
+        vectorOnlyPositiveHits,
+        positiveSourceTotal,
+      ),
+      'hybrid_positive_hits': hybridPositiveHits,
+      'hybrid_positive_coverage_rate': _ratioOrZero(
+        hybridPositiveHits,
+        positiveSourceTotal,
+      ),
+      'source_query_count': sourceQueryTotal,
+      'vector_supported_query_hits': vectorSupportedQueryHits,
+      'vector_supported_query_rate': _ratioOrZero(
+        vectorSupportedQueryHits,
+        sourceQueryTotal,
+      ),
+      'vector_only_supported_query_hits': vectorOnlySupportedQueryHits,
+      'vector_only_supported_query_rate': _ratioOrZero(
+        vectorOnlySupportedQueryHits,
+        sourceQueryTotal,
+      ),
+      'read_only_hits': readOnlyHits,
+      'read_only_total': readOnlyTotal,
+      'read_only_compliance': _rate(readOnlyHits, readOnlyTotal),
+      'tool_selection_hits': toolSelectionHits,
+      'tool_selection_total': toolSelectionTotal,
+      'tool_selection_accuracy': _rate(
+        toolSelectionHits,
+        toolSelectionTotal,
+      ),
+      'tool_args_hits': toolArgsHits,
+      'tool_args_total': toolArgsTotal,
+      'tool_args_accuracy': _rate(toolArgsHits, toolArgsTotal),
+    };
+  }
+}
+
 class _RetrievalHitEval {
   const _RetrievalHitEval({
     this.total = 0,
@@ -3959,14 +5012,83 @@ class _RetrievalHitEval {
   final List<JsonMap> failures;
 }
 
-class _TaskErrorFlags {
-  const _TaskErrorFlags({
-    required this.loopDetection,
-    required this.maxTurns,
+class _RetrievalSourceEval {
+  const _RetrievalSourceEval({
+    this.positiveSourceTotal = 0,
+    this.ftsPositiveHits = 0,
+    this.vectorPositiveHits = 0,
+    this.hybridPositiveHits = 0,
+    this.bothPositiveHits = 0,
+    this.ftsOnlyPositiveHits = 0,
+    this.vectorOnlyPositiveHits = 0,
+    this.missedPositiveCount = 0,
+    this.queryTotal = 0,
+    this.vectorSupportedQueryHits = 0,
+    this.vectorOnlySupportedQueryHits = 0,
+    this.details = const [],
   });
+
+  final int positiveSourceTotal;
+  final int ftsPositiveHits;
+  final int vectorPositiveHits;
+  final int hybridPositiveHits;
+  final int bothPositiveHits;
+  final int ftsOnlyPositiveHits;
+  final int vectorOnlyPositiveHits;
+  final int missedPositiveCount;
+  final int queryTotal;
+  final int vectorSupportedQueryHits;
+  final int vectorOnlySupportedQueryHits;
+  final List<JsonMap> details;
+
+  JsonMap toJson() {
+    return {
+      'positive_source_total': positiveSourceTotal,
+      'fts_positive_hits': ftsPositiveHits,
+      'vector_positive_hits': vectorPositiveHits,
+      'hybrid_positive_hits': hybridPositiveHits,
+      'breakdown': {
+        'both': bothPositiveHits,
+        'fts_only': ftsOnlyPositiveHits,
+        'vector_only': vectorOnlyPositiveHits,
+        'missed': missedPositiveCount,
+      },
+      'query_total': queryTotal,
+      'vector_supported_query_hits': vectorSupportedQueryHits,
+      'vector_only_supported_query_hits': vectorOnlySupportedQueryHits,
+      if (details.isNotEmpty) 'details': details,
+    };
+  }
+}
+
+class _TaskErrorFlags {
+  const _TaskErrorFlags({required this.loopDetection, required this.maxTurns});
 
   final bool loopDetection;
   final bool maxTurns;
+}
+
+enum _ProviderInfraErrorCategory {
+  rateLimit,
+  quota,
+  network,
+  server,
+}
+
+class _ProviderInfraErrorStats {
+  const _ProviderInfraErrorStats({
+    required this.total,
+    required this.rateLimit,
+    required this.quota,
+    required this.network,
+    required this.server,
+  });
+
+  final int total;
+  final int rateLimit;
+  final int quota;
+  final int network;
+  final int server;
 }
 
 class _SuperAgentAskResult {
@@ -3976,6 +5098,7 @@ class _SuperAgentAskResult {
     required this.events,
     required this.tokenUsageEvents,
     this.error,
+    this.providerAttempts = const [],
   });
 
   final String? sessionId;
@@ -3983,6 +5106,18 @@ class _SuperAgentAskResult {
   final List<JsonMap> events;
   final List<JsonMap> tokenUsageEvents;
   final String? error;
+  final List<JsonMap> providerAttempts;
+
+  _SuperAgentAskResult withProviderAttempts(List<JsonMap> attempts) {
+    return _SuperAgentAskResult(
+      sessionId: sessionId,
+      answer: answer,
+      events: events,
+      tokenUsageEvents: tokenUsageEvents,
+      error: error,
+      providerAttempts: attempts.map(JsonMap.from).toList(growable: false),
+    );
+  }
 }
 
 class _EvalLlmConfig {
@@ -4013,15 +5148,11 @@ class _HttpJsonResponse {
 }
 
 class _TextExpectation {
-  const _TextExpectation({
-    required this.label,
-    required this.alternatives,
-  }) : regexPattern = null;
+  const _TextExpectation({required this.label, required this.alternatives})
+      : regexPattern = null;
 
-  const _TextExpectation.regex({
-    required this.label,
-    required String pattern,
-  })  : alternatives = const [],
+  const _TextExpectation.regex({required this.label, required String pattern})
+      : alternatives = const [],
         regexPattern = pattern;
 
   final String label;
@@ -4031,8 +5162,11 @@ class _TextExpectation {
   bool matches(String haystack) {
     final pattern = regexPattern;
     if (pattern != null) {
-      return RegExp(pattern, caseSensitive: false, dotAll: true)
-          .hasMatch(haystack);
+      return RegExp(
+        pattern,
+        caseSensitive: false,
+        dotAll: true,
+      ).hasMatch(haystack);
     }
     return alternatives.any((alternative) => _contains(haystack, alternative));
   }
@@ -4041,18 +5175,13 @@ class _TextExpectation {
 class _TaskWaitResult {
   const _TaskWaitResult({
     required this.tasks,
-    required this.newTaskCount,
+    required this.newTasks,
     required this.settled,
   });
 
   final List<dynamic> tasks;
-  final int newTaskCount;
+  final List<dynamic> newTasks;
   final bool settled;
-
-  List<dynamic> get newTasks {
-    if (newTaskCount <= 0) return const [];
-    return tasks.take(newTaskCount).toList(growable: false);
-  }
 
   Map<String, int> get statusCounts {
     final counts = <String, int>{};
@@ -4069,8 +5198,11 @@ class _TaskWaitResult {
   List<JsonMap> get activeTaskSummaries => newTasks
       .where(
         (task) =>
-            ['pending', 'processing', 'retrying']
-                .contains(task.status?.toString()) ||
+            [
+              'pending',
+              'processing',
+              'retrying',
+            ].contains(task.status?.toString()) ||
             task.status?.toString() == 'failed',
       )
       .map(_taskSummary)

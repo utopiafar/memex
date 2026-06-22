@@ -34,6 +34,7 @@ void main(List<String> args) async {
   final metricsDocs = <JsonMap>[];
   final observations = <JsonMap>[];
   final failures = <JsonMap>[];
+  final judgeTasks = <JsonMap>[];
   for (final dir in runDirs) {
     final metricsFile = File(p.join(dir.path, 'metrics.json'));
     if (!await metricsFile.exists()) {
@@ -43,6 +44,11 @@ void main(List<String> args) async {
     observations
         .addAll(await _readJsonl(p.join(dir.path, 'observations.jsonl')));
     failures.addAll(await _readJsonl(p.join(dir.path, 'failures.jsonl')));
+    judgeTasks.addAll(await _readJsonl(p.join(dir.path, 'judge_tasks.jsonl')));
+    await _copyCaseLogs(
+      from: Directory(p.join(dir.path, 'case_logs')),
+      to: Directory(p.join(outputDir.path, 'case_logs')),
+    );
   }
 
   final modes = _orderedModes(metricsDocs);
@@ -57,6 +63,8 @@ void main(List<String> args) async {
   await _writeJsonl(
       File(p.join(outputDir.path, 'observations.jsonl')), observations);
   await _writeJsonl(File(p.join(outputDir.path, 'failures.jsonl')), failures);
+  await _writeJsonl(
+      File(p.join(outputDir.path, 'judge_tasks.jsonl')), judgeTasks);
   final mergedMetrics = {
     'dataset_paths': metricsDocs
         .map((doc) => doc['dataset_path']?.toString())
@@ -70,6 +78,11 @@ void main(List<String> args) async {
     'metrics_by_mode': metricsByMode,
     'comparison': comparison,
     'gate': gate,
+    'judge_task_count': judgeTasks.length,
+    'pairwise_judge_task_count': _sumTopLevel(
+      metricsDocs,
+      'pairwise_judge_task_count',
+    ),
   };
   await File(p.join(outputDir.path, 'metrics.json')).writeAsString(
     const JsonEncoder.withIndent('  ').convert(mergedMetrics),
@@ -88,6 +101,11 @@ void main(List<String> args) async {
       gate: gate,
       failures: failures,
     ),
+    flush: true,
+  );
+  await File(p.join(outputDir.path, 'case_debug_index.md')).writeAsString(
+    _renderCaseDebugIndex(
+        modes: modes, observations: observations, failures: failures),
     flush: true,
   );
   stdout.writeln('Merged ${runDirs.length} run dirs into ${outputDir.path}');
@@ -126,6 +144,68 @@ Future<void> _writeJsonl(File file, Iterable<JsonMap> rows) async {
   } finally {
     await sink.close();
   }
+}
+
+Future<void> _copyCaseLogs({
+  required Directory from,
+  required Directory to,
+}) async {
+  if (!await from.exists()) return;
+  await to.create(recursive: true);
+  final sourceRunName = p.basename(p.dirname(from.path));
+  await for (final entity in from.list(recursive: true, followLinks: false)) {
+    if (entity is! File) continue;
+    final relative = p.relative(entity.path, from: from.path);
+    var target = File(p.join(to.path, relative));
+    if (await target.exists()) {
+      final extension = p.extension(target.path);
+      final withoutExtension = p.withoutExtension(target.path);
+      target = File('$withoutExtension.$sourceRunName$extension');
+    }
+    await target.parent.create(recursive: true);
+    await entity.copy(target.path);
+  }
+}
+
+String _renderCaseDebugIndex({
+  required List<String> modes,
+  required List<JsonMap> observations,
+  required List<JsonMap> failures,
+}) {
+  final b = StringBuffer();
+  b.writeln('# Merged Case Debug Index');
+  b.writeln('');
+  b.writeln('| Mode | Case | Observations | Failures | Case log |');
+  b.writeln('| --- | --- | ---: | ---: | --- |');
+  final caseIdsByMode = <String, Set<String>>{};
+  for (final observation in observations) {
+    final mode = observation['mode']?.toString();
+    final caseId = observation['case_id']?.toString();
+    if (mode == null || caseId == null) continue;
+    caseIdsByMode.putIfAbsent(mode, () => <String>{}).add(caseId);
+  }
+  for (final failure in failures) {
+    final mode = failure['mode']?.toString();
+    final caseId = failure['case_id']?.toString();
+    if (mode == null || caseId == null) continue;
+    caseIdsByMode.putIfAbsent(mode, () => <String>{}).add(caseId);
+  }
+  for (final mode in modes) {
+    final caseIds = (caseIdsByMode[mode] ?? const <String>{}).toList()..sort();
+    for (final caseId in caseIds) {
+      final observationCount = observations
+          .where((row) => row['mode'] == mode && row['case_id'] == caseId)
+          .length;
+      final failureCount = failures
+          .where((row) => row['mode'] == mode && row['case_id'] == caseId)
+          .length;
+      final logPath = 'case_logs/$mode/$caseId.json';
+      b.writeln(
+        '| `$mode` | `$caseId` | $observationCount | $failureCount | `$logPath` |',
+      );
+    }
+  }
+  return b.toString();
 }
 
 List<String> _orderedModes(List<JsonMap> metricsDocs) {
@@ -213,6 +293,15 @@ JsonMap _aggregateMode(
   final failedTaskCount = sum('failed_task_count');
   final totalTaskCount = sum('total_task_count');
   final taskNotSettledCount = sum('task_not_settled_count');
+  final providerInfraTaskErrorCount = sum('provider_infra_task_error_count');
+  final providerRateLimitTaskErrorCount =
+      sum('provider_rate_limit_task_error_count');
+  final providerQuotaTaskErrorCount = sum('provider_quota_task_error_count');
+  final providerNetworkTaskErrorCount =
+      sum('provider_network_task_error_count');
+  final providerServerTaskErrorCount = sum('provider_server_task_error_count');
+  final providerInfraAffectedOperationCount =
+      sum('provider_infra_affected_operation_count');
   final retryTaskCount = sum('retry_task_count');
   final superAgentAskCount = sum('super_agent_ask_count');
   final superAgentAnswerSuccessCount = sum('super_agent_answer_success_count');
@@ -223,6 +312,50 @@ JsonMap _aggregateMode(
   final superAgentUsageTotal = _aggregateUsageTotals(
     modeMetrics.map((item) => _map(item['super_agent_llm_usage_total'])),
   );
+  final superAgentProviderAttemptCount =
+      sum('super_agent_provider_attempt_count');
+  final superAgentProviderRetryCount = sum('super_agent_provider_retry_count');
+  final retrievalPositiveSourceTotal = sum('retrieval_positive_source_total');
+  final retrievalFtsPositiveHits = sum('retrieval_fts_positive_hits');
+  final retrievalVectorPositiveHits = sum('retrieval_vector_positive_hits');
+  final retrievalHybridPositiveHits = sum('retrieval_hybrid_positive_hits');
+  final retrievalFtsOnlyPositiveHits = _sumBreakdown(
+    modeMetrics,
+    'retrieval_positive_source_breakdown',
+    'fts_only',
+  );
+  final retrievalVectorOnlyPositiveHits = _sumBreakdown(
+    modeMetrics,
+    'retrieval_positive_source_breakdown',
+    'vector_only',
+  );
+  final retrievalBothPositiveHits = _sumBreakdown(
+    modeMetrics,
+    'retrieval_positive_source_breakdown',
+    'both',
+  );
+  final retrievalMissedPositiveCount = _sumBreakdown(
+    modeMetrics,
+    'retrieval_positive_source_breakdown',
+    'missed',
+  );
+  final retrievalSourceQueryCount = sum('retrieval_source_query_count');
+  final retrievalVectorSupportedQueryHits =
+      sum('retrieval_vector_supported_query_hits') > 0
+          ? sum('retrieval_vector_supported_query_hits')
+          : _sumRateNumeratorFromRuns(
+              modeMetrics,
+              field: 'vector_supported_query_rate',
+              denominatorField: 'retrieval_source_query_count',
+            );
+  final retrievalVectorOnlySupportedQueryHits =
+      sum('retrieval_vector_only_supported_query_hits') > 0
+          ? sum('retrieval_vector_only_supported_query_hits')
+          : _sumRateNumeratorFromRuns(
+              modeMetrics,
+              field: 'vector_only_supported_query_rate',
+              denominatorField: 'retrieval_source_query_count',
+            );
   final llmUsageTotal = _aggregateUsageTotals(
     modeMetrics.map((item) => _map(item['llm_usage_total'])),
   );
@@ -347,6 +480,14 @@ JsonMap _aggregateMode(
       _intValue(superAgentUsageTotal['total_tokens']),
       superAgentAskCount,
     ),
+    'super_agent_provider_attempt_count': superAgentProviderAttemptCount,
+    'super_agent_provider_retry_count': superAgentProviderRetryCount,
+    'super_agent_provider_retry_rate': _ratioOrZero(
+      superAgentProviderRetryCount,
+      superAgentProviderAttemptCount,
+    ),
+    'super_agent_query_family_metrics':
+        _aggregateSuperAgentQueryFamilyMetrics(modeMetrics),
     'agent_route_accuracy': _weightedMetric(
       modeMetrics,
       'agent_route_accuracy',
@@ -412,6 +553,53 @@ JsonMap _aggregateMode(
       'retrieval_hit_at_10',
       _queryWeight,
     ),
+    'retrieval_positive_source_total': retrievalPositiveSourceTotal,
+    'retrieval_fts_positive_hits': retrievalFtsPositiveHits,
+    'retrieval_vector_positive_hits': retrievalVectorPositiveHits,
+    'retrieval_hybrid_positive_hits': retrievalHybridPositiveHits,
+    'retrieval_positive_source_breakdown': {
+      'both': retrievalBothPositiveHits,
+      'fts_only': retrievalFtsOnlyPositiveHits,
+      'vector_only': retrievalVectorOnlyPositiveHits,
+      'missed': retrievalMissedPositiveCount,
+    },
+    'fts_positive_coverage_rate': _ratioOrZero(
+      retrievalFtsPositiveHits,
+      retrievalPositiveSourceTotal,
+    ),
+    'vector_positive_coverage_rate': _ratioOrZero(
+      retrievalVectorPositiveHits,
+      retrievalPositiveSourceTotal,
+    ),
+    'vector_only_positive_hit_rate': _ratioOrZero(
+      retrievalVectorOnlyPositiveHits,
+      retrievalPositiveSourceTotal,
+    ),
+    'fts_only_positive_hit_rate': _ratioOrZero(
+      retrievalFtsOnlyPositiveHits,
+      retrievalPositiveSourceTotal,
+    ),
+    'hybrid_positive_coverage_rate': _ratioOrZero(
+      retrievalHybridPositiveHits,
+      retrievalPositiveSourceTotal,
+    ),
+    'vector_incremental_recall_lift_at_10': _ratioOrZero(
+          retrievalHybridPositiveHits,
+          retrievalPositiveSourceTotal,
+        ) -
+        _ratioOrZero(retrievalFtsPositiveHits, retrievalPositiveSourceTotal),
+    'vector_supported_query_rate': _ratioOrZero(
+      retrievalVectorSupportedQueryHits,
+      retrievalSourceQueryCount,
+    ),
+    'retrieval_vector_supported_query_hits': retrievalVectorSupportedQueryHits,
+    'vector_only_supported_query_rate': _ratioOrZero(
+      retrievalVectorOnlySupportedQueryHits,
+      retrievalSourceQueryCount,
+    ),
+    'retrieval_vector_only_supported_query_hits':
+        retrievalVectorOnlySupportedQueryHits,
+    'retrieval_source_query_count': retrievalSourceQueryCount,
     'answer_must_include': _weightedMetric(
       modeMetrics,
       'answer_must_include',
@@ -491,6 +679,21 @@ JsonMap _aggregateMode(
     ),
     'failed_task_count': failedTaskCount,
     'failed_task_rate': _ratioOrZero(failedTaskCount, totalTaskCount),
+    'provider_infra_task_error_count': providerInfraTaskErrorCount,
+    'provider_rate_limit_task_error_count': providerRateLimitTaskErrorCount,
+    'provider_quota_task_error_count': providerQuotaTaskErrorCount,
+    'provider_network_task_error_count': providerNetworkTaskErrorCount,
+    'provider_server_task_error_count': providerServerTaskErrorCount,
+    'provider_infra_task_error_rate': _ratioOrZero(
+      providerInfraTaskErrorCount,
+      totalTaskCount,
+    ),
+    'provider_infra_affected_operation_count':
+        providerInfraAffectedOperationCount,
+    'provider_infra_affected_operation_rate': _ratioOrZero(
+      providerInfraAffectedOperationCount,
+      recordCount + sum('projection_count'),
+    ),
     'total_task_count': totalTaskCount,
     'task_not_settled_count': taskNotSettledCount,
     'task_settlement_rate': taskSettlementRate,
@@ -583,7 +786,11 @@ JsonMap _aggregateCoverageMetrics(List<JsonMap> modeMetrics) {
   final inputChannels = <String>{};
   final operationTypes = <String>{};
   final expectedOperationTypes = <String>{};
+  final agentQueryFamilies = <String>{};
+  final expectedAgentQueryFamilies = <String>{};
+  final agentQueryRecordGaps = <int>[];
   var caseCount = 0;
+  var recordCount = 0;
   var crossDayContinuityCases = 0;
   var correctionCases = 0;
   var noiseCases = 0;
@@ -591,9 +798,14 @@ JsonMap _aggregateCoverageMetrics(List<JsonMap> modeMetrics) {
   var relationshipCases = 0;
   var longContextCases = 0;
   var oracleConsistentCases = 0;
+  var agentQueryCount = 0;
+  var interleavedAgentQueryCount = 0;
+  int? minAgentQueriesPerCase;
+  var maxAgentQueriesPerCase = 0;
 
   for (final item in modeMetrics) {
     caseCount += _intValue(item['case_count']);
+    recordCount += _intValue(item['record_count']);
     final coverage = _map(item['coverage']);
     scenarioFamilies.addAll(_strings(coverage['covered_scenario_families']));
     expectedScenarioFamilies
@@ -606,6 +818,10 @@ JsonMap _aggregateCoverageMetrics(List<JsonMap> modeMetrics) {
     operationTypes.addAll(_strings(coverage['covered_operation_types']));
     expectedOperationTypes
         .addAll(_strings(coverage['expected_operation_types']));
+    agentQueryFamilies
+        .addAll(_strings(coverage['covered_agent_query_families']));
+    expectedAgentQueryFamilies
+        .addAll(_strings(coverage['expected_agent_query_families']));
     crossDayContinuityCases +=
         _intValue(coverage['cross_day_continuity_case_count']);
     correctionCases += _intValue(coverage['correction_case_count']);
@@ -615,6 +831,21 @@ JsonMap _aggregateCoverageMetrics(List<JsonMap> modeMetrics) {
     longContextCases += _intValue(coverage['long_context_case_count']);
     oracleConsistentCases +=
         _intValue(coverage['dataset_oracle_consistent_case_count']);
+    agentQueryCount += _intValue(coverage['agent_query_count']);
+    interleavedAgentQueryCount +=
+        _intValue(coverage['interleaved_agent_query_count']);
+    for (final gap in _list(coverage['agent_query_record_gaps'])) {
+      agentQueryRecordGaps.add(_intValue(gap));
+    }
+    final itemMinQueries = _intValue(item['agent_query_min_per_case']);
+    minAgentQueriesPerCase = minAgentQueriesPerCase == null ||
+            itemMinQueries < minAgentQueriesPerCase
+        ? itemMinQueries
+        : minAgentQueriesPerCase;
+    final itemMaxQueries = _intValue(item['agent_query_max_per_case']);
+    if (itemMaxQueries > maxAgentQueriesPerCase) {
+      maxAgentQueriesPerCase = itemMaxQueries;
+    }
   }
 
   if (expectedScenarioFamilies.isEmpty &&
@@ -651,6 +882,25 @@ JsonMap _aggregateCoverageMetrics(List<JsonMap> modeMetrics) {
     'relationship_case_coverage': _rate(relationshipCases, caseCount),
     'long_context_case_coverage': _rate(longContextCases, caseCount),
     'dataset_oracle_consistency': _rate(oracleConsistentCases, caseCount),
+    'agent_query_count': agentQueryCount,
+    'interleaved_agent_query_count': interleavedAgentQueryCount,
+    'agent_query_interleaving_rate': _ratioOrZero(
+      interleavedAgentQueryCount,
+      agentQueryCount,
+    ),
+    'agent_query_density_per_100_records':
+        recordCount == 0 ? 0.0 : _round3(agentQueryCount * 100 / recordCount),
+    'agent_query_records_per_ask':
+        agentQueryCount == 0 ? 0.0 : _round3(recordCount / agentQueryCount),
+    'agent_query_family_coverage': _setCoverageRate(
+      agentQueryFamilies,
+      expectedAgentQueryFamilies,
+    ),
+    'agent_query_family_count': agentQueryFamilies.length,
+    'agent_query_min_per_case': minAgentQueriesPerCase ?? 0,
+    'agent_query_max_per_case': maxAgentQueriesPerCase,
+    'agent_query_record_gap_p95': _percentile(agentQueryRecordGaps, 0.95),
+    'agent_query_record_gap_max': _maxInt(agentQueryRecordGaps),
     'coverage': {
       'covered_scenario_families': scenarioFamilies.toList()..sort(),
       'expected_scenario_families': expectedScenarioFamilies.toList()..sort(),
@@ -661,6 +911,9 @@ JsonMap _aggregateCoverageMetrics(List<JsonMap> modeMetrics) {
       'covered_input_channels': inputChannels.toList()..sort(),
       'covered_operation_types': operationTypes.toList()..sort(),
       'expected_operation_types': expectedOperationTypes.toList()..sort(),
+      'covered_agent_query_families': agentQueryFamilies.toList()..sort(),
+      'expected_agent_query_families': expectedAgentQueryFamilies.toList()
+        ..sort(),
       'cross_day_continuity_case_count': crossDayContinuityCases,
       'correction_case_count': correctionCases,
       'noise_resilience_case_count': noiseCases,
@@ -668,6 +921,9 @@ JsonMap _aggregateCoverageMetrics(List<JsonMap> modeMetrics) {
       'relationship_case_count': relationshipCases,
       'long_context_case_count': longContextCases,
       'dataset_oracle_consistent_case_count': oracleConsistentCases,
+      'agent_query_count': agentQueryCount,
+      'interleaved_agent_query_count': interleavedAgentQueryCount,
+      'agent_query_record_gaps': agentQueryRecordGaps,
     },
   };
 }
@@ -684,6 +940,137 @@ JsonMap _aggregateTaskTypeStatusTotals(List<JsonMap> modeMetrics) {
     }
   }
   return result;
+}
+
+JsonMap _aggregateSuperAgentQueryFamilyMetrics(List<JsonMap> modeMetrics) {
+  const fields = [
+    'ask_count',
+    'answer_success_count',
+    'expected_hits',
+    'expected_total',
+    'forbidden_hits',
+    'forbidden_total',
+    'retrieval_hit_at_10_hits',
+    'retrieval_hit_at_10_total',
+    'positive_source_total',
+    'fts_positive_hits',
+    'vector_positive_hits',
+    'vector_only_positive_hits',
+    'hybrid_positive_hits',
+    'source_query_count',
+    'vector_supported_query_hits',
+    'vector_only_supported_query_hits',
+    'read_only_hits',
+    'read_only_total',
+    'tool_selection_hits',
+    'tool_selection_total',
+    'tool_args_hits',
+    'tool_args_total',
+  ];
+  final buckets = <String, Map<String, int>>{};
+  for (final item in modeMetrics) {
+    final familyMetrics = _map(item['super_agent_query_family_metrics']);
+    for (final entry in familyMetrics.entries) {
+      final family = entry.key;
+      final source = _map(entry.value);
+      final bucket = buckets.putIfAbsent(
+          family,
+          () => <String, int>{
+                for (final field in fields) field: 0,
+              });
+      for (final field in fields) {
+        bucket[field] = (bucket[field] ?? 0) + _intValue(source[field]);
+      }
+    }
+  }
+  final result = <String, JsonMap>{};
+  final families = buckets.keys.toList()..sort();
+  for (final family in families) {
+    final b = buckets[family]!;
+    final askCount = b['ask_count'] ?? 0;
+    final successCount = b['answer_success_count'] ?? 0;
+    final expectedHits = b['expected_hits'] ?? 0;
+    final expectedTotal = b['expected_total'] ?? 0;
+    final forbiddenHits = b['forbidden_hits'] ?? 0;
+    final forbiddenTotal = b['forbidden_total'] ?? 0;
+    final hitAt10Hits = b['retrieval_hit_at_10_hits'] ?? 0;
+    final hitAt10Total = b['retrieval_hit_at_10_total'] ?? 0;
+    final positiveSourceTotal = b['positive_source_total'] ?? 0;
+    final sourceQueryCount = b['source_query_count'] ?? 0;
+    result[family] = {
+      'family': family,
+      ...b,
+      'answer_success_rate': _ratioOrZero(successCount, askCount),
+      'answer_hit_rate': _rate(expectedHits, expectedTotal),
+      'boundary_precision': _rate(
+        forbiddenTotal - forbiddenHits,
+        forbiddenTotal,
+      ),
+      'retrieval_hit_at_10': _rate(hitAt10Hits, hitAt10Total),
+      'fts_positive_coverage_rate': _ratioOrZero(
+        b['fts_positive_hits'] ?? 0,
+        positiveSourceTotal,
+      ),
+      'vector_positive_coverage_rate': _ratioOrZero(
+        b['vector_positive_hits'] ?? 0,
+        positiveSourceTotal,
+      ),
+      'vector_only_positive_hit_rate': _ratioOrZero(
+        b['vector_only_positive_hits'] ?? 0,
+        positiveSourceTotal,
+      ),
+      'hybrid_positive_coverage_rate': _ratioOrZero(
+        b['hybrid_positive_hits'] ?? 0,
+        positiveSourceTotal,
+      ),
+      'vector_supported_query_rate': _ratioOrZero(
+        b['vector_supported_query_hits'] ?? 0,
+        sourceQueryCount,
+      ),
+      'vector_only_supported_query_rate': _ratioOrZero(
+        b['vector_only_supported_query_hits'] ?? 0,
+        sourceQueryCount,
+      ),
+      'read_only_compliance': _rate(
+        b['read_only_hits'] ?? 0,
+        b['read_only_total'] ?? 0,
+      ),
+      'tool_selection_accuracy': _rate(
+        b['tool_selection_hits'] ?? 0,
+        b['tool_selection_total'] ?? 0,
+      ),
+      'tool_args_accuracy': _rate(
+        b['tool_args_hits'] ?? 0,
+        b['tool_args_total'] ?? 0,
+      ),
+    };
+  }
+  return result;
+}
+
+int _sumTopLevel(List<JsonMap> docs, String field) {
+  return docs.fold(0, (total, doc) => total + _intValue(doc[field]));
+}
+
+int _sumBreakdown(List<JsonMap> metrics, String field, String key) {
+  return metrics.fold(
+    0,
+    (total, item) => total + _intValue(_map(item[field])[key]),
+  );
+}
+
+int _sumRateNumeratorFromRuns(
+  List<JsonMap> metrics, {
+  required String field,
+  required String denominatorField,
+}) {
+  var total = 0;
+  for (final item in metrics) {
+    final denominator = _intValue(item[denominatorField]);
+    if (denominator <= 0) continue;
+    total += (_metric(item, field) * denominator).round();
+  }
+  return total;
 }
 
 JsonMap _emptyUsageBucket() => {
@@ -838,6 +1225,7 @@ JsonMap _compareModes(Map<String, JsonMap> metricsByMode) {
     'super_agent_answer_hit_rate',
     'super_agent_boundary_precision',
     'super_agent_tokens_per_ask',
+    'super_agent_provider_retry_rate',
     'agent_route_accuracy',
     'agent_route_miss_rate',
     'agent_route_overtrigger_rate',
@@ -851,6 +1239,17 @@ JsonMap _compareModes(Map<String, JsonMap> metricsByMode) {
     'retrieval_hit_at_3',
     'retrieval_hit_at_5',
     'retrieval_hit_at_10',
+    'fts_positive_coverage_rate',
+    'vector_positive_coverage_rate',
+    'vector_only_positive_hit_rate',
+    'fts_only_positive_hit_rate',
+    'hybrid_positive_coverage_rate',
+    'vector_incremental_recall_lift_at_10',
+    'vector_supported_query_rate',
+    'vector_only_supported_query_rate',
+    'agent_query_interleaving_rate',
+    'agent_query_density_per_100_records',
+    'agent_query_family_coverage',
     'answer_must_include',
     'super_agent_read_only_compliance',
     'tool_selection_accuracy',
@@ -865,6 +1264,8 @@ JsonMap _compareModes(Map<String, JsonMap> metricsByMode) {
     'agent_tool_rounds_per_task',
     'loop_detection_absence',
     'max_turns_absence',
+    'provider_infra_task_error_rate',
+    'provider_infra_affected_operation_rate',
     'scenario_family_coverage',
     'agent_chain_coverage',
     'journey_stage_coverage',
@@ -997,6 +1398,9 @@ String _renderReport({
     'super_agent_answer_hit_rate',
     'super_agent_boundary_precision',
     'super_agent_tokens_per_ask',
+    'super_agent_provider_attempt_count',
+    'super_agent_provider_retry_count',
+    'super_agent_provider_retry_rate',
     'agent_route_accuracy',
     'agent_route_miss_rate',
     'agent_route_overtrigger_rate',
@@ -1010,6 +1414,27 @@ String _renderReport({
     'retrieval_hit_at_3',
     'retrieval_hit_at_5',
     'retrieval_hit_at_10',
+    'retrieval_positive_source_total',
+    'fts_positive_coverage_rate',
+    'vector_positive_coverage_rate',
+    'vector_only_positive_hit_rate',
+    'fts_only_positive_hit_rate',
+    'hybrid_positive_coverage_rate',
+    'vector_incremental_recall_lift_at_10',
+    'vector_supported_query_rate',
+    'vector_only_supported_query_rate',
+    'retrieval_source_query_count',
+    'agent_query_count',
+    'interleaved_agent_query_count',
+    'agent_query_interleaving_rate',
+    'agent_query_density_per_100_records',
+    'agent_query_records_per_ask',
+    'agent_query_family_coverage',
+    'agent_query_family_count',
+    'agent_query_min_per_case',
+    'agent_query_max_per_case',
+    'agent_query_record_gap_p95',
+    'agent_query_record_gap_max',
     'answer_must_include',
     'super_agent_read_only_compliance',
     'tool_selection_accuracy',
@@ -1038,6 +1463,14 @@ String _renderReport({
     'dataset_oracle_consistency',
     'failed_task_count',
     'failed_task_rate',
+    'provider_infra_task_error_count',
+    'provider_rate_limit_task_error_count',
+    'provider_quota_task_error_count',
+    'provider_network_task_error_count',
+    'provider_server_task_error_count',
+    'provider_infra_task_error_rate',
+    'provider_infra_affected_operation_count',
+    'provider_infra_affected_operation_rate',
     'task_not_settled_count',
     'task_settlement_rate',
     'input_timeout_rate',

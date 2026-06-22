@@ -29,8 +29,10 @@ void main(List<String> args) async {
       : <JsonMap>[];
   final existingResults = retryFailed
       ? rawExistingResults
-          .where((result) =>
-              result['ok'] == true && result['retry_exhausted'] != true)
+          .where(
+            (result) =>
+                result['ok'] == true && result['retry_exhausted'] != true,
+          )
           .toList(growable: false)
       : rawExistingResults;
   final completedTaskIndexes = existingResults
@@ -46,8 +48,9 @@ void main(List<String> args) async {
   final maxTokens =
       int.tryParse(Platform.environment['MEMEX_EVAL_JUDGE_MAX_TOKENS'] ?? '') ??
           4096;
-  final providerPriorities =
-      _intEnvList('MEMEX_EVAL_JUDGE_PROVIDER_PRIORITIES');
+  final providerPriorities = _intEnvList(
+    'MEMEX_EVAL_JUDGE_PROVIDER_PRIORITIES',
+  );
   final configuredConcurrency = int.tryParse(
     Platform.environment['MEMEX_EVAL_JUDGE_CONCURRENCY'] ?? '',
   );
@@ -138,10 +141,7 @@ void main(List<String> args) async {
       'max_tokens': maxTokens,
       'provider_count': providers.length,
       'provider_priorities': providers.map((provider) {
-        return {
-          'index': provider.index,
-          'priority': provider.priority,
-        };
+        return {'index': provider.index, 'priority': provider.priority};
       }).toList(growable: false),
       'provider_retry_cooldown_ms': _judgeProviderRetryCooldown.inMilliseconds,
       'provider_min_request_interval_ms':
@@ -188,11 +188,7 @@ Future<void> _runJudgeWorker({
       model: model,
       maxTokens: maxTokens,
     );
-    onResult({
-      ...result,
-      'task_index': taskIndex,
-      'worker_id': workerId,
-    });
+    onResult({...result, 'task_index': taskIndex, 'worker_id': workerId});
   }
 }
 
@@ -282,7 +278,7 @@ Output JSON:
 ${jsonEncode(task['output'])}
 
 Return strict JSON only:
-{"passed": true|false, "score": 0.0-1.0, "rationale": "short reason"}
+${task['response_schema']?.toString() ?? '{"passed": true|false, "score": 0.0-1.0, "rationale": "short reason"}'}
 
 Do not include reasoning, chain-of-thought, markdown, code fences, or any text
 outside that single JSON object. Keep rationale under 40 words.
@@ -290,10 +286,7 @@ outside that single JSON object. Keep rationale under 40 words.
   try {
     final response = await _postJson(
       _anthropicMessagesEndpoint(baseUrl),
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
+      headers: {'x-api-key': apiKey, 'anthropic-version': '2023-06-01'},
       body: {
         'model': model,
         'max_tokens': maxTokens,
@@ -305,8 +298,10 @@ outside that single JSON object. Keep rationale under 40 words.
     ).timeout(_judgeRequestTimeout);
     final parsed = _parseJudgeResponse(response.body);
     final responseOk = response.statusCode >= 200 && response.statusCode < 300;
-    final hasJudgePayload =
-        parsed.containsKey('passed') && parsed.containsKey('score');
+    final requiresWinner = task['metric'] == 'pairwise_answer_quality';
+    final hasJudgePayload = parsed.containsKey('passed') &&
+        parsed.containsKey('score') &&
+        (!requiresWinner || parsed.containsKey('winner'));
     return {
       ...task,
       'judge_model': model,
@@ -317,6 +312,9 @@ outside that single JSON object. Keep rationale under 40 words.
       'passed': responseOk && hasJudgePayload && parsed['passed'] == true,
       'score': _numValue(parsed['score']) ?? 0,
       'rationale': parsed['rationale']?.toString() ?? '',
+      if (parsed['winner'] != null) 'winner': parsed['winner']?.toString(),
+      if (parsed['match_level'] != null)
+        'match_level': parsed['match_level']?.toString(),
       if (responseOk && !hasJudgePayload)
         'error': 'Judge response did not contain strict JSON payload.',
       'raw_response_excerpt': _truncate(response.body, 1000),
@@ -461,7 +459,8 @@ Future<_HttpJsonResponse> _postJson(
 Uri _anthropicMessagesEndpoint(String baseUrl) {
   final base = _stripTrailingSlash(baseUrl);
   return Uri.parse(
-      base.endsWith('/v1') ? '$base/messages' : '$base/v1/messages');
+    base.endsWith('/v1') ? '$base/messages' : '$base/v1/messages',
+  );
 }
 
 String _stripTrailingSlash(String value) {
@@ -606,23 +605,27 @@ class _JudgeProviderPool {
 
       if (available.isNotEmpty) {
         available.sort((a, b) {
-          final priorityComparison =
-              _effectivePriority(b).compareTo(_effectivePriority(a));
+          final priorityComparison = _effectivePriority(
+            b,
+          ).compareTo(_effectivePriority(a));
           if (priorityComparison != 0) return priorityComparison;
 
           final inFlightComparison = (_inFlightByProvider[a.index] ?? 0)
               .compareTo(_inFlightByProvider[b.index] ?? 0);
           if (inFlightComparison != 0) return inFlightComparison;
 
-          final distanceComparison = _cyclicDistance(a, startIndex)
-              .compareTo(_cyclicDistance(b, startIndex));
+          final distanceComparison = _cyclicDistance(
+            a,
+            startIndex,
+          ).compareTo(_cyclicDistance(b, startIndex));
           if (distanceComparison != 0) return distanceComparison;
           return a.index.compareTo(b.index);
         });
         final selected = available.first;
         if (minRequestInterval.inMilliseconds > 0) {
-          _nextAvailableAtByProvider[selected.index] =
-              now.add(minRequestInterval);
+          _nextAvailableAtByProvider[selected.index] = now.add(
+            minRequestInterval,
+          );
         }
         _inFlightByProvider[selected.index] =
             (_inFlightByProvider[selected.index] ?? 0) + 1;
@@ -656,10 +659,12 @@ class _JudgeProviderPool {
       _nextAvailableAtByProvider.remove(provider.index);
       return;
     }
-    _transientPenaltyByProvider[provider.index] =
-        _retryPenaltyForResult(result);
-    _cooldownUntilByProvider[provider.index] =
-        DateTime.now().add(retryCooldown);
+    _transientPenaltyByProvider[provider.index] = _retryPenaltyForResult(
+      result,
+    );
+    _cooldownUntilByProvider[provider.index] = DateTime.now().add(
+      retryCooldown,
+    );
   }
 
   int _effectivePriority(_JudgeProvider provider) {
@@ -706,12 +711,31 @@ class _JudgeAggregate {
   var passed = 0;
   num scoreSum = 0;
   var errorCount = 0;
+  final winnerCounts = <String, int>{};
+  final matchLevelCounts = <String, int>{};
+  final modeWinCounts = <String, int>{};
 
   void add(JsonMap result) {
     total += 1;
     if (result['passed'] == true) passed += 1;
     scoreSum += _numValue(result['score']) ?? 0;
     if (result['ok'] != true) errorCount += 1;
+    final winner = result['winner']?.toString();
+    if (winner != null && winner.isNotEmpty) {
+      winnerCounts[winner] = (winnerCounts[winner] ?? 0) + 1;
+      final mode = winner == 'A'
+          ? result['answer_a_mode']?.toString()
+          : winner == 'B'
+              ? result['answer_b_mode']?.toString()
+              : 'tie';
+      if (mode != null && mode.isNotEmpty) {
+        modeWinCounts[mode] = (modeWinCounts[mode] ?? 0) + 1;
+      }
+    }
+    final matchLevel = result['match_level']?.toString();
+    if (matchLevel != null && matchLevel.isNotEmpty) {
+      matchLevelCounts[matchLevel] = (matchLevelCounts[matchLevel] ?? 0) + 1;
+    }
   }
 
   JsonMap toJson() => {
@@ -720,6 +744,9 @@ class _JudgeAggregate {
         'pass_rate': total == 0 ? 1 : _round3(passed / total),
         'average_score': total == 0 ? 1 : _round3(scoreSum / total),
         'error_count': errorCount,
+        if (winnerCounts.isNotEmpty) 'winner_counts': winnerCounts,
+        if (modeWinCounts.isNotEmpty) 'mode_win_counts': modeWinCounts,
+        if (matchLevelCounts.isNotEmpty) 'match_level_counts': matchLevelCounts,
       };
 }
 

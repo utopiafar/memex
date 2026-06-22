@@ -9,6 +9,61 @@ comparison report.
 See `METRICS.md` for the candidate gate, failure attribution, and evidence-level
 definitions.
 
+## Current Iteration Target
+
+This iteration keeps the legacy `legacy_pkm` baseline frozen and iterates only
+the Memory Primary path. The target scale run is 12 personas, 600 record
+operations per persona, and at least 50 interleaved Super Agent asks per
+persona. All metrics from the original online gate and the newly confirmed
+journey, vector-contribution, pairwise-judge, provider-pool, and artifact-audit
+metrics must be recorded in `metrics.json`, judge artifacts, case logs, or the
+iteration report.
+
+Legacy is frozen, but not exempt from scoring. If `legacy_pkm` fails because of
+its own chain behavior, such as task exceptions, loop/max-turn failures, failure
+to settle, or inability to exit normally, the failure is counted as a legacy
+chain failure. Only clearly external provider infrastructure problems, such as
+429/out-of-quota/connection failures, are classified separately as provider
+health noise and excluded from effect-quality conclusions after rerouting.
+
+The execution order is:
+
+1. Generate and audit the small fixture.
+2. Run the real-provider small gate.
+3. Render badcases, fix only Memory Primary issues, and record each iteration in
+   `evals/ITERATION_LOG.md`.
+4. Generate/audit the 12-user scale fixture and shard plan.
+5. Run scale shards, monitor with `watch-status`, merge, judge, render
+   badcases, run strict audit, and publish the Chinese report.
+
+## Retrieval Practice Baseline
+
+The Memory Primary recall path follows a simple hybrid-search baseline instead
+of case-specific ranking rules:
+
+- Lexical retrieval: FTS/BM25-like ranking over memory text and metadata.
+- Dense retrieval: OpenRouter `qwen/qwen3-embedding-8b` embeddings for semantic
+  similarity.
+- Fusion: reciprocal rank fusion (RRF) over the two ranked lists. Entity,
+  evidence, recency, and importance are kept as traceable reasons/tie-break
+  context rather than bespoke case fixes.
+
+This mirrors current public production patterns: Azure AI Search describes
+hybrid full-text plus vector queries merged with RRF, Elastic positions hybrid
+search as lexical plus semantic retrieval in one ranked list, and OpenSearch
+ships rank-fusion processors for hybrid search. The original SIGIR RRF paper is
+also useful here because RRF combines ranked lists without requiring fragile
+normalization between BM25 scores and vector similarities.
+
+References:
+
+- https://learn.microsoft.com/en-us/azure/search/hybrid-search-overview
+- https://www.elastic.co/what-is/hybrid-search
+- https://docs.opensearch.org/latest/vector-search/ai-search/hybrid-search/index/
+- https://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf
+- https://openrouter.ai/docs/api/reference/embeddings
+- https://huggingface.co/Qwen/Qwen3-Embedding-8B
+
 ## Dataset Generation
 
 Generate the default scale mock dataset:
@@ -66,9 +121,25 @@ MEMEX_EVAL_LLM_API_KEY=<redacted> \
 MEMEX_EVAL_EMBEDDING_MODEL=qwen/qwen3-embedding-8b \
 MEMEX_EVAL_EMBEDDING_BASE_URL=https://openrouter.ai/api/v1 \
 MEMEX_EVAL_EMBEDDING_API_KEY=<redacted> \
-env -u http_proxy -u https_proxy -u all_proxy -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY \
+env -u ws_proxy -u wss_proxy \
   NO_PROXY=localhost,127.0.0.1,::1 no_proxy=localhost,127.0.0.1,::1 \
   flutter test --no-pub evals/replay/memory_primary_full_chain_replay_test.dart
+```
+
+The same real-run paths can be launched through the safer orchestration wrapper,
+which reads already-exported environment variables, never accepts API keys as
+arguments, unsets local WebSocket proxies, and writes only redacted artifacts:
+
+```bash
+dart run evals/bin/run_memory_primary_iteration.dart doctor
+dart run evals/bin/run_memory_primary_iteration.dart preflight
+dart run evals/bin/run_memory_primary_iteration.dart small
+dart run evals/bin/run_memory_primary_iteration.dart judge <run-dir>
+dart run evals/bin/run_memory_primary_iteration.dart badcases <run-dir>
+dart run evals/bin/run_memory_primary_iteration.dart audit <run-dir>
+dart run evals/bin/run_memory_primary_iteration.dart report <run-dir>
+dart run evals/bin/run_memory_primary_iteration.dart status <run-dir>
+dart run evals/bin/run_memory_primary_iteration.dart watch-status <scale_shard_manifest.json>
 ```
 
 Before a real replay, run a model/provider preflight only. This writes
@@ -88,6 +159,86 @@ Do not scale a run until preflight passes for every configured subscription.
 If a provider rejects synthetic preflight calls but works in the real agent
 path, set `MEMEX_EVAL_SKIP_LLM_PREFLIGHT=1` and document the reason in
 `evals/ITERATION_LOG.md`.
+
+For provider pools, pass comma-separated `MEMEX_EVAL_LLM_BASE_URLS` and
+`MEMEX_EVAL_LLM_API_KEYS` for the MiMo agent chain. Use OpenRouter only through
+`MEMEX_EVAL_EMBEDDING_*` for Qwen3 Embedding 8B. If local Flutter tests fail
+with `Invalid WebSocket upgrade request`, unset `ws_proxy` / `wss_proxy` and set
+`NO_PROXY=localhost,127.0.0.1,::1`.
+
+During full-chain replay, each case/user still starts from one assigned provider
+slot for journey comparability. Interleaved Super Agent asks may retry across the
+configured pool on retryable provider errors; clearly out-of-quota providers are
+disabled for the remainder of the run. Attempts are written as redacted
+`provider_attempts` in observations and summarized by
+`super_agent_provider_*` metrics.
+
+Scale shards also enable an eval-only non-settlement guard by default:
+`MEMEX_EVAL_ABORT_CASE_AFTER_CONSECUTIVE_UNSETTLED_RECORDS=3`. If a frozen
+legacy chain, or any other mode, repeatedly fails to settle record operations,
+the harness records `task_not_settled` plus
+`case_aborted_after_consecutive_unsettled`, counts skipped operations in
+`eval_aborted_operation_count`, and moves on to preserve reproducible artifacts.
+This guard does not change agent behavior and does not turn chain failures into
+provider noise.
+
+Generate the PR256 small gate fixture with interleaved Agent asks and varied
+roles, locations, mood transitions, and conflict topics:
+
+```bash
+MEMEX_EVAL_PERSONA_COUNT=3 \
+MEMEX_EVAL_RECORDS_PER_PERSONA=48 \
+MEMEX_EVAL_AGENT_QUERIES_PER_PERSONA=6 \
+dart run evals/bin/generate_pr256_full_metric_dataset.dart
+```
+
+Generate the scale target for this iteration:
+
+```bash
+dart run evals/bin/run_memory_primary_iteration.dart generate-scale
+dart run evals/bin/run_memory_primary_iteration.dart plan-scale
+```
+
+Audit the generated dataset shape before spending provider budget:
+
+```bash
+dart run evals/bin/run_memory_primary_iteration.dart audit-dataset \
+  evals/datasets/pr256_full_metric_small/cases.jsonl
+
+dart run evals/bin/run_memory_primary_iteration.dart audit-dataset \
+  evals/datasets/pr256_full_metric_large_p12_r600_q50/cases.jsonl
+```
+
+The dataset audit verifies case/record/ask counts, strict interleaving of
+Super Agent asks between record operations, query-family coverage, and persona
+diversity across roles, locations, travel cities, moods, and conflict topics.
+
+Create a scale shard manifest before launching the 12-persona run:
+
+```bash
+dart run evals/bin/run_memory_primary_iteration.dart plan-scale \
+  evals/datasets/pr256_full_metric_large_p12_r600_q50/cases.jsonl
+```
+
+The plan writes `scale_shard_manifest.json`, `scale_shard_commands.sh`, and
+`scale_shard_plan.md` under `MEMEX_EVAL_SCALE_PLAN_DIR` or
+`evals/runs/pr256_next_scale_p12_r600_q50/plan` by default. It includes one
+command per persona shard, plus status, watch-status, merge, judge, badcase,
+strict-audit, and report commands. The generated files intentionally contain no
+provider secrets.
+
+Track a long scale run at a fixed interval:
+
+```bash
+MEMEX_EVAL_STATUS_INTERVAL_SECONDS=300 \
+dart run evals/bin/run_memory_primary_iteration.dart watch-status \
+  evals/runs/pr256_next_scale_p12_r600_q50/plan/scale_shard_manifest.json
+```
+
+`watch-status` treats missing/incomplete shards as progress warnings, writes the
+latest `scale_shard_audit.json/md`, and then prints the status table for every
+planned shard. Final pass/fail still comes from strict `audit-shards`, merged
+`audit`, judge, and report commands.
 
 To spread cases across multiple equivalent subscriptions, provide comma-separated
 lists. The runner assigns one model config per case/user by index, which keeps a
@@ -156,10 +307,18 @@ Useful env vars:
 
 Recommended real-LLM scale settings:
 
-- Use `MEMEX_EVAL_TASK_TIMEOUT_SECONDS=180` and
-  `MEMEX_EVAL_SUITE_TIMEOUT_SECONDS=7200` for 24-record shards.
-- Keep real-model execution to at most two concurrent shards unless the model
-  provider has been separately load-tested.
+- Use `MEMEX_EVAL_TASK_TIMEOUT_SECONDS=300` or higher for record-chain shards
+  when providers are cooling down from short-window 429s, and set
+  `MEMEX_EVAL_SUITE_TIMEOUT_SECONDS` according to shard size.
+- Keep record-chain execution to at most one or two concurrent shards unless the
+  model provider pool has been separately load-tested. Judge tasks may use
+  higher concurrency because they have independent provider fallback and do not
+  share a persona workspace.
+- Treat nonzero `provider_infra_task_error_count` or
+  `provider_infra_affected_operation_rate` as provider-contaminated evidence:
+  lower shard concurrency, adjust `MEMEX_EVAL_LLM_PROVIDER_PRIORITIES`, remove
+  out-of-quota providers, and rerun affected shards before making effect-quality
+  claims.
 - If Flutter local test startup reports WebSocket/proxy errors, keep localhost
   out of proxy routing and clear websocket proxy env vars:
 
@@ -226,7 +385,7 @@ flutter test --no-pub evals/replay/memory_primary_full_chain_replay_test.dart
 Merge several completed run directories:
 
 ```bash
-dart run evals/bin/merge_memory_primary_eval_runs.dart \
+dart run evals/bin/run_memory_primary_iteration.dart merge \
   evals/runs/memory_primary_scale_shard_0 \
   evals/runs/memory_primary_scale_shard_1
 ```
@@ -236,21 +395,103 @@ Or with env vars:
 ```bash
 MEMEX_EVAL_MERGE_RUN_DIRS=evals/runs/memory_primary_scale_shard_0,evals/runs/memory_primary_scale_shard_1 \
 MEMEX_EVAL_MERGE_OUTPUT_DIR=evals/runs/memory_primary_scale_merged \
-dart run evals/bin/merge_memory_primary_eval_runs.dart
+dart run evals/bin/run_memory_primary_iteration.dart merge
 ```
 
-The merge script concatenates `observations.jsonl` / `failures.jsonl`, recomputes
-aggregate rates, deltas, and `gate.json`, then writes a merged `report.md`.
+The merge script concatenates `observations.jsonl`, `failures.jsonl`, and
+`judge_tasks.jsonl`, copies `case_logs/`, recomputes aggregate rates, deltas,
+and `gate.json`, then writes a merged `report.md` and `case_debug_index.md`.
+
+## Artifact Audit
+
+Audit a small, shard, or merged run before treating it as evidence:
+
+```bash
+dart run evals/bin/run_memory_primary_iteration.dart audit evals/runs/<run-dir>
+```
+
+For final real-provider evidence, tighten the audit with:
+
+```bash
+MEMEX_EVAL_AUDIT_EXPECT_MODES=legacy_pkm,memory_primary \
+MEMEX_EVAL_AUDIT_EXPECT_LLM=1 \
+MEMEX_EVAL_AUDIT_EXPECT_JUDGE=1 \
+MEMEX_EVAL_AUDIT_EXPECT_PAIRWISE=1 \
+MEMEX_EVAL_AUDIT_EXPECT_BADCASES=1 \
+MEMEX_EVAL_AUDIT_EXPECT_GATE_PASS=1 \
+dart run evals/bin/run_memory_primary_iteration.dart audit evals/runs/<merged-run-dir>
+```
+
+The audit writes `artifact_audit.json` and `artifact_audit.md`, checks required
+artifacts, mode metrics, case log coverage, judge task counts, optional judge
+outputs, optional gate status, and common provider-key leak patterns.
+
+## Badcase Ledger
+
+After replay or merge, render a badcase ledger before audit/report:
+
+```bash
+dart run evals/bin/run_memory_primary_iteration.dart badcases evals/runs/<run-dir>
+```
+
+This writes `badcases.md` and `badcases.jsonl`. Each grouped badcase includes
+case id, persona, operation id, input, expected result, actual result, failed
+metric categories, root-cause classification, suggested fix point, verification
+artifact/command, legacy impact, and whether a scale retest is needed. The
+classification is an initial machine summary; precise root causes and final
+fixes still belong in `evals/ITERATION_LOG.md`.
+
+## Iteration Report
+
+After replay, judge, merge, and audit, render a Chinese closeout report from
+the run artifacts:
+
+```bash
+dart run evals/bin/run_memory_primary_iteration.dart report evals/runs/<run-dir>
+```
+
+By default the report is written to `evals/reports/` with the run directory name
+in the file name. Set `MEMEX_EVAL_REPORT_OUTPUT` or pass a second argument when
+a fixed output path is needed:
+
+```bash
+dart run evals/bin/run_memory_primary_iteration.dart report \
+  evals/runs/<merged-run-dir> \
+  evals/reports/<date>-memory-primary-scale-p12-r600-q50.zh.md
+```
+
+The report consumes existing artifacts only. It summarizes sample coverage,
+gate status, Agent interleaved-query metrics, pairwise judge results, vector
+retrieval contribution, provider retry diagnostics, badcase categories, and the
+artifact audit status without re-running the chain.
+
+## Progress Status
+
+During long small/scale runs or after merging shards, summarize progress and
+evidence health without opening every artifact:
+
+```bash
+dart run evals/bin/run_memory_primary_iteration.dart status evals/runs/<run-dir>
+```
+
+The status command reads `progress.json`, `metrics.json`, `gate.json`,
+`artifact_audit.json`, and optional judge metrics. It prints the latest
+operation, mode-level records/asks/query-interleaving/memory/recall/Agent/gate
+signals, and judge provider status when available.
 
 ## Suggested Progression
 
 1. Run no-LLM smoke on `memory_primary_smoke` to validate harness plumbing.
-2. Run real LLM + embedding with `MEMEX_EVAL_CASE_LIMIT=1`.
-3. Generate `memory_primary_mock_scale` and run no-LLM for report shape.
-4. Run real LLM + embedding on scale data in shards by setting
-   `MEMEX_EVAL_CASE_OFFSET`, `MEMEX_EVAL_CASE_LIMIT`, and distinct
-   `MEMEX_EVAL_RUN_DIR` values.
-5. Only treat a run as rollout evidence when it uses real LLM + embedding,
+2. Generate and audit the PR256 small gate fixture with interleaved Agent asks.
+3. Run real LLM + OpenRouter embedding with `MEMEX_EVAL_CASE_LIMIT=1`, and use
+   `status` for progress checks while it runs.
+4. Iterate only the Memory Primary path and record each badcase in
+   `evals/ITERATION_LOG.md`; use `badcases` to generate the structured ledger
+   from run artifacts before hand-editing root-cause notes.
+5. Generate and audit the 12 persona / 600 records / 50 asks scale dataset,
+   run `plan-scale`, then run real LLM + embedding in shards from the generated
+   manifest commands.
+6. Only treat a run as rollout evidence when it uses real LLM + embedding,
    passes the candidate gate, and shows positive Memory Primary deltas against
    `legacy_pkm`.
 

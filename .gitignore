@@ -86,6 +86,7 @@ coverage/
 
 .state_dir/
 evals/runs/
+evals/datasets/pr256_full_metric_large_*/
 
 # Android signing
 android/key-*.properties

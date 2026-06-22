@@ -22,213 +22,223 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   HttpOverrides.global = _EvalHttpOverrides();
 
-  test('replays Memory Primary Quick Query asks from case logs', () async {
-    final repoRoot = Directory.current.path;
-    final runId =
-        'memory_primary_quick_query_replay_${DateTime.now().toUtc().toIso8601String().replaceAll(RegExp(r'[^0-9A-Za-z]'), '')}';
-    final runDir = Directory(
-      Platform.environment['MEMEX_EVAL_RUN_DIR'] ??
-          p.join(repoRoot, 'evals', 'runs', runId),
-    );
-    if (await runDir.exists()) {
-      await runDir.delete(recursive: true);
-    }
-    await runDir.create(recursive: true);
-
-    final pathProviderRoot = await Directory.systemTemp.createTemp(
-      'memex_memory_primary_quick_query_paths_',
-    );
-    PathProviderPlatform.instance =
-        _FakePathProviderPlatform(pathProviderRoot.path);
-
-    final caseLogPaths = _caseLogPaths(repoRoot)
-        .skip(_caseOffset)
-        .take(_caseLimit ?? _caseLogPaths(repoRoot).length)
-        .toList(growable: false);
-    if (caseLogPaths.isEmpty) {
-      throw StateError('No quick-query case logs selected.');
-    }
-
-    final observations = <JsonMap>[];
-    final failures = <JsonMap>[];
-    final judgeTasks = <JsonMap>[];
-    final caseLogs = <JsonMap>[];
-    final progressFile = File(p.join(runDir.path, 'progress.json'));
-
-    for (var caseIndex = 0; caseIndex < caseLogPaths.length; caseIndex++) {
-      final sourceLog =
-          jsonDecode(await File(caseLogPaths[caseIndex]).readAsString())
-              as JsonMap;
-      final evalCase = _map(sourceLog['case']);
-      final caseId = evalCase['case_id']?.toString() ??
-          sourceLog['case_id']?.toString() ??
-          'case_$caseIndex';
-      final userId =
-          '${caseId}_quick_query_${DateTime.now().microsecondsSinceEpoch}';
-      final dataRoot = await Directory.systemTemp.createTemp(
-        'memex_quick_query_$caseId',
+  test(
+    'replays Memory Primary Quick Query asks from case logs',
+    () async {
+      final repoRoot = Directory.current.path;
+      final runId =
+          'memory_primary_quick_query_replay_${DateTime.now().toUtc().toIso8601String().replaceAll(RegExp(r'[^0-9A-Za-z]'), '')}';
+      final runDir = Directory(
+        Platform.environment['MEMEX_EVAL_RUN_DIR'] ??
+            p.join(repoRoot, 'evals', 'runs', runId),
       );
-      SharedPreferences.setMockInitialValues({});
-      await UserStorage.initL10n();
-      await FileSystemService.init(dataRoot.path);
-      await UserStorage.saveUser(userId);
-      await UserStorage.saveAgentPipelineConfig(
-        const AgentPipelineConfig(mode: AgentPipelineMode.memoryPrimary),
-      );
-      final restoreMode = _rebuildMemoryFromCaseLog
-          ? 'memory_change_replay'
-          : 'final_memory_atoms';
-      if (_rebuildMemoryFromCaseLog) {
-        await _rebuildMemoryFromCaseLogChanges(
-          userId: userId,
-          sourceLog: sourceLog,
-        );
-      } else {
-        await _writeMemoryAtoms(
-          userId: userId,
-          atoms: _list(sourceLog['final_memory_atoms']).map(_map).toList(),
-        );
+      if (await runDir.exists()) {
+        await runDir.delete(recursive: true);
       }
-      final activeAtoms =
-          await MemoryPrimaryService.instance.listActiveAtoms(userId);
-      if (activeAtoms.isEmpty) {
-        throw StateError(
-          'Restored Memory Primary store has no active atoms for $caseId.',
-        );
-      }
+      await runDir.create(recursive: true);
 
-      final chatService = ChatService.instance;
-      final caseObservations = <JsonMap>[];
-      final caseFailures = <JsonMap>[];
-      final operations = _list(evalCase['operations'])
-          .map(_map)
-          .where((operation) => operation['type'] == 'super_agent_ask')
+      final pathProviderRoot = await Directory.systemTemp.createTemp(
+        'memex_memory_primary_quick_query_paths_',
+      );
+      PathProviderPlatform.instance = _FakePathProviderPlatform(
+        pathProviderRoot.path,
+      );
+
+      final caseLogPaths = _caseLogPaths(repoRoot)
+          .skip(_caseOffset)
+          .take(_caseLimit ?? _caseLogPaths(repoRoot).length)
           .toList(growable: false);
+      if (caseLogPaths.isEmpty) {
+        throw StateError('No quick-query case logs selected.');
+      }
 
-      for (var operationIndex = 0;
-          operationIndex < operations.length;
-          operationIndex++) {
-        final operation = operations[operationIndex];
-        final opId = operation['id']?.toString() ?? 'ask';
-        final directRecall = await _preflightRecall(
-          userId: userId,
-          query: operation['query']?.toString() ?? '',
+      final observations = <JsonMap>[];
+      final failures = <JsonMap>[];
+      final judgeTasks = <JsonMap>[];
+      final caseLogs = <JsonMap>[];
+      final progressFile = File(p.join(runDir.path, 'progress.json'));
+
+      for (var caseIndex = 0; caseIndex < caseLogPaths.length; caseIndex++) {
+        final sourceLog =
+            jsonDecode(await File(caseLogPaths[caseIndex]).readAsString())
+                as JsonMap;
+        final evalCase = _map(sourceLog['case']);
+        final caseId = evalCase['case_id']?.toString() ??
+            sourceLog['case_id']?.toString() ??
+            'case_$caseIndex';
+        final userId =
+            '${caseId}_quick_query_${DateTime.now().microsecondsSinceEpoch}';
+        final dataRoot = await Directory.systemTemp.createTemp(
+          'memex_quick_query_$caseId',
         );
-        final ask = await _runSuperAgentAskWithProviderRetries(
-          chatService,
-          operation,
-          userId: userId,
-          baseSlot: ((_caseOffset + caseIndex) * 100) + operationIndex,
+        SharedPreferences.setMockInitialValues({});
+        await UserStorage.initL10n();
+        await FileSystemService.init(dataRoot.path);
+        await UserStorage.saveUser(userId);
+        await UserStorage.saveAgentPipelineConfig(
+          const AgentPipelineConfig(mode: AgentPipelineMode.memoryPrimary),
         );
-        final expected = _map(operation['expected']);
-        final textEval = _evaluateTextExpectations(
-          haystack: ask.answer,
-          mustContain: _textExpectations(expected['must_contain']),
-          mustNotContain: _textExpectations(expected['must_not_contain']),
-          caseId: caseId,
-          operationId: opId,
+        final restoreMode = _rebuildMemoryFromCaseLog
+            ? 'memory_change_replay'
+            : 'final_memory_atoms';
+        if (_rebuildMemoryFromCaseLog) {
+          await _rebuildMemoryFromCaseLogChanges(
+            userId: userId,
+            sourceLog: sourceLog,
+          );
+        } else {
+          await _writeMemoryAtoms(
+            userId: userId,
+            atoms: _list(sourceLog['final_memory_atoms']).map(_map).toList(),
+          );
+        }
+        final activeAtoms = await MemoryPrimaryService.instance.listActiveAtoms(
+          userId,
         );
-        final toolEval = _evaluateToolExpectations(
-          caseId: caseId,
-          operationId: opId,
-          expected: expected,
-          events: ask.events,
-        );
-        caseFailures
-          ..addAll(textEval.failures)
-          ..addAll(toolEval.failures);
-        if (ask.error != null) {
-          caseFailures.add(_failure(
+        if (activeAtoms.isEmpty) {
+          throw StateError(
+            'Restored Memory Primary store has no active atoms for $caseId.',
+          );
+        }
+
+        final chatService = ChatService.instance;
+        final caseObservations = <JsonMap>[];
+        final caseFailures = <JsonMap>[];
+        final operations = _list(evalCase['operations'])
+            .map(_map)
+            .where((operation) => operation['type'] == 'super_agent_ask')
+            .toList(growable: false);
+
+        for (var operationIndex = 0;
+            operationIndex < operations.length;
+            operationIndex++) {
+          final operation = operations[operationIndex];
+          final opId = operation['id']?.toString() ?? 'ask';
+          final directRecall = await _preflightRecall(
+            userId: userId,
+            query: operation['query']?.toString() ?? '',
+          );
+          final ask = await _runSuperAgentAskWithProviderRetries(
+            chatService,
+            operation,
+            userId: userId,
+            baseSlot: ((_caseOffset + caseIndex) * 100) + operationIndex,
+          );
+          final expected = _map(operation['expected']);
+          final textEval = _evaluateTextExpectations(
+            haystack: ask.answer,
+            mustContain: _textExpectations(expected['must_contain']),
+            mustNotContain: _textExpectations(expected['must_not_contain']),
             caseId: caseId,
             operationId: opId,
-            category: 'super_agent_ask_error',
-            message: 'Super Agent ask returned an error.',
-            details: {'error': ask.error},
-          ));
-        }
-        final observation = {
-          'mode': 'memory_primary',
-          'case_id': caseId,
-          'operation_id': opId,
-          'query': operation['query'],
-          'preflight': {
-            'active_atom_count': activeAtoms.length,
-            'direct_recall': directRecall,
-          },
-          'answer': ask.answer,
-          'error': ask.error,
-          'provider_attempts': ask.providerAttempts,
-          'events': ask.events,
-          'text_eval': textEval.toJson(),
-          'tool_eval': toolEval.toJson(),
-        };
-        observations.add(observation);
-        caseObservations.add(observation);
-        judgeTasks.addAll(_judgeTasksForOperation(
-          caseId: caseId,
-          operationId: opId,
-          operation: operation,
-          output: {
-            'answer': ask.answer,
-            'events': ask.events,
-          },
-        ));
-        await progressFile.writeAsString(
-          const JsonEncoder.withIndent('  ').convert({
+          );
+          final toolEval = _evaluateToolExpectations(
+            caseId: caseId,
+            operationId: opId,
+            expected: expected,
+            events: ask.events,
+          );
+          caseFailures
+            ..addAll(textEval.failures)
+            ..addAll(toolEval.failures);
+          if (ask.error != null) {
+            caseFailures.add(
+              _failure(
+                caseId: caseId,
+                operationId: opId,
+                category: 'super_agent_ask_error',
+                message: 'Super Agent ask returned an error.',
+                details: {'error': ask.error},
+              ),
+            );
+          }
+          final observation = {
+            'mode': 'memory_primary',
             'case_id': caseId,
             'operation_id': opId,
-            'completed_observations': observations.length,
-            'failure_count': failures.length + caseFailures.length,
-          }),
+            'query': operation['query'],
+            'preflight': {
+              'active_atom_count': activeAtoms.length,
+              'direct_recall': directRecall,
+            },
+            'answer': ask.answer,
+            'error': ask.error,
+            'provider_attempts': ask.providerAttempts,
+            'events': ask.events,
+            'text_eval': textEval.toJson(),
+            'tool_eval': toolEval.toJson(),
+          };
+          observations.add(observation);
+          caseObservations.add(observation);
+          judgeTasks.addAll(
+            _judgeTasksForOperation(
+              caseId: caseId,
+              operationId: opId,
+              operation: operation,
+              output: {'answer': ask.answer, 'events': ask.events},
+            ),
+          );
+          await progressFile.writeAsString(
+            const JsonEncoder.withIndent('  ').convert({
+              'case_id': caseId,
+              'operation_id': opId,
+              'completed_observations': observations.length,
+              'failure_count': failures.length + caseFailures.length,
+            }),
+            flush: true,
+          );
+        }
+
+        failures.addAll(caseFailures);
+        caseLogs.add({
+          'case_id': caseId,
+          'source_case_log': caseLogPaths[caseIndex],
+          'user_id': userId,
+          'restore_mode': restoreMode,
+          'active_atom_count': activeAtoms.length,
+          'observation_count': caseObservations.length,
+          'failure_count': caseFailures.length,
+          'observations': caseObservations,
+          'failures': caseFailures,
+        });
+      }
+
+      await _writeJsonl(
+        File(p.join(runDir.path, 'observations.jsonl')),
+        observations,
+      );
+      await _writeJsonl(File(p.join(runDir.path, 'failures.jsonl')), failures);
+      await _writeJsonl(
+        File(p.join(runDir.path, 'judge_tasks.jsonl')),
+        judgeTasks,
+      );
+      await Directory(p.join(runDir.path, 'case_logs')).create(recursive: true);
+      for (final caseLog in caseLogs) {
+        await File(
+          p.join(runDir.path, 'case_logs', '${caseLog['case_id']}.json'),
+        ).writeAsString(
+          const JsonEncoder.withIndent('  ').convert(caseLog),
           flush: true,
         );
       }
-
-      failures.addAll(caseFailures);
-      caseLogs.add({
-        'case_id': caseId,
-        'source_case_log': caseLogPaths[caseIndex],
-        'user_id': userId,
-        'restore_mode': restoreMode,
-        'active_atom_count': activeAtoms.length,
-        'observation_count': caseObservations.length,
-        'failure_count': caseFailures.length,
-        'observations': caseObservations,
-        'failures': caseFailures,
-      });
-    }
-
-    await _writeJsonl(
-        File(p.join(runDir.path, 'observations.jsonl')), observations);
-    await _writeJsonl(File(p.join(runDir.path, 'failures.jsonl')), failures);
-    await _writeJsonl(
-        File(p.join(runDir.path, 'judge_tasks.jsonl')), judgeTasks);
-    await Directory(p.join(runDir.path, 'case_logs')).create(recursive: true);
-    for (final caseLog in caseLogs) {
-      await File(
-        p.join(runDir.path, 'case_logs', '${caseLog['case_id']}.json'),
-      ).writeAsString(
-        const JsonEncoder.withIndent('  ').convert(caseLog),
+      final metrics = _metrics(
+        observations: observations,
+        failures: failures,
+        judgeTasks: judgeTasks,
+        caseLogPaths: caseLogPaths,
+      );
+      await File(p.join(runDir.path, 'metrics.json')).writeAsString(
+        const JsonEncoder.withIndent('  ').convert(metrics),
         flush: true,
       );
-    }
-    final metrics = _metrics(
-      observations: observations,
-      failures: failures,
-      judgeTasks: judgeTasks,
-      caseLogPaths: caseLogPaths,
-    );
-    await File(p.join(runDir.path, 'metrics.json')).writeAsString(
-      const JsonEncoder.withIndent('  ').convert(metrics),
-      flush: true,
-    );
-    await File(p.join(runDir.path, 'report.md')).writeAsString(
-      _renderReport(metrics),
-      flush: true,
-    );
+      await File(
+        p.join(runDir.path, 'report.md'),
+      ).writeAsString(_renderReport(metrics), flush: true);
 
-    expect(observations.length, caseLogPaths.length * 4);
-  }, timeout: const Timeout(Duration(minutes: 90)));
+      expect(observations.length, caseLogPaths.length * 4);
+    },
+    timeout: const Timeout(Duration(minutes: 90)),
+  );
 }
 
 Future<_EvalLlmConfig> _configureLlm({required int slot}) async {
@@ -256,11 +266,9 @@ Future<void> _writeMemoryAtoms({
   final file = File(path);
   await file.parent.create(recursive: true);
   await file.writeAsString(
-    const JsonEncoder.withIndent('  ').convert({
-      'schema_version': 1,
-      'next_memory_id': 10000,
-      'atoms': atoms,
-    }),
+    const JsonEncoder.withIndent(
+      '  ',
+    ).convert({'schema_version': 1, 'next_memory_id': 10000, 'atoms': atoms}),
     flush: true,
   );
 }
@@ -270,15 +278,18 @@ Future<void> _rebuildMemoryFromCaseLogChanges({
   required JsonMap sourceLog,
 }) async {
   var applied = 0;
-  for (final observation
-      in _list(sourceLog['operation_observations']).map(_map)) {
+  for (final observation in _list(
+    sourceLog['operation_observations'],
+  ).map(_map)) {
     for (final task in _list(observation['new_tasks']).map(_map)) {
       if (task['type']?.toString() != 'memory_primary_task') continue;
       final result = _map(task['result']);
       for (final rawAtom in _list(result['changed_memory_atoms']).map(_map)) {
         final id = rawAtom['id']?.toString();
         if (id == null || id.trim().isEmpty) continue;
-        final exists = (await MemoryPrimaryService.instance.listAtoms(userId))
+        final exists = (await MemoryPrimaryService.instance.listAtoms(
+          userId,
+        ))
             .any((atom) => atom.id == id);
         await MemoryPrimaryService.instance.applyPatches(
           userId: userId,
@@ -455,26 +466,30 @@ _TextEval _evaluateTextExpectations({
     if (expectation.matches(haystack)) {
       mustHits += 1;
     } else {
-      failures.add(_failure(
-        caseId: caseId,
-        operationId: operationId,
-        category: 'super_agent_answer_missing',
-        message: 'Expected answer text was missing.',
-        details: expectation.toJson(),
-      ));
+      failures.add(
+        _failure(
+          caseId: caseId,
+          operationId: operationId,
+          category: 'super_agent_answer_missing',
+          message: 'Expected answer text was missing.',
+          details: expectation.toJson(),
+        ),
+      );
     }
   }
   var forbiddenHits = 0;
   for (final expectation in mustNotContain) {
     if (expectation.matches(haystack)) {
       forbiddenHits += 1;
-      failures.add(_failure(
-        caseId: caseId,
-        operationId: operationId,
-        category: 'super_agent_forbidden_present',
-        message: 'Forbidden answer text was present.',
-        details: expectation.toJson(),
-      ));
+      failures.add(
+        _failure(
+          caseId: caseId,
+          operationId: operationId,
+          category: 'super_agent_forbidden_present',
+          message: 'Forbidden answer text was present.',
+          details: expectation.toJson(),
+        ),
+      );
     }
   }
   return _TextEval(
@@ -507,13 +522,15 @@ _ToolEval _evaluateToolExpectations({
     if (callNames.contains(tool)) {
       toolSelectionHits += 1;
     } else {
-      failures.add(_failure(
-        caseId: caseId,
-        operationId: operationId,
-        category: 'tool_selection_missing',
-        message: 'Expected tool was not called.',
-        details: {'expected_tool': tool, 'actual_tools': callNames.toList()},
-      ));
+      failures.add(
+        _failure(
+          caseId: caseId,
+          operationId: operationId,
+          category: 'tool_selection_missing',
+          message: 'Expected tool was not called.',
+          details: {'expected_tool': tool, 'actual_tools': callNames.toList()},
+        ),
+      );
     }
   }
 
@@ -525,8 +542,9 @@ _ToolEval _evaluateToolExpectations({
     final needles = _strings(item['must_contain']);
     if (tool == null || tool.isEmpty || needles.isEmpty) continue;
     toolArgsTotal += 1;
-    final matchingCalls =
-        calls.where((call) => call['name']?.toString() == tool);
+    final matchingCalls = calls.where(
+      (call) => call['name']?.toString() == tool,
+    );
     final matched = matchingCalls.any((call) {
       final args = call['arguments']?.toString() ?? '';
       return needles.every((needle) => _contains(args, needle));
@@ -534,18 +552,20 @@ _ToolEval _evaluateToolExpectations({
     if (matched) {
       toolArgsHits += 1;
     } else {
-      failures.add(_failure(
-        caseId: caseId,
-        operationId: operationId,
-        category: 'tool_args_mismatch',
-        message: 'Expected tool arguments were not observed.',
-        details: {
-          'tool': tool,
-          'must_contain': needles,
-          'actual_args':
-              matchingCalls.map((call) => call['arguments']).toList(),
-        },
-      ));
+      failures.add(
+        _failure(
+          caseId: caseId,
+          operationId: operationId,
+          category: 'tool_args_mismatch',
+          message: 'Expected tool arguments were not observed.',
+          details: {
+            'tool': tool,
+            'must_contain': needles,
+            'actual_args':
+                matchingCalls.map((call) => call['arguments']).toList(),
+          },
+        ),
+      );
     }
   }
 
@@ -555,44 +575,54 @@ _ToolEval _evaluateToolExpectations({
     return forbiddenTools.contains(name) || _isWriteToolName(name);
   }).toList();
   if (readOnlyViolations.isNotEmpty) {
-    failures.add(_failure(
-      caseId: caseId,
-      operationId: operationId,
-      category: 'super_agent_read_only_violation',
-      message: 'Read-only Super Agent ask used a write-like tool.',
-      details: {
-        'violating_tools':
-            readOnlyViolations.map((call) => call['name']).toList(),
-      },
-    ));
+    failures.add(
+      _failure(
+        caseId: caseId,
+        operationId: operationId,
+        category: 'super_agent_read_only_violation',
+        message: 'Read-only Super Agent ask used a write-like tool.',
+        details: {
+          'violating_tools':
+              readOnlyViolations.map((call) => call['name']).toList(),
+        },
+      ),
+    );
   }
 
   final maxToolCalls = _intValue(scoped['max_tool_calls']);
   if (maxToolCalls != null && calls.length > maxToolCalls) {
-    failures.add(_failure(
-      caseId: caseId,
-      operationId: operationId,
-      category: 'tool_call_minimality_violation',
-      message: 'Tool call count exceeded expected maximum.',
-      details: {'actual': calls.length, 'max': maxToolCalls},
-    ));
+    failures.add(
+      _failure(
+        caseId: caseId,
+        operationId: operationId,
+        category: 'tool_call_minimality_violation',
+        message: 'Tool call count exceeded expected maximum.',
+        details: {'actual': calls.length, 'max': maxToolCalls},
+      ),
+    );
   }
 
   final expectedSources = _strings(scoped['expected_sources']);
   final rankedSources = _rankedSourcesFromToolResults(results);
+  final sourceEval = _evaluateToolResultSourceCoverage(
+    expectedSources: expectedSources,
+    results: results,
+  );
   final retrievalHitAt10 = expectedSources.isEmpty ||
       rankedSources.take(10).any(expectedSources.toSet().contains);
   if (!retrievalHitAt10) {
-    failures.add(_failure(
-      caseId: caseId,
-      operationId: operationId,
-      category: 'retrieval_hit_missing',
-      message: 'No expected retrieval source appeared in top 10.',
-      details: {
-        'expected_sources': expectedSources,
-        'ranked_sources': rankedSources.take(10).toList(),
-      },
-    ));
+    failures.add(
+      _failure(
+        caseId: caseId,
+        operationId: operationId,
+        category: 'retrieval_hit_missing',
+        message: 'No expected retrieval source appeared in top 10.',
+        details: {
+          'expected_sources': expectedSources,
+          'ranked_sources': rankedSources.take(10).toList(),
+        },
+      ),
+    );
   }
 
   return _ToolEval(
@@ -604,6 +634,7 @@ _ToolEval _evaluateToolExpectations({
     readOnlyTotal: 1,
     retrievalHitAt10Hits: retrievalHitAt10 ? 1 : 0,
     retrievalHitAt10Total: expectedSources.isEmpty ? 0 : 1,
+    retrievalSourceEval: sourceEval,
     toolCallCount: calls.length,
     failures: failures,
   );
@@ -686,6 +717,55 @@ JsonMap _metrics({
     0,
     (sum, item) => sum + (_intValue(item['retrieval_hit_at_10_total']) ?? 0),
   );
+  final sourceEvals = toolEvals.map(
+    (item) => _map(item['retrieval_source_eval']),
+  );
+  final positiveSourceTotal = sourceEvals.fold<int>(
+    0,
+    (sum, item) => sum + (_intValue(item['positive_source_total']) ?? 0),
+  );
+  final ftsPositiveHits = sourceEvals.fold<int>(
+    0,
+    (sum, item) => sum + (_intValue(item['fts_positive_hits']) ?? 0),
+  );
+  final vectorPositiveHits = sourceEvals.fold<int>(
+    0,
+    (sum, item) => sum + (_intValue(item['vector_positive_hits']) ?? 0),
+  );
+  final hybridPositiveHits = sourceEvals.fold<int>(
+    0,
+    (sum, item) => sum + (_intValue(item['hybrid_positive_hits']) ?? 0),
+  );
+  final bothPositiveHits = sourceEvals.fold<int>(
+    0,
+    (sum, item) => sum + (_intValue(_map(item['breakdown'])['both']) ?? 0),
+  );
+  final ftsOnlyPositiveHits = sourceEvals.fold<int>(
+    0,
+    (sum, item) => sum + (_intValue(_map(item['breakdown'])['fts_only']) ?? 0),
+  );
+  final vectorOnlyPositiveHits = sourceEvals.fold<int>(
+    0,
+    (sum, item) =>
+        sum + (_intValue(_map(item['breakdown'])['vector_only']) ?? 0),
+  );
+  final missedPositiveCount = sourceEvals.fold<int>(
+    0,
+    (sum, item) => sum + (_intValue(_map(item['breakdown'])['missed']) ?? 0),
+  );
+  final sourceQueryTotal = sourceEvals.fold<int>(
+    0,
+    (sum, item) => sum + (_intValue(item['query_total']) ?? 0),
+  );
+  final vectorSupportedQueryHits = sourceEvals.fold<int>(
+    0,
+    (sum, item) => sum + (_intValue(item['vector_supported_query_hits']) ?? 0),
+  );
+  final vectorOnlySupportedQueryHits = sourceEvals.fold<int>(
+    0,
+    (sum, item) =>
+        sum + (_intValue(item['vector_only_supported_query_hits']) ?? 0),
+  );
   final toolLatencyByTool = _toolCallLatencyByTool(observations);
 
   return {
@@ -715,6 +795,50 @@ JsonMap _metrics({
       readOnlyTotal,
     ),
     'retrieval_hit_at_10': _ratioOrZero(retrievalHits, retrievalTotal),
+    'retrieval_positive_source_total': positiveSourceTotal,
+    'retrieval_fts_positive_hits': ftsPositiveHits,
+    'retrieval_vector_positive_hits': vectorPositiveHits,
+    'retrieval_hybrid_positive_hits': hybridPositiveHits,
+    'retrieval_positive_source_breakdown': {
+      'both': bothPositiveHits,
+      'fts_only': ftsOnlyPositiveHits,
+      'vector_only': vectorOnlyPositiveHits,
+      'missed': missedPositiveCount,
+    },
+    'fts_positive_coverage_rate': _ratioOrZero(
+      ftsPositiveHits,
+      positiveSourceTotal,
+    ),
+    'vector_positive_coverage_rate': _ratioOrZero(
+      vectorPositiveHits,
+      positiveSourceTotal,
+    ),
+    'vector_only_positive_hit_rate': _ratioOrZero(
+      vectorOnlyPositiveHits,
+      positiveSourceTotal,
+    ),
+    'fts_only_positive_hit_rate': _ratioOrZero(
+      ftsOnlyPositiveHits,
+      positiveSourceTotal,
+    ),
+    'hybrid_positive_coverage_rate': _ratioOrZero(
+      hybridPositiveHits,
+      positiveSourceTotal,
+    ),
+    'vector_incremental_recall_lift_at_10':
+        _ratioOrZero(hybridPositiveHits, positiveSourceTotal) -
+            _ratioOrZero(ftsPositiveHits, positiveSourceTotal),
+    'vector_supported_query_rate': _ratioOrZero(
+      vectorSupportedQueryHits,
+      sourceQueryTotal,
+    ),
+    'retrieval_vector_supported_query_hits': vectorSupportedQueryHits,
+    'vector_only_supported_query_rate': _ratioOrZero(
+      vectorOnlySupportedQueryHits,
+      sourceQueryTotal,
+    ),
+    'retrieval_vector_only_supported_query_hits': vectorOnlySupportedQueryHits,
+    'retrieval_source_query_count': sourceQueryTotal,
     'tool_call_latency_p95_by_tool': toolLatencyByTool,
     'failure_count': failures.length,
     'failure_category_counts': _failureCategoryCounts(failures),
@@ -742,6 +866,10 @@ String _renderReport(JsonMap metrics) {
     'tool_args_accuracy',
     'super_agent_read_only_compliance',
     'retrieval_hit_at_10',
+    'vector_positive_coverage_rate',
+    'vector_only_positive_hit_rate',
+    'hybrid_positive_coverage_rate',
+    'vector_incremental_recall_lift_at_10',
     'tool_call_latency_p95_by_tool',
     'failure_count',
   ]) {
@@ -796,9 +924,11 @@ _EvalLlmConfig _llmConfigForSlot(int slot) {
 List<Map<String, String>>? _refs(Object? value) {
   final refs = _list(value)
       .whereType<Map>()
-      .map((item) => item.map(
-            (key, value) => MapEntry(key.toString(), value.toString()),
-          ))
+      .map(
+        (item) => item.map(
+          (key, value) => MapEntry(key.toString(), value.toString()),
+        ),
+      )
       .toList(growable: false);
   return refs.isEmpty ? null : refs;
 }
@@ -865,6 +995,131 @@ List<String> _rankedSourcesFromToolResults(Iterable<JsonMap> results) {
     }
   }
   return ranked;
+}
+
+_RetrievalSourceEval _evaluateToolResultSourceCoverage({
+  required List<String> expectedSources,
+  required List<JsonMap> results,
+}) {
+  return _evaluateExpectedSourceCoverage(
+    expectedSources: expectedSources,
+    sourceIndex: _retrievalSourceIndexFromToolResults(results),
+  );
+}
+
+_RetrievalSourceEval _evaluateExpectedSourceCoverage({
+  required List<String> expectedSources,
+  required Map<String, Set<String>> sourceIndex,
+}) {
+  if (expectedSources.isEmpty) return const _RetrievalSourceEval();
+  var ftsHits = 0;
+  var vectorHits = 0;
+  var hybridHits = 0;
+  var bothHits = 0;
+  var ftsOnlyHits = 0;
+  var vectorOnlyHits = 0;
+  var missed = 0;
+  var queryHasVector = false;
+  var queryHasVectorOnly = false;
+  final details = <JsonMap>[];
+
+  for (final source in expectedSources) {
+    final channels = sourceIndex[source] ?? const <String>{};
+    final appeared = sourceIndex.containsKey(source);
+    final fts = channels.contains('fts');
+    final vector = channels.contains('vector');
+    if (appeared) hybridHits += 1;
+    if (fts) ftsHits += 1;
+    if (vector) {
+      vectorHits += 1;
+      queryHasVector = true;
+    }
+    if (fts && vector) {
+      bothHits += 1;
+    } else if (fts) {
+      ftsOnlyHits += 1;
+    } else if (vector) {
+      vectorOnlyHits += 1;
+      queryHasVectorOnly = true;
+    } else {
+      missed += 1;
+    }
+    details.add({
+      'source': source,
+      'appeared': appeared,
+      'channels': channels.toList()..sort(),
+    });
+  }
+
+  return _RetrievalSourceEval(
+    positiveSourceTotal: expectedSources.length,
+    ftsPositiveHits: ftsHits,
+    vectorPositiveHits: vectorHits,
+    hybridPositiveHits: hybridHits,
+    bothPositiveHits: bothHits,
+    ftsOnlyPositiveHits: ftsOnlyHits,
+    vectorOnlyPositiveHits: vectorOnlyHits,
+    missedPositiveCount: missed,
+    queryTotal: 1,
+    vectorSupportedQueryHits: queryHasVector ? 1 : 0,
+    vectorOnlySupportedQueryHits: queryHasVectorOnly ? 1 : 0,
+    details: details,
+  );
+}
+
+Map<String, Set<String>> _retrievalSourceIndexFromToolResults(
+  List<JsonMap> results,
+) {
+  final sourceIndex = <String, Set<String>>{};
+  final memoryBlockPattern = RegExp(
+    r'- \[(mem_\d+)\][\s\S]*?(?=\n- \[mem_\d+\]|\n</memory_primary_context>|\z)',
+  );
+  final evidencePattern = RegExp(r'\d{4}/\d{2}/\d{2}\.md#ts_\d+');
+  for (final result in results) {
+    final text = result['result']?.toString() ?? '';
+    for (final block in memoryBlockPattern.allMatches(text)) {
+      final blockText = block.group(0) ?? '';
+      final sources = _retrievalSourcesFromMemoryBlock(blockText);
+      _addRetrievalSource(sourceIndex, block.group(1), sources);
+      for (final match in evidencePattern.allMatches(blockText)) {
+        _addRetrievalSource(sourceIndex, match.group(0), sources);
+      }
+    }
+  }
+  return sourceIndex;
+}
+
+Set<String> _retrievalSourcesFromMemoryBlock(String block) {
+  final sourceLine = RegExp(
+    r'retrieval_sources:\s*([^\n]+)',
+  ).firstMatch(block)?.group(1);
+  final sources = <String>{};
+  if (sourceLine != null) {
+    for (final raw in sourceLine.split(',')) {
+      final source = raw.trim().toLowerCase();
+      if (source == 'fts' || source == 'vector') sources.add(source);
+    }
+  }
+  if (sources.isEmpty) {
+    final lower = block.toLowerCase();
+    if (lower.contains('fts_match') || lower.contains('lexical_match')) {
+      sources.add('fts');
+    }
+    if (lower.contains('vector_match') || lower.contains('embedding_rerank')) {
+      sources.add('vector');
+    }
+  }
+  return sources;
+}
+
+void _addRetrievalSource(
+  Map<String, Set<String>> sourceIndex,
+  String? key,
+  Set<String> sources,
+) {
+  final normalized = key?.trim();
+  if (normalized == null || normalized.isEmpty) return;
+  sourceIndex.putIfAbsent(normalized, () => <String>{}).addAll(sources);
 }
 
 List<_TextExpectation> _textExpectations(Object? value) {
@@ -1012,9 +1267,8 @@ int? get _caseLimit => _intEnv('MEMEX_EVAL_CASE_LIMIT');
 bool get _rebuildMemoryFromCaseLog =>
     _boolEnv('MEMEX_EVAL_REBUILD_MEMORY_FROM_CASE_LOG');
 
-Duration get _askTimeout => Duration(
-      seconds: _intEnv('MEMEX_EVAL_ASK_TIMEOUT_SECONDS') ?? 240,
-    );
+Duration get _askTimeout =>
+    Duration(seconds: _intEnv('MEMEX_EVAL_ASK_TIMEOUT_SECONDS') ?? 240);
 
 Duration get _providerRetryDelay => Duration(
       milliseconds: _intEnv('MEMEX_EVAL_PROVIDER_RETRY_DELAY_MS') ?? 1500,
@@ -1089,10 +1343,7 @@ class _TextExpectation {
   bool matches(String haystack) =>
       anyOf.any((needle) => _contains(haystack, needle));
 
-  JsonMap toJson() => {
-        if (label != null) 'label': label,
-        'any_of': anyOf,
-      };
+  JsonMap toJson() => {if (label != null) 'label': label, 'any_of': anyOf};
 }
 
 class _TextEval {
@@ -1128,6 +1379,7 @@ class _ToolEval {
     required this.readOnlyTotal,
     required this.retrievalHitAt10Hits,
     required this.retrievalHitAt10Total,
+    required this.retrievalSourceEval,
     required this.toolCallCount,
     required this.failures,
   });
@@ -1140,6 +1392,7 @@ class _ToolEval {
   final int readOnlyTotal;
   final int retrievalHitAt10Hits;
   final int retrievalHitAt10Total;
+  final _RetrievalSourceEval retrievalSourceEval;
   final int toolCallCount;
   final List<JsonMap> failures;
 
@@ -1152,8 +1405,58 @@ class _ToolEval {
         'read_only_total': readOnlyTotal,
         'retrieval_hit_at_10_hits': retrievalHitAt10Hits,
         'retrieval_hit_at_10_total': retrievalHitAt10Total,
+        'retrieval_source_eval': retrievalSourceEval.toJson(),
         'tool_call_count': toolCallCount,
       };
+}
+
+class _RetrievalSourceEval {
+  const _RetrievalSourceEval({
+    this.positiveSourceTotal = 0,
+    this.ftsPositiveHits = 0,
+    this.vectorPositiveHits = 0,
+    this.hybridPositiveHits = 0,
+    this.bothPositiveHits = 0,
+    this.ftsOnlyPositiveHits = 0,
+    this.vectorOnlyPositiveHits = 0,
+    this.missedPositiveCount = 0,
+    this.queryTotal = 0,
+    this.vectorSupportedQueryHits = 0,
+    this.vectorOnlySupportedQueryHits = 0,
+    this.details = const [],
+  });
+
+  final int positiveSourceTotal;
+  final int ftsPositiveHits;
+  final int vectorPositiveHits;
+  final int hybridPositiveHits;
+  final int bothPositiveHits;
+  final int ftsOnlyPositiveHits;
+  final int vectorOnlyPositiveHits;
+  final int missedPositiveCount;
+  final int queryTotal;
+  final int vectorSupportedQueryHits;
+  final int vectorOnlySupportedQueryHits;
+  final List<JsonMap> details;
+
+  JsonMap toJson() {
+    return {
+      'positive_source_total': positiveSourceTotal,
+      'fts_positive_hits': ftsPositiveHits,
+      'vector_positive_hits': vectorPositiveHits,
+      'hybrid_positive_hits': hybridPositiveHits,
+      'breakdown': {
+        'both': bothPositiveHits,
+        'fts_only': ftsOnlyPositiveHits,
+        'vector_only': vectorOnlyPositiveHits,
+        'missed': missedPositiveCount,
+      },
+      'query_total': queryTotal,
+      'vector_supported_query_hits': vectorSupportedQueryHits,
+      'vector_only_supported_query_hits': vectorOnlySupportedQueryHits,
+      if (details.isNotEmpty) 'details': details,
+    };
+  }
 }
 
 class _SuperAgentAskResult {
@@ -1221,8 +1524,9 @@ class _FakePathProviderPlatform extends PathProviderPlatform {
   Future<String?> getDownloadsPath() async => p.join(rootPath, 'downloads');
 
   @override
-  Future<List<String>?> getExternalCachePaths() async =>
-      [p.join(rootPath, 'external_cache')];
+  Future<List<String>?> getExternalCachePaths() async => [
+        p.join(rootPath, 'external_cache'),
+      ];
 
   @override
   Future<List<String>?> getExternalStoragePaths({

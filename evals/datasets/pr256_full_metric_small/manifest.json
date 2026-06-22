@@ -5,14 +5,18 @@
   "schema_version": "pr256_full_metric.v1",
   "persona_count": 3,
   "records_per_persona": 48,
+  "agent_queries_per_persona": 6,
   "record_count": 144,
+  "agent_query_count": 18,
   "recommended_small_gate": {
     "persona_count": 3,
-    "records_per_persona": 48
+    "records_per_persona": 48,
+    "agent_queries_per_persona": 6
   },
   "required_scale_gate": {
-    "persona_count_min": 8,
-    "records_per_persona_min": 400
+    "persona_count_min": 12,
+    "records_per_persona_min": 600,
+    "agent_queries_per_persona_min": 50
   },
   "oracle_strategy": {
     "ground_truth_generated_with_data": [

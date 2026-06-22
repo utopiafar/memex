@@ -27,11 +27,18 @@ before any optional LLM judging.
 | `memory_recall_hit_rate` | Direct Memory Primary recall can retrieve expected active memories after writes and corrections. |
 | `memory_recall_must_not_precision` | Recall should not surface forbidden stale/noisy facts. |
 | `super_agent_answer_success_rate` / `super_agent_answer_hit_rate` / `super_agent_boundary_precision` | Targeted ask journeys verify that Super Agent can read the right memory without asserting stale or forbidden facts. |
+| `agent_query_interleaving_rate` / `agent_query_density_per_100_records` / `agent_query_family_coverage` | Journey coverage metrics for interleaved Super Agent usage. They prove Agent asks are inserted between card records, record ask density, and track query families such as owner, role, location, preference, sensitive boundary, OCR/conflict, and scope control. |
+| `super_agent_query_family_metrics` | Effect breakdown by Agent query family. Each family records ask count, answer hit, boundary precision, retrieval hit@10, tool accuracy, read-only compliance, and vector/FTS positive coverage. This is the first place to look for scenario-specific answer quality regressions. |
+| `super_agent_provider_attempt_count` / `super_agent_provider_retry_count` / `super_agent_provider_retry_rate` | Provider-pool stability diagnostics for interleaved Agent asks. These explain retry pressure and quota behavior, but are not answer-quality metrics. |
+| `vector_positive_coverage_rate` / `vector_only_positive_hit_rate` / `hybrid_positive_coverage_rate` / `vector_incremental_recall_lift_at_10` | Retrieval contribution metrics for the Memory Primary path. They record which expected positive evidence was covered by dense vector retrieval, FTS, both, or neither, so vector recall benefit can be explained without running a full ablation. |
+| `vector_supported_query_rate` / `vector_only_supported_query_rate` | Query-level version of the same contribution analysis: how many Agent asks had at least one expected evidence source supported by vector retrieval, and how many depended on vector-only coverage. |
 | `related_fact_hit_rate` | Card insight cites expected earlier records where the dataset defines cross-record continuity. |
 | `card_expected_hit_rate` | Card titles/insights preserve expected key information. |
 | `scenario_family_coverage` / `agent_chain_coverage` / `journey_stage_coverage` | PR #256 coverage metrics showing whether the selected dataset actually exercises the intended scenarios, chains, and journeys. |
 | `task_settlement_rate` | Background work converges inside the configured timeout. |
 | `failed_task_count` / `task_not_settled_count` | Hard operational stability signals. |
+| `eval_aborted_case_count` / `eval_aborted_operation_count` / `eval_abort_after_consecutive_unsettled_records` | Eval execution guardrail for scale runs. When a case hits repeated non-settled record operations, the harness records the chain failure and skips the remaining operations for that case instead of spending hours on the same stuck mode. This is not a model-quality waiver; skipped work is counted and kept in failures/case logs. |
+| `provider_infra_task_error_count` / `provider_infra_affected_operation_rate` | Record-chain provider contamination signals. They count background task errors that look like 429/rate-limit, out-of-quota, network, or 5xx provider failures so effect-quality reports can distinguish chain badcases from provider pool instability. |
 | `avg_record_elapsed_ms` / `p90_record_elapsed_ms` / `p95_record_elapsed_ms` / `p99_record_elapsed_ms` / `max_record_elapsed_ms` | Latency and cost proxy; Memory Primary quality gains must not hide unacceptable tail latency. |
 | `slowest_records` | Top slow record operations per mode, including case, operation, task settlement, task status counts, atom count, and card title for latency attribution. |
 
@@ -75,15 +82,16 @@ The replay runner separates metrics into:
 | --- | --- |
 | Card Agent | `card_materialization_rate`, `input_to_valid_card_success_rate`, `card_completed_rate`, `completed_with_failure_reason_rate`, `card_schema_valid_rate`, `card_source_fact_grounding_rate`, `card_expected_hit_rate`, `cards_with_insight_rate` |
 | Memory | `memory_must_write_recall`, `memory_must_not_write_precision`, `memory_recall_at_10`, `memory_source_grounding`, `memory_duplicate_rate` |
-| Retrieval / grounding | `retrieval_hit_at_1`, `retrieval_hit_at_3`, `retrieval_hit_at_5`, `retrieval_hit_at_10`, `related_fact_hit_rate`, `answer_must_include` |
-| Super Agent / Chat | `super_agent_ask_count`, `super_agent_answer_success_rate`, `super_agent_answer_hit_rate`, `super_agent_boundary_precision`, `super_agent_tokens_per_ask`, `super_agent_read_only_compliance`, `tool_selection_accuracy`, `tool_args_accuracy`, `tool_call_minimality` |
+| Retrieval / grounding | `retrieval_hit_at_1`, `retrieval_hit_at_3`, `retrieval_hit_at_5`, `retrieval_hit_at_10`, `retrieval_positive_source_total`, `fts_positive_coverage_rate`, `vector_positive_coverage_rate`, `vector_only_positive_hit_rate`, `fts_only_positive_hit_rate`, `hybrid_positive_coverage_rate`, `vector_incremental_recall_lift_at_10`, `vector_supported_query_rate`, `vector_only_supported_query_rate`, `retrieval_positive_source_breakdown`, `related_fact_hit_rate`, `answer_must_include` |
+| Super Agent / Chat | `super_agent_ask_count`, `super_agent_answer_success_rate`, `super_agent_answer_hit_rate`, `super_agent_boundary_precision`, `super_agent_query_family_metrics`, `super_agent_tokens_per_ask`, `super_agent_provider_attempt_count`, `super_agent_provider_retry_count`, `super_agent_provider_retry_rate`, `super_agent_read_only_compliance`, `tool_selection_accuracy`, `tool_args_accuracy`, `tool_call_minimality` |
+| Interleaved Agent usage | `agent_query_count`, `interleaved_agent_query_count`, `agent_query_interleaving_rate`, `agent_query_density_per_100_records`, `agent_query_records_per_ask`, `agent_query_family_coverage`, `agent_query_min_per_case`, `agent_query_record_gap_p95` |
 | Tool trajectory | `tool_call_failure_rate`, `tool_call_retry_rate`, `repeated_tool_call_rate`, `read_tool_error_rate`, `write_tool_error_rate`, `context_peek_count_per_task`, `context_peek_redundancy_rate`, `first_write_after_read_rate`, `agent_tool_rounds_per_task`, `loop_detection_absence`, `max_turns_absence` |
-| Stability | `task_settlement_rate`, `task_completion_status`, `failed_task_rate`, `retry_rate`, `input_timeout_rate`, `task_status_totals`, `task_type_status_totals` |
+| Stability | `task_settlement_rate`, `task_completion_status`, `failed_task_rate`, `retry_rate`, `input_timeout_rate`, `task_status_totals`, `task_type_status_totals`, `eval_aborted_case_count`, `eval_aborted_operation_count`, `eval_abort_after_consecutive_unsettled_records`, `provider_infra_task_error_count`, `provider_rate_limit_task_error_count`, `provider_quota_task_error_count`, `provider_network_task_error_count`, `provider_server_task_error_count`, `provider_infra_task_error_rate`, `provider_infra_affected_operation_count`, `provider_infra_affected_operation_rate` |
 | Agent turn trace | `agent_empty_response_rate`, `agent_empty_response_count`, `agent_llm_turns_per_task`, `agent_llm_turns_per_task_by_agent` |
 | Latency | `input_required_chain_latency_ms`, `avg_record_elapsed_ms`, `p90_record_elapsed_ms`, `p95_record_elapsed_ms`, `p99_record_elapsed_ms`, `max_record_elapsed_ms` |
 | Cost / cache | `tokens_per_input`, `tokens_per_successful_input`, `llm_usage_total`, `tokens_by_agent`, `prompt_cache_token_hit_rate` |
 | Coverage | `scenario_family_coverage`, `agent_chain_coverage`, `journey_stage_coverage`, `operation_type_coverage`, `cross_day_continuity_coverage`, `correction_operation_coverage`, `noise_resilience_coverage`, `follow_up_query_coverage`; raw covered/expected sets are also preserved under `coverage`. |
-| Provider readiness | `llm_preflight.json` records redacted per-subscription model/provider connectivity, HTTP status, and provider error summaries before replay. |
+| Provider readiness | `llm_preflight.json` records redacted per-subscription model/provider connectivity, HTTP status, and provider error summaries before replay. `llm_provider_pool` and per-ask `provider_attempts` record runtime quota-disable and retry behavior without exposing API keys. |
 
 ### LLM Judge Metrics
 
@@ -94,6 +102,7 @@ The replay runner separates metrics into:
 | Knowledge Insight | `insight_novelty_score`, `insight_actionability_score` | Supplemental judge over 320 large-run insight samples. |
 | Comment | `comment_relevance_score`, `comment_boundary_safety` | Supplemental judge over 80 large-run comment/boundary samples. |
 | PKM/PARA projection | `pkm_append_coherence` | Supplemental judge over 8 projection samples; one raw failure is audited as judge artifact in the report. |
+| Pairwise answer quality | `pairwise_answer_quality` | Generated after replay by grouping the same Agent ask across `legacy_pkm` and `memory_primary`. Answer A/B order is deterministically shuffled once per operation; judge returns `winner` and `match_level`, and retry/provider failures are runner concerns rather than effect metrics. |
 
 ### Proxy / Trace Coverage
 
@@ -171,6 +180,14 @@ Important categories include:
 - `card_missing`
 - `card_incomplete`
 - `task_not_settled`
+- `case_aborted_after_consecutive_unsettled`
+
+Legacy failures are scored, not waived. The old chain remains frozen, but
+`legacy_pkm` task exceptions, loop/max-turn failures, not-settled tasks, and
+normal-exit failures are recorded as legacy chain failures. Provider
+infrastructure problems such as 429/out-of-quota/connection failures are tracked
+separately as provider health issues through `provider_infra_*` metrics and
+should be rerouted or rerun before drawing effect-quality conclusions.
 
 The report aggregates these categories so the next iteration can distinguish
 extract/write issues from recall, insight grounding, and operational stability.

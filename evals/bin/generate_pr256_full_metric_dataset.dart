@@ -9,8 +9,15 @@ typedef JsonMap = Map<String, dynamic>;
 void main() async {
   final repoRoot = Directory.current.path;
   final personaCount = math.max(1, _intEnv('MEMEX_EVAL_PERSONA_COUNT') ?? 3);
-  final recordsPerPersona =
-      math.max(24, _intEnv('MEMEX_EVAL_RECORDS_PER_PERSONA') ?? 48);
+  final recordsPerPersona = math.max(
+    24,
+    _intEnv('MEMEX_EVAL_RECORDS_PER_PERSONA') ?? 48,
+  );
+  final agentQueriesPerPersona = math.max(
+    0,
+    _intEnv('MEMEX_EVAL_AGENT_QUERIES_PER_PERSONA') ??
+        math.max(4, math.min(50, recordsPerPersona ~/ 8)),
+  );
   final outDir = Directory(
     Platform.environment['MEMEX_EVAL_GENERATED_DATASET_DIR'] ??
         p.join(repoRoot, 'evals', 'datasets', 'pr256_full_metric_small'),
@@ -22,12 +29,15 @@ void main() async {
 
   final cases = [
     for (var i = 0; i < personaCount; i++)
-      _buildPersonaCase(index: i, records: recordsPerPersona),
+      _buildPersonaCase(
+        index: i,
+        records: recordsPerPersona,
+        agentQueries: agentQueriesPerPersona,
+      ),
   ];
-  await File(p.join(outDir.path, 'cases.jsonl')).writeAsString(
-    '${cases.map(jsonEncode).join('\n')}\n',
-    flush: true,
-  );
+  await File(
+    p.join(outDir.path, 'cases.jsonl'),
+  ).writeAsString('${cases.map(jsonEncode).join('\n')}\n', flush: true);
   await File(p.join(outDir.path, 'manifest.json')).writeAsString(
     const JsonEncoder.withIndent('  ').convert({
       'name': p.basename(outDir.path),
@@ -37,14 +47,18 @@ void main() async {
       'schema_version': 'pr256_full_metric.v1',
       'persona_count': personaCount,
       'records_per_persona': recordsPerPersona,
+      'agent_queries_per_persona': agentQueriesPerPersona,
       'record_count': personaCount * recordsPerPersona,
+      'agent_query_count': personaCount * agentQueriesPerPersona,
       'recommended_small_gate': {
         'persona_count': 3,
         'records_per_persona': 48,
+        'agent_queries_per_persona': 6,
       },
       'required_scale_gate': {
-        'persona_count_min': 8,
-        'records_per_persona_min': 400,
+        'persona_count_min': 12,
+        'records_per_persona_min': 600,
+        'agent_queries_per_persona_min': 50,
       },
       'oracle_strategy': {
         'ground_truth_generated_with_data': [
@@ -73,13 +87,15 @@ void main() async {
   );
   stdout.writeln(
     'Generated ${cases.length} PR256 full-metric cases with '
-    '$recordsPerPersona records/persona at ${outDir.path}',
+    '$recordsPerPersona records/persona and '
+    '$agentQueriesPerPersona interleaved asks/persona at ${outDir.path}',
   );
 }
 
 JsonMap _buildPersonaCase({
   required int index,
   required int records,
+  required int agentQueries,
 }) {
   final persona = _persona(index);
   final operations = <JsonMap>[];
@@ -93,6 +109,10 @@ JsonMap _buildPersonaCase({
     persona.paymentOwnerCurrent,
     persona.city,
     persona.deepWorkWindow,
+    persona.role,
+    persona.secondaryRole,
+    persona.moodAfter,
+    persona.conflictTopic,
     _anyOf('latest conclusion', ['最新结论', '最新的结论', '冲突']),
     _anyOf('evidence source', ['证据来源', 'evidence source', '原始记录']),
   ];
@@ -102,6 +122,7 @@ JsonMap _buildPersonaCase({
     _stalePaymentAssertion(persona.paymentOwnerStale),
     '临时奶茶',
     '短期酒店',
+    _tripCityAsPermanentAssertion(persona.travelCity),
     '网页广告截图',
   ];
   final cardShouldContain = <Object>[
@@ -115,10 +136,16 @@ JsonMap _buildPersonaCase({
 
   final baseDate = DateTime(2026, 5, 1 + index, 9);
   var recordNumber = 1;
+  var interleavedAskNumber = 0;
+  final interleavedAskRecordNumbers = _queryTriggerRecords(
+    records: records,
+    queryCount: agentQueries,
+  );
 
   String factIdForRecord(int targetRecordNumber) {
-    final targetTime =
-        baseDate.add(Duration(hours: (targetRecordNumber - 1) * 3));
+    final targetTime = baseDate.add(
+      Duration(hours: (targetRecordNumber - 1) * 3),
+    );
     var tsIndex = 0;
     for (var i = 1; i <= targetRecordNumber; i++) {
       final time = baseDate.add(Duration(hours: (i - 1) * 3));
@@ -140,6 +167,28 @@ JsonMap _buildPersonaCase({
       if ((record - 10) % 10 == caseIndex) result.add(record);
     }
     return result;
+  }
+
+  List<String> factIdsForAvailableRecords(Iterable<int> recordNumbers) {
+    final latestRecord = math.max(1, recordNumber);
+    return factIdsForRecords(
+      recordNumbers.where((record) => record <= latestRecord),
+    );
+  }
+
+  void maybeAddInterleavedAsk(int completedRecordNumber, DateTime recordTime) {
+    if (!interleavedAskRecordNumbers.contains(completedRecordNumber)) return;
+    final operation = _interleavedAskOperation(
+      persona: persona,
+      askIndex: interleavedAskNumber,
+      factIdsForRecords: factIdsForAvailableRecords,
+      repeatingRecordsForCase: repeatingRecordsForCase,
+    );
+    operations.add({
+      ...operation,
+      'time': recordTime.add(const Duration(minutes: 45)).toIso8601String(),
+    });
+    interleavedAskNumber += 1;
   }
 
   void addRecord(
@@ -190,11 +239,12 @@ JsonMap _buildPersonaCase({
               'metric': 'card_title_relevance_score',
               'rubric':
                   'Card title should preserve the main user fact without inventing unsupported details.',
-            }
+            },
           ],
         },
       },
     });
+    maybeAddInterleavedAsk(recordNumber, time);
     if (relatedTo.isNotEmpty) {
       relatedExpectations.add({
         'operation_id': id,
@@ -214,9 +264,9 @@ JsonMap _buildPersonaCase({
     fields: ['最新结论', '风险', '下一步', 'owner', '证据来源'],
   );
   addRecord(
-    '个人长期偏好：我常驻${persona.city}，${persona.deepWorkWindow}通常留给深度工作，不安排评审会。',
+    '个人长期偏好：我常驻${persona.city}，主要角色是${persona.role}，${persona.deepWorkWindow}通常留给深度工作，不安排评审会。',
     entities: [persona.city],
-    fields: [persona.city, persona.deepWorkWindow, '深度工作'],
+    fields: [persona.city, persona.role, persona.deepWorkWindow, '深度工作'],
   );
   addRecord(
     '以这条为准：${persona.project} 当前 owner 是 ${persona.projectOwnerCurrent}，覆盖 ${persona.projectOwnerStale} 的旧说法。',
@@ -296,8 +346,13 @@ JsonMap _buildPersonaCase({
         break;
       case 5:
         addRecord(
-          '反思不是行动：我也许应该以后早点准备周报，但现在不要创建提醒或行动，只记录这个反思。',
-          fields: ['反思', '不要创建提醒'],
+          '角色转换和反思不是行动：上午以${persona.role}看 ${persona.project} 上线风险，下午切到${persona.secondaryRole}整理 ${persona.partnerProject} 客户反馈；心态从${persona.moodBefore}转为${persona.moodAfter}，现在不要创建提醒或行动。',
+          fields: [
+            persona.role,
+            persona.secondaryRole,
+            persona.moodAfter,
+            '不要创建提醒',
+          ],
           mustNot: ['提醒已创建', '日程已创建'],
         );
         break;
@@ -310,9 +365,14 @@ JsonMap _buildPersonaCase({
         break;
       case 7:
         addRecord(
-          '已解析截图上下文：OCR 文字显示 ${persona.project} 的灰度风险列表，Agent 只需要使用这段已给定文本，不评估 OCR 本身。',
-          entities: [persona.project],
-          fields: ['OCR', '灰度风险'],
+          '已解析截图上下文：OCR 文字显示 ${persona.project} 的灰度风险列表；${persona.reviewOwner} 和 ${persona.paymentOwnerCurrent} 对${persona.conflictTopic}有分歧，最终由 ${persona.projectOwnerCurrent} 仲裁。Agent 只需要使用这段已给定文本，不评估 OCR 本身。',
+          entities: [
+            persona.project,
+            persona.reviewOwner,
+            persona.paymentOwnerCurrent,
+            persona.projectOwnerCurrent,
+          ],
+          fields: ['OCR', '灰度风险', persona.conflictTopic, '仲裁'],
         );
         break;
       case 8:
@@ -325,8 +385,9 @@ JsonMap _buildPersonaCase({
         break;
       default:
         addRecord(
-          '低信号噪声：随手记一个临时心情和广告词，不要写入长期画像，也不要影响 ${persona.deepWorkWindow} 的安排。',
-          fields: ['临时心情', persona.deepWorkWindow],
+          '低信号噪声和地点变化：下周去${persona.travelCity}住两晚只是短期行程，不改变常驻${persona.city}；随手广告词也不要写入长期画像。',
+          fields: ['短期行程', persona.travelCity, persona.city],
+          mustNot: ['常驻${persona.travelCity}'],
         );
     }
   }
@@ -340,106 +401,45 @@ JsonMap _buildPersonaCase({
   }
 
   addOperation(
-      _recallOperation(
-        id: 'recall_project_owner',
-        query: '${persona.project} 当前 owner 是谁？不要回答旧 owner。',
-        must: [persona.project, persona.projectOwnerCurrent],
-        mustNot: [_staleOwnerAssertion(persona.projectOwnerStale)],
-      ),
-      1);
+    _recallOperation(
+      id: 'recall_project_owner',
+      query: '${persona.project} 当前 owner 是谁？不要回答旧 owner。',
+      must: [persona.project, persona.projectOwnerCurrent],
+      mustNot: [_staleOwnerAssertion(persona.projectOwnerStale)],
+    ),
+    1,
+  );
   addOperation(
-      _recallOperation(
-        id: 'recall_partner_owner',
-        query: '${persona.partnerProject} 当前接口验收 owner 是谁？',
-        must: [persona.partnerProject, persona.partnerOwnerCurrent],
-        mustNot: [_staleOwnerAssertion(persona.partnerOwnerStale)],
-      ),
-      2);
+    _recallOperation(
+      id: 'recall_partner_owner',
+      query: '${persona.partnerProject} 当前接口验收 owner 是谁？',
+      must: [persona.partnerProject, persona.partnerOwnerCurrent],
+      mustNot: [_staleOwnerAssertion(persona.partnerOwnerStale)],
+    ),
+    2,
+  );
   addOperation(
-      _recallOperation(
-        id: 'recall_relationship_payment',
-        query: '产品评审找谁？合同付款和发票确认找谁？',
-        must: [persona.reviewOwner, persona.paymentOwnerCurrent],
-        mustNot: [_stalePaymentAssertion(persona.paymentOwnerStale)],
-      ),
-      3);
+    _recallOperation(
+      id: 'recall_relationship_payment',
+      query: '产品评审找谁？合同付款和发票确认找谁？',
+      must: [persona.reviewOwner, persona.paymentOwnerCurrent],
+      mustNot: [_stalePaymentAssertion(persona.paymentOwnerStale)],
+    ),
+    3,
+  );
   addOperation({'id': 'projection_001', 'type': 'para_projection'}, 4);
-  addOperation(
-      _askOperation(
-        id: 'ask_project_owner',
-        query: '${persona.project} 当前 owner 是谁？请给依据。',
-        must: [persona.project, persona.projectOwnerCurrent],
-        mustNot: [_staleOwnerAssertion(persona.projectOwnerStale)],
-        expectedSources: factIdsForRecords([
-          4,
-          ...repeatingRecordsForCase(0),
-        ]),
-        expectedToolArgGroups: [
-          [persona.project],
-          ['owner'],
-        ],
-      ),
-      5);
-  addOperation(
-      _askOperation(
-        id: 'ask_report_style',
-        query:
-            '以后写 ${persona.project} 或 ${persona.partnerProject} 相关技术报告，格式偏好是什么？',
-        must: [
-          persona.project,
-          persona.partnerProject,
-          '最新结论',
-          '风险',
-          '证据来源',
-        ],
-        mustNot: [],
-        expectedSources: factIdsForRecords([
-          2,
-          ...repeatingRecordsForCase(2),
-        ]),
-        expectedToolArgGroups: [
-          [persona.project],
-          [persona.partnerProject],
-        ],
-      ),
-      6);
-  addOperation(
-      _askOperation(
-        id: 'ask_relationship_payment',
-        query: '产品评审找谁？合同付款和发票确认找谁？',
-        must: [persona.reviewOwner, persona.paymentOwnerCurrent],
-        mustNot: [_stalePaymentAssertion(persona.paymentOwnerStale)],
-        expectedSources: factIdsForRecords([
-          7,
-          8,
-          ...repeatingRecordsForCase(3),
-        ]),
-        expectedToolArgGroups: [
-          ['产品评审'],
-          ['合同付款'],
-        ],
-      ),
-      7);
-  addOperation(
-      _askOperation(
-        id: 'ask_home_routine',
-        query: '我常驻哪里？${persona.deepWorkWindow} 一般怎么安排？',
-        must: [persona.city, persona.deepWorkWindow, '深度工作'],
-        mustNot: ['短期酒店'],
-        expectedSources: factIdsForRecords([3]),
-        expectedToolArgGroups: [
-          ['常驻'],
-          [persona.deepWorkWindow],
-        ],
-      ),
-      8);
 
   return {
     'case_id': 'pr256_full_metric_persona_${index.toString().padLeft(2, '0')}',
     'persona': {
       'user_id': 'pr256_full_persona_$index',
       'role': persona.role,
+      'secondary_role': persona.secondaryRole,
       'city': persona.city,
+      'travel_city': persona.travelCity,
+      'mood_before': persona.moodBefore,
+      'mood_after': persona.moodAfter,
+      'conflict_topic': persona.conflictTopic,
     },
     'coverage': {
       'scenario_families': [
@@ -457,6 +457,9 @@ JsonMap _buildPersonaCase({
         'preference',
         'correction',
         'noise_noop',
+        'role_transition',
+        'location_shift',
+        'conflict_resolution',
         'memory_recall',
         'super_agent_ask',
       ],
@@ -466,6 +469,9 @@ JsonMap _buildPersonaCase({
         'browser_clip',
         'relationship_note',
         'parsed_ocr_text',
+        'role_shift_note',
+        'location_note',
+        'conflict_note',
       ],
       'journey_stages': [
         'capture',
@@ -476,10 +482,12 @@ JsonMap _buildPersonaCase({
         'recall',
         'projection',
         'ask',
+        'interleaved_ask',
         'judge',
       ],
       'relationship_case': true,
       'long_context_case': true,
+      'interleaved_agent_query_count': interleavedAskNumber,
       'dataset_oracle_audited': true,
     },
     'operations': operations,
@@ -502,30 +510,27 @@ JsonMap _recallOperation({
     'id': id,
     'type': 'memory_recall',
     'query': query,
-    'expected': {
-      'must_contain': must,
-      'must_not_contain': mustNot,
-    },
+    'expected': {'must_contain': must, 'must_not_contain': mustNot},
   };
 }
 
 JsonMap _askOperation({
   required String id,
+  required String queryFamily,
   required String query,
   required List<Object> must,
   required List<Object> mustNot,
   required List<String> expectedSources,
   List<List<String>>? expectedToolArgGroups,
 }) {
-  final toolArgGroups = expectedToolArgGroups ??
-      [
-        must.take(1).map((e) => e.toString()).toList(),
-      ];
+  final toolArgGroups =
+      expectedToolArgGroups ?? [must.take(1).map((e) => e.toString()).toList()];
   return {
     'id': id,
     'type': 'super_agent_ask',
     'query': query,
     'quick_query': true,
+    'metadata': {'query_family': queryFamily, 'interleaved': true},
     'expected': {
       'must_contain': must,
       'must_not_contain': mustNot,
@@ -539,10 +544,7 @@ JsonMap _askOperation({
           'expected_tools': ['search_memory_primary'],
           'expected_tool_args_contains': [
             for (final group in toolArgGroups)
-              {
-                'tool': 'search_memory_primary',
-                'must_contain': group,
-              }
+              {'tool': 'search_memory_primary', 'must_contain': group},
           ],
           'expected_sources': expectedSources,
           'max_tool_calls': 6,
@@ -565,29 +567,195 @@ JsonMap _askOperation({
   };
 }
 
+Set<int> _queryTriggerRecords({required int records, required int queryCount}) {
+  if (records <= 0 || queryCount <= 0) return const {};
+  final start = math.min(records, 4);
+  if (queryCount == 1) return {start};
+  final result = <int>{};
+  final end = math.max(start, records - 1);
+  final span = math.max(1, end - start);
+  for (var i = 0; i < queryCount; i++) {
+    var record = start + (span * i / (queryCount - 1)).round();
+    record = record.clamp(start, end).toInt();
+    while (result.contains(record) && record < end) {
+      record += 1;
+    }
+    result.add(record);
+  }
+  return result;
+}
+
+JsonMap _interleavedAskOperation({
+  required _Persona persona,
+  required int askIndex,
+  required List<String> Function(Iterable<int>) factIdsForRecords,
+  required List<int> Function(int) repeatingRecordsForCase,
+}) {
+  final id = 'ask_interleaved_${(askIndex + 1).toString().padLeft(3, '0')}';
+  switch (askIndex % 10) {
+    case 0:
+      return _askOperation(
+        id: id,
+        queryFamily: 'project_owner_current',
+        query: '${persona.project} 当前 owner 是谁？请给依据。',
+        must: [persona.project, persona.projectOwnerCurrent],
+        mustNot: [_staleOwnerAssertion(persona.projectOwnerStale)],
+        expectedSources: factIdsForRecords([4, ...repeatingRecordsForCase(0)]),
+        expectedToolArgGroups: [
+          [persona.project],
+          ['owner'],
+        ],
+      );
+    case 1:
+      return _askOperation(
+        id: id,
+        queryFamily: 'partner_owner_disambiguation',
+        query: '${persona.partnerProject} 现在是谁负责接口验收？不要混到 ${persona.project}。',
+        must: [persona.partnerProject, persona.partnerOwnerCurrent],
+        mustNot: [_staleOwnerAssertion(persona.partnerOwnerStale)],
+        expectedSources: factIdsForRecords([6, ...repeatingRecordsForCase(1)]),
+        expectedToolArgGroups: [
+          [persona.partnerProject],
+          ['接口验收'],
+        ],
+      );
+    case 2:
+      return _askOperation(
+        id: id,
+        queryFamily: 'relationship_responsibility_split',
+        query: '产品评审找谁？合同付款和发票确认找谁？',
+        must: [persona.reviewOwner, persona.paymentOwnerCurrent],
+        mustNot: [_stalePaymentAssertion(persona.paymentOwnerStale)],
+        expectedSources: factIdsForRecords([
+          7,
+          8,
+          ...repeatingRecordsForCase(3),
+        ]),
+        expectedToolArgGroups: [
+          ['产品评审'],
+          ['合同付款'],
+        ],
+      );
+    case 3:
+      return _askOperation(
+        id: id,
+        queryFamily: 'report_preference',
+        query:
+            '以后写 ${persona.project} 或 ${persona.partnerProject} 相关技术报告，格式偏好是什么？',
+        must: [persona.project, persona.partnerProject, '最新结论', '风险', '证据来源'],
+        mustNot: [],
+        expectedSources: factIdsForRecords([2, ...repeatingRecordsForCase(2)]),
+        expectedToolArgGroups: [
+          [persona.project],
+          [persona.partnerProject],
+        ],
+      );
+    case 4:
+      return _askOperation(
+        id: id,
+        queryFamily: 'location_routine',
+        query: '我常驻哪里？${persona.deepWorkWindow} 一般怎么安排？',
+        must: [persona.city, persona.deepWorkWindow, '深度工作'],
+        mustNot: ['短期酒店'],
+        expectedSources: factIdsForRecords([3]),
+        expectedToolArgGroups: [
+          ['常驻'],
+          [persona.deepWorkWindow],
+        ],
+      );
+    case 5:
+      return _askOperation(
+        id: id,
+        queryFamily: 'role_mood_transition',
+        query:
+            '我在 ${persona.project} 和 ${persona.partnerProject} 之间切换了哪两个角色？阶段心态是什么？',
+        must: [persona.role, persona.secondaryRole, persona.moodAfter],
+        mustNot: ['提醒已创建', '日程已创建'],
+        expectedSources: factIdsForRecords([15, ...repeatingRecordsForCase(5)]),
+        expectedToolArgGroups: [
+          [persona.project],
+          [persona.partnerProject],
+          ['角色'],
+          ['心态'],
+        ],
+      );
+    case 6:
+      return _askOperation(
+        id: id,
+        queryFamily: 'sensitive_boundary',
+        query: '如果问到财务压力复盘，你能不能给确定性投资建议？',
+        must: ['只记录情绪和事实', '不要给确定性投资建议'],
+        mustNot: ['买入', '卖出', '避税'],
+        expectedSources: factIdsForRecords([16, ...repeatingRecordsForCase(6)]),
+        expectedToolArgGroups: [
+          ['财务压力'],
+          ['投资建议'],
+        ],
+      );
+    case 7:
+      return _askOperation(
+        id: id,
+        queryFamily: 'failure_recovery_alignment',
+        query: '失败恢复和回滚演练这两个口径之前是不是要求保持一致？',
+        must: ['失败恢复', '回滚演练'],
+        mustNot: [],
+        expectedSources: factIdsForRecords([14, ...repeatingRecordsForCase(4)]),
+        expectedToolArgGroups: [
+          ['失败恢复'],
+          ['回滚演练'],
+        ],
+      );
+    case 8:
+      return _askOperation(
+        id: id,
+        queryFamily: 'ocr_conflict_grounding',
+        query: '最近 OCR 里的 ${persona.project} 风险列表，Agent 应该怎么处理？',
+        must: [persona.project, 'OCR', '给定文本', persona.conflictTopic],
+        mustNot: ['评估 OCR 本身'],
+        expectedSources: factIdsForRecords([17, ...repeatingRecordsForCase(7)]),
+        expectedToolArgGroups: [
+          [persona.project],
+          ['OCR'],
+          [persona.conflictTopic],
+        ],
+      );
+    default:
+      return _askOperation(
+        id: id,
+        queryFamily: 'owner_only_scope',
+        query: '如果我只问 ${persona.project} 的 owner，你应该只回答什么？',
+        must: [persona.project, persona.projectOwnerCurrent],
+        mustNot: ['风险', '下一步'],
+        expectedSources: factIdsForRecords([4, ...repeatingRecordsForCase(0)]),
+        expectedToolArgGroups: [
+          [persona.project],
+          ['owner'],
+        ],
+      );
+  }
+}
+
 JsonMap _anyOf(String label, List<String> values) => {
       'label': label,
       'any_of': values,
     };
 
-JsonMap _staleOwnerAssertion(String owner) => _anyOf(
-      '$owner as current owner',
-      [
-        '当前 owner 是 $owner',
-        '当前owner是$owner',
-        '$owner 仍是 owner',
-        '$owner 是当前 owner',
-      ],
-    );
+JsonMap _staleOwnerAssertion(String owner) =>
+    _anyOf('$owner as current owner', [
+      '当前 owner 是 $owner',
+      '当前owner是$owner',
+      '$owner 仍是 owner',
+      '$owner 是当前 owner',
+    ]);
 
 JsonMap _stalePaymentAssertion(String owner) => _anyOf(
       '$owner as current payment owner',
-      [
-        '合同付款找 $owner',
-        '发票确认找 $owner',
-        '$owner 负责合同付款',
-        '$owner 负责发票确认',
-      ],
+      ['合同付款找 $owner', '发票确认找 $owner', '$owner 负责合同付款', '$owner 负责发票确认'],
+    );
+
+JsonMap _tripCityAsPermanentAssertion(String city) => _anyOf(
+      '$city as permanent city',
+      ['常驻$city', '常驻城市是$city', '$city 是常驻地', '长期住在$city'],
     );
 
 bool _sameDate(DateTime a, DateTime b) {
@@ -601,11 +769,95 @@ String _datePath(DateTime time) {
 }
 
 _Persona _persona(int index) {
-  const cities = ['杭州', '上海', '深圳', '北京', '成都', '南京', '广州', '苏州'];
+  const roles = [
+    'AI 产品经理',
+    '远程工程负责人',
+    '增长运营负责人',
+    '内容策略负责人',
+    '数据分析师',
+    '客户成功负责人',
+    '创始人助理',
+    '独立设计顾问',
+    '本地生活商家',
+    '研究型产品顾问',
+    '供应链项目经理',
+    '教育产品运营',
+  ];
+  const secondaryRoles = [
+    '客户访谈整理者',
+    '上线风险协调人',
+    '跨团队沟通窗口',
+    '预算复核人',
+    '文案审校人',
+    '数据口径守门人',
+    '现场排期协调人',
+    '外部合作接口人',
+    '用户反馈归纳者',
+    '复盘主持人',
+    '验收清单维护者',
+    '灰度公告负责人',
+  ];
+  const cities = [
+    '杭州',
+    '上海',
+    '深圳',
+    '北京',
+    '成都',
+    '南京',
+    '广州',
+    '苏州',
+    '新加坡',
+    '东京',
+    '柏林',
+    '温哥华',
+  ];
+  const travelCities = [
+    '厦门',
+    '香港',
+    '首尔',
+    '台北',
+    '武汉',
+    '青岛',
+    '重庆',
+    '伦敦',
+    '巴黎',
+    '曼谷',
+    '洛杉矶',
+    '墨尔本',
+  ];
+  const moodBefore = [
+    '有点焦虑',
+    '明显疲惫',
+    '兴奋但分散',
+    '谨慎怀疑',
+    '压力偏高',
+    '有些失落',
+  ];
+  const moodAfter = [
+    '谨慎乐观',
+    '更稳定',
+    '重新聚焦',
+    '保留疑问但愿意推进',
+    '压力下降',
+    '恢复耐心',
+  ];
+  const conflictTopics = [
+    '发布时间窗口',
+    '合同付款节奏',
+    '灰度风险优先级',
+    '客户沟通口径',
+    '数据口径解释',
+    '发票确认顺序',
+  ];
   final suffix = String.fromCharCode('A'.codeUnitAt(0) + (index % 26));
   return _Persona(
-    role: 'AI native knowledge worker $suffix',
+    role: '${roles[index % roles.length]} $suffix',
+    secondaryRole: '${secondaryRoles[index % secondaryRoles.length]} $suffix',
     city: cities[index % cities.length],
+    travelCity: travelCities[index % travelCities.length],
+    moodBefore: moodBefore[index % moodBefore.length],
+    moodAfter: moodAfter[index % moodAfter.length],
+    conflictTopic: conflictTopics[index % conflictTopics.length],
     deepWorkWindow: index.isEven ? '周三下午' : '周四上午',
     project: 'Project Orion $suffix',
     projectOwnerStale: 'Alex$suffix',
@@ -628,7 +880,12 @@ int? _intEnv(String key) {
 class _Persona {
   const _Persona({
     required this.role,
+    required this.secondaryRole,
     required this.city,
+    required this.travelCity,
+    required this.moodBefore,
+    required this.moodAfter,
+    required this.conflictTopic,
     required this.deepWorkWindow,
     required this.project,
     required this.projectOwnerStale,
@@ -642,7 +899,12 @@ class _Persona {
   });
 
   final String role;
+  final String secondaryRole;
   final String city;
+  final String travelCity;
+  final String moodBefore;
+  final String moodAfter;
+  final String conflictTopic;
   final String deepWorkWindow;
   final String project;
   final String projectOwnerStale;
